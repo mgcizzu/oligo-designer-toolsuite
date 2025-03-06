@@ -9,6 +9,7 @@ import unittest
 import pandas as pd
 from Bio.SeqUtils import MeltingTemp as mt
 from scipy.sparse import csr_matrix
+from scipy.sparse import csr_matrix
 
 from oligo_designer_toolsuite.database import OligoDatabase, OligoAttributes
 from oligo_designer_toolsuite.oligo_efficiency_filter import (
@@ -17,8 +18,8 @@ from oligo_designer_toolsuite.oligo_efficiency_filter import (
 )
 from oligo_designer_toolsuite.oligo_selection import (
     GraphBasedSelectionPolicy,
-    GreedySelectionPolicy,
     HomogeneousPropertyOligoSetGenerator,
+    OligosetGeneratorIndependentSet,
     OligosetGeneratorIndependentSet,
 )
 
@@ -260,9 +261,11 @@ class TestHomogeneousPropertyOligoSetGenerator(unittest.TestCase):
         oligos_database = self.oligoset_generator.apply(
             self.oligo_database, n_sets=2, n_combinations=1000, n_jobs=1
         )
-        
+
         gene_ids = {"PLEKHN1", "MIB2", "UBE2J2", "DVL1", "AGRN", "LOC112268402_1"}
-        assert gene_ids == set(oligos_database.oligosets.keys()), "The calculated oligosets regions are not correct!"
+        assert gene_ids == set(
+            oligos_database.oligosets.keys()
+        ), "The calculated oligosets regions are not correct!"
         for gene in oligos_database.oligosets.keys():
             assert len(oligos_database.oligosets[gene]) == 2, "The number of oligosets is not correct!"
             assert set(oligos_database.oligosets[gene].columns) == {
@@ -279,7 +282,9 @@ class TestHomogeneousPropertyOligoSetGenerator(unittest.TestCase):
 class TestOligoSelectionPolicy(unittest.TestCase):
     def setUp(self):
         self.tmp_path = os.path.join(os.getcwd(), "tmp_oligo_selection")
-        self.region_id = "AGRN" # We only test for one region (this region is small enough for the purposes of the tests)
+        self.region_id = (
+            "AGRN"  # We only test for one region (this region is small enough for the purposes of the tests)
+        )
 
         self.oligo_database = OligoDatabase(
             min_oligos_per_region=2,
@@ -308,7 +313,9 @@ class TestOligoSelectionPolicy(unittest.TestCase):
         # sort oligos by score
         self.oligos_scores.sort_values(ascending=True, inplace=True)
 
-        oligo_generator = OligosetGeneratorIndependentSet(selection_policy=None, oligos_scoring = self.oligo_scoring, set_scoring=self.set_scoring)
+        oligo_generator = OligosetGeneratorIndependentSet(
+            selection_policy=None, oligos_scoring=self.oligo_scoring, set_scoring=self.set_scoring
+        )
         # create the overlapping matrix
         self.non_overlap_matrix, self.non_overlap_matrix_ids = oligo_generator._get_non_overlap_matrix(
             oligo_database=self.oligo_database, region_id=self.region_id
@@ -317,12 +324,8 @@ class TestOligoSelectionPolicy(unittest.TestCase):
     def tearDown(self) -> None:
         shutil.rmtree(self.tmp_path)
 
-
     def test_graph_based_selection_policy(self):
-        selection_policy = GraphBasedSelectionPolicy(
-            set_scoring=self.set_scoring, 
-            pre_filter=True
-        )
+        selection_policy = GraphBasedSelectionPolicy(set_scoring=self.set_scoring, pre_filter=True)
         oligosets = selection_policy.apply(
             oligos_scores=self.oligos_scores,
             non_overlap_matrix=self.non_overlap_matrix,
@@ -332,7 +335,7 @@ class TestOligoSelectionPolicy(unittest.TestCase):
             n_sets=2,
         ).round(3)
 
-        true_oligosets_1 =  pd.DataFrame(
+        true_oligosets_1 = pd.DataFrame(
             {
                 "oligoset_id": [0, 1],
                 "oligo_0": ["AGRN_pid258", "AGRN_pid258"],
@@ -344,7 +347,7 @@ class TestOligoSelectionPolicy(unittest.TestCase):
             }
         )
 
-        true_oligosets_2 =  pd.DataFrame(
+        true_oligosets_2 = pd.DataFrame(
             {
                 "oligoset_id": [0, 1],
                 "oligo_0": ["AGRN_pid258", "AGRN_pid258"],
@@ -358,13 +361,13 @@ class TestOligoSelectionPolicy(unittest.TestCase):
         print(true_oligosets_1.compare(oligosets, keep_shape=False, keep_equal=False))
         print(true_oligosets_2.compare(oligosets, keep_shape=False, keep_equal=False))
 
-        assert true_oligosets_1.equals(oligosets) or true_oligosets_2.equals(oligosets), "The oligosets are not computed correctly!"
+        assert true_oligosets_1.equals(oligosets) or true_oligosets_2.equals(
+            oligosets
+        ), "The oligosets are not computed correctly!"
 
     def test_greedy_selection_policy(self):
         selection_policy = GreedySelectionPolicy(
-            set_scoring=self.set_scoring, 
-            score_criteria=self.set_scoring.score_1, 
-            pre_filter=True
+            set_scoring=self.set_scoring, score_criteria=self.set_scoring.score_1, pre_filter=True
         )
         oligosets = selection_policy.apply(
             oligos_scores=self.oligos_scores,
@@ -374,8 +377,8 @@ class TestOligoSelectionPolicy(unittest.TestCase):
             set_size_min=3,
             n_sets=2,
         ).round(3)
-        
-        true_oligosets_1 =  pd.DataFrame(
+
+        true_oligosets_1 = pd.DataFrame(
             {
                 "oligoset_id": [0, 1],
                 "oligo_0": ["AGRN_pid258", "AGRN_pid261"],
@@ -386,8 +389,8 @@ class TestOligoSelectionPolicy(unittest.TestCase):
                 "set_score_sum": [2.314, 2.428],
             }
         )
-        
-        true_oligosets_2 =  pd.DataFrame(
+
+        true_oligosets_2 = pd.DataFrame(
             {
                 "oligoset_id": [0, 1],
                 "oligo_0": ["AGRN_pid258", "AGRN_pid261"],
@@ -401,6 +404,6 @@ class TestOligoSelectionPolicy(unittest.TestCase):
         print(true_oligosets_1.compare(oligosets, keep_shape=False, keep_equal=False))
         print(true_oligosets_2.compare(oligosets, keep_shape=False, keep_equal=False))
 
-        assert true_oligosets_1.equals(oligosets) or true_oligosets_2.equals(oligosets), "The oligosets are not computed correctly!"
-
-
+        assert true_oligosets_1.equals(oligosets) or true_oligosets_2.equals(
+            oligosets
+        ), "The oligosets are not computed correctly!"
