@@ -72,7 +72,9 @@ class TestOligosetGeneratorIndependentSet(unittest.TestCase):
             write_regions_with_insufficient_oligos=True,
             dir_output=self.tmp_path,
         )
-        self.oligo_database.load_database_from_table(FILE_DATABASE, database_overwrite=True)
+        self.oligo_database.load_database_from_table(
+            FILE_DATABASE, database_overwrite=True, merge_databases_on_sequence_type="oligo"
+        )
 
         self.oligo_scoring = WeightedTmGCOligoScoring(
             Tm_min=52,
@@ -241,7 +243,9 @@ class TestHomogeneousPropertyOligoSetGenerator(unittest.TestCase):
             write_regions_with_insufficient_oligos=True,
             dir_output=self.tmp_path,
         )
-        self.oligo_database.load_database_from_table(FILE_DATABASE, database_overwrite=True)
+        self.oligo_database.load_database_from_table(
+            FILE_DATABASE, database_overwrite=True, merge_databases_on_sequence_type="oligo"
+        )
 
         oligo_attributes = OligoAttributes()
         oligo_database = oligo_attributes.calculate_GC_content(self.oligo_database)
