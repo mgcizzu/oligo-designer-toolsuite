@@ -324,31 +324,28 @@ class HomogeneousPropertyOligoSetGenerator:
         :param n_combinations: The number of random oligo combinations to generate per region (generating all combinations would be ideal but too costly), defaults to 1000.
         :type n_combinations: int, optional
         """
-        oligo_df = pd.DataFrame({"oligo_id": oligo_database.database[region_id].keys()})
-        oligo_df.set_index("oligo_id", inplace=True)
+        oligo_df = oligo_database.get_oligo_attribute_table(
+            attributes=self.properties, flatten=True, region_ids=region_id
+        )
 
         # # check if all properties in self.properties are in oligo_df columns
-        for property_name in self.properties:
-            property_table = oligo_database.get_oligo_attribute_table(
-                attribute=property_name, flatten=True, region_ids=region_id
-            )
-            property_table.set_index("oligo_id", inplace=True)
-
-            if property_table[property_name].isnull().any():
+        for property in self.properties:
+            if oligo_df[property].isnull().any():
                 raise ValueError(
                     f"Property '{property_name}' is not present in oligo database please calculate it first using oligo_designer_toolsuite.OligoAttributes()."
                 )
             else:
                 if not (
-                    pd.api.types.is_integer_dtype(property_table[property_name])
-                    or pd.api.types.is_float_dtype(property_table[property_name])
+                    pd.api.types.is_integer_dtype(oligo_df[property])
+                    or pd.api.types.is_float_dtype(oligo_df[property])
                 ):
                     raise ValueError(
                         f"Property '{property_name}' is not numeric. Cannot use for variance computation."
                     )
-            oligo_df[property_name] = property_table[property_name]
 
-        combinations = self._generate_random_combinations(oligo_df.index.to_list(), self.set_size, n_combinations)
+        combinations = self._generate_random_combinations(
+            oligo_df.index.to_list(), self.set_size, n_combinations
+        )
 
         scored_combinations = [
             self._score_combination(oligo_df, list(combination)) for combination in combinations
