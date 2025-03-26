@@ -50,8 +50,6 @@ class BlastNFilter(SpecificityFilterAlignment):
     The hits returned by BLASTN can be further filtered using machine learning models. For more information regarding which filters are available
     refer to https://github.com/HelmholtzAI-Consultants-Munich/oligo-designer-toolsuite-AI-filters.
 
-    :param sequence_type: The type of sequence to be used for the filter calculations.
-    :type sequence_type: _TYPES_SEQ["oligo", "target"]
     :param remove_hits: If True, oligos overlapping variants are removed. If False, they are flagged.
     :type remove_hits: bool
     :param search_parameters: Parameters to configure the BLAST search.
@@ -68,7 +66,6 @@ class BlastNFilter(SpecificityFilterAlignment):
 
     def __init__(
         self,
-        sequence_type: _TYPES_SEQ,
         remove_hits: bool = True,
         search_parameters: dict = {},
         hit_parameters: dict = {},
@@ -84,7 +81,7 @@ class BlastNFilter(SpecificityFilterAlignment):
         dir_output: str = "output",
     ) -> None:
         """Constructor for the BlastNFilter class."""
-        super().__init__(sequence_type, remove_hits, filter_name, dir_output)
+        super().__init__(remove_hits, filter_name, dir_output)
 
         self.search_parameters = search_parameters
         self.hit_parameters = hit_parameters
@@ -488,8 +485,6 @@ class BlastNSeedregionFilterBase(BlastNFilter):
     - perc_identity: Percent identity cutoff. Default: 0
     All available BlastN search parameters are listed on the NCBI webpage (https://www.ncbi.nlm.nih.gov/books/NBK279684/).
 
-    :param sequence_type: The type of sequence to be used for the filter calculations.
-    :type sequence_type: _TYPES_SEQ["oligo", "target"]
     :param remove_hits: If True, oligos overlapping variants are removed. If False, they are flagged.
     :type remove_hits: bool
     :param search_parameters: Parameters to configure the BLAST search.
@@ -506,7 +501,6 @@ class BlastNSeedregionFilterBase(BlastNFilter):
 
     def __init__(
         self,
-        sequence_type: _TYPES_SEQ,
         remove_hits: bool = True,
         search_parameters: dict = None,
         hit_parameters: dict = None,
@@ -529,7 +523,6 @@ class BlastNSeedregionFilterBase(BlastNFilter):
                 "query_length",
             ]
         super().__init__(
-            sequence_type,
             remove_hits,
             search_parameters,
             hit_parameters,
@@ -647,8 +640,6 @@ class BlastNSeedregionFilter(BlastNSeedregionFilterBase):
     :type seedregion_start: Union[int, float]
     :param seedregion_end: The end position of the seed region within the sequence.
     :type seedregion_end: Union[int, float]
-    :param sequence_type: The type of sequence to be used for the filter calculations.
-    :type sequence_type: _TYPES_SEQ["oligo", "target"]
     :param remove_hits: If True, oligos overlapping variants are removed. If False, they are flagged.
     :type remove_hits: bool
     :param search_parameters: Parameters to configure the BLAST search.
@@ -667,7 +658,6 @@ class BlastNSeedregionFilter(BlastNSeedregionFilterBase):
         self,
         seedregion_start: Union[int, float],
         seedregion_end: Union[int, float],
-        sequence_type: _TYPES_SEQ,
         remove_hits: bool = True,
         search_parameters: dict = None,
         hit_parameters: dict = None,
@@ -690,7 +680,6 @@ class BlastNSeedregionFilter(BlastNSeedregionFilterBase):
                 "query_length",
             ]
         super().__init__(
-            sequence_type,
             remove_hits,
             search_parameters,
             hit_parameters,
@@ -741,12 +730,12 @@ class BlastNSeedregionFilter(BlastNSeedregionFilterBase):
         return search_results
 
 
-class BlastNSeedregionLigationsiteFilter(BlastNSeedregionFilterBase):
+class BlastNSeedregionSiteFilter(BlastNSeedregionFilterBase):
     """
-    A filter class for BLASTN alignment considering seed region and ligation site proximity.
+    A filter class for BLASTN alignment considering seed region and seed region site proximity.
 
-    The `BlastNSeedregionLigationsiteFilter` class extends the `BlastNSeedregionFilterBase` to focus on evaluating oligonucleotide
-    sequences based on their alignment within a specified seed region size, particularly around the ligation site.
+    The `BlastNSeedregionSiteFilter` class extends the `BlastNSeedregionFilterBase` to focus on evaluating oligonucleotide
+    sequences based on their alignment within a specified seed region size, particularly around the seed region site.
     This is useful for ensuring that sequences align in a biologically meaningful region.
 
     Blast (2.12 or higher)  can be installed via NCBI webpage (https://blast.ncbi.nlm.nih.gov/Blast.cgi?PAGE_TYPE=BlastDocs&DOC_TYPE=Download)
@@ -762,10 +751,10 @@ class BlastNSeedregionLigationsiteFilter(BlastNSeedregionFilterBase):
     - perc_identity: Percent identity cutoff. Default: 0
     All available BlastN search parameters are listed on the NCBI webpage (https://www.ncbi.nlm.nih.gov/books/NBK279684/).
 
-    :param seedregion_size: The size of the seed region around the ligation site to consider.
+    :param seedregion_size: The size of the seed region around the seed region site to consider.
     :type seedregion_size: int
-    :param sequence_type: The type of sequence to be used for the filter calculations.
-    :type sequence_type: _TYPES_SEQ["oligo", "target"]
+    :param seedregion_site_name: The attribute name of the seed region site stored in the OligoDatabase.
+    :type seedregion_site_name: str
     :param remove_hits: If True, oligos overlapping variants are removed. If False, they are flagged.
     :type remove_hits: bool
     :param search_parameters: Parameters to configure the BLAST search.
@@ -783,7 +772,7 @@ class BlastNSeedregionLigationsiteFilter(BlastNSeedregionFilterBase):
     def __init__(
         self,
         seedregion_size: int,
-        sequence_type: _TYPES_SEQ,
+        seedregion_site_name: str,
         remove_hits: bool = True,
         search_parameters: dict = {},
         hit_parameters: dict = {},
@@ -798,9 +787,8 @@ class BlastNSeedregionLigationsiteFilter(BlastNSeedregionFilterBase):
         filter_name: str = "blast_filter",
         dir_output: str = "output",
     ) -> None:
-        """Constructor for the BlastNSeedregionLigationsiteFilter class."""
+        """Constructor for the BlastNSeedregionSiteFilter class."""
         super().__init__(
-            sequence_type,
             remove_hits,
             search_parameters,
             hit_parameters,
@@ -809,14 +797,15 @@ class BlastNSeedregionLigationsiteFilter(BlastNSeedregionFilterBase):
             dir_output,
         )
         self.seedregion_size = seedregion_size
+        self.seedregion_site_name = seedregion_site_name
 
     def _add_seed_region_information(
         self, oligo_database: OligoDatabase, search_results: pd.DataFrame, region_id: str
     ) -> pd.DataFrame:
         """
-        Adds seed region information to the BLASTN search results based on the ligation site.
+        Adds seed region information to the BLASTN search results based on the seed region site.
 
-        This method calculates the seed region around the ligation site for each oligonucleotide in the OligoDatabase and
+        This method calculates the seed region around the seed region site for each oligonucleotide in the OligoDatabase and
         merges this information with the BLASTN search results. The seed region is defined by the `seedregion_size` parameter.
 
         :param oligo_database: The OligoDatabase containing the oligonucleotides and their associated attributes.
@@ -829,8 +818,12 @@ class BlastNSeedregionLigationsiteFilter(BlastNSeedregionFilterBase):
         :rtype: pd.DataFrame
         """
         oligo_attributes_calculator = OligoAttributes()
-        oligo_database = oligo_attributes_calculator.calculate_seedregion_ligationsite(
-            oligo_database=oligo_database, region_ids=region_id, seedregion_size=self.seedregion_size
+        oligo_database = oligo_attributes_calculator.calculate_seedregion_site(
+            oligo_database=oligo_database,
+            seedregion_size=self.seedregion_size,
+            seedregion_site_name=self.seedregion_site_name,
+            sequence_type=self.sequence_type,
+            region_ids=region_id,
         )
 
         seedregion = oligo_database.get_oligo_attribute_table(
