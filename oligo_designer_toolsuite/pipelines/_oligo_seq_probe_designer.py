@@ -38,10 +38,10 @@ from oligo_designer_toolsuite.oligo_selection import (
     OligosetGeneratorIndependentSet,
 )
 from oligo_designer_toolsuite.oligo_specificity_filter import (
-    BlastNFilter,
-    BowtieFilter,
     CrossHybridizationFilter,
     ExactMatchFilter,
+    BlastNFilter,
+    BowtieFilter,
     HybridizationProbabilityFilter,
     VariantsFilter,
     RemoveByLargerRegionPolicy,
@@ -779,35 +779,33 @@ class TargetProbeDesigner:
         """
 
         def _get_alignment_method(
-            alignment_method,
-            sequence_type,
-            search_parameters,
-            hit_parameters,
-            filter_name,
+            alignment_method: str,
+            search_parameters: dict,
+            hit_parameters: dict,
+            filter_name: str,
+            dir_output: str,
         ):
             if alignment_method == "blastn":
                 return BlastNFilter(
-                    sequence_type=sequence_type,
                     search_parameters=search_parameters,
                     hit_parameters=hit_parameters,
-                    dir_output=self.dir_output,
                     filter_name=filter_name,
+                    dir_output=dir_output,
                 )
             elif alignment_method == "bowtie":
                 return BowtieFilter(
-                    sequence_type=sequence_type,
                     search_parameters=search_parameters,
-                    dir_output=self.dir_output,
                     filter_name=filter_name,
+                    dir_output=dir_output,
                 )
             else:
                 raise ValueError(f"The alignment method {alignment_method} is not supported.")
 
         ##### define reference database #####
-        reference_database = ReferenceDatabase(
+        reference_database_alignment = ReferenceDatabase(
             database_name=f"{self.subdir_db_reference}_sequences", dir_output=self.dir_output
         )
-        reference_database.load_database_from_file(
+        reference_database_alignment.load_database_from_file(
             files=files_fasta_reference_database, file_type="fasta", database_overwrite=False
         )
 
@@ -818,9 +816,7 @@ class TargetProbeDesigner:
             files=files_vcf_reference_database, file_type="vcf", database_overwrite=False
         )
 
-        ##### specificity filters #####
-        # remove sequences that could cause read length biases because the first
-        # <target_probe_read_length_bias> bases of both sequences match
+        ##### define exact match filter #####
         oligo_database = self.oligo_attributes_calculator.calculate_shortened_sequence(
             oligo_database=oligo_database,
             sequence_length=target_probe_read_length_bias,
@@ -829,26 +825,28 @@ class TargetProbeDesigner:
         )
 
         exact_matches_short = ExactMatchFilter(
-            sequence_type="oligo_short", policy=RemoveAllPolicy(), filter_name="exact_match_read_length_bias"
+            policy=RemoveAllPolicy(), filter_name="exact_match_read_length_bias"
         )
 
-        # removing duplicated oligos from the region with the most oligos
-        # this step can be redundant with the hybridization probability filter
-        # but improves runtime as it pre-filters such sequences
-        exact_matches = ExactMatchFilter(
-            sequence_type="oligo", policy=RemoveAllPolicy(), filter_name="exact_match"
+        ##### run exact match filter #####
+        specificity_filter = SpecificityFilter(filters=[exact_matches_short])
+        oligo_database = specificity_filter.apply(
+            oligo_database=oligo_database,
+            sequence_type="oligo_short",
+            n_jobs=self.n_jobs,
         )
+
+        ##### define specificity filters #####
+        exact_matches = ExactMatchFilter(policy=RemoveAllPolicy(), filter_name="exact_match")
 
         cross_hybridization_aligner = _get_alignment_method(
-            sequence_type="oligo",
             alignment_method=cross_hybridization_alignment_method,
             search_parameters=cross_hybridization_search_parameters,
             hit_parameters=cross_hybridization_hit_parameters,
             filter_name="cross_hybridization_filter",
+            dir_output=self.dir_output,
         )
-        cross_hybridization_aligner.set_reference_database(reference_database=reference_database)
         cross_hybridization = CrossHybridizationFilter(
-            sequence_type="oligo",
             policy=RemoveByLargerRegionPolicy(),
             alignment_method=cross_hybridization_aligner,
             filter_name="cross_hybridization_filter",
@@ -856,13 +854,15 @@ class TargetProbeDesigner:
         )
 
         hybridization_probability_aligner = _get_alignment_method(
-            sequence_type="oligo",
             alignment_method=hybridization_probability_alignment_method,
             search_parameters=hybridization_probability_search_parameters,
             hit_parameters=hybridization_probability_hit_parameters,
             filter_name="hybridization_probability_filter",
+            dir_output=self.dir_output,
         )
-        hybridization_probability_aligner.set_reference_database(reference_database=reference_database)
+        hybridization_probability_aligner.set_reference_database(
+            reference_database=reference_database_alignment
+        )
         hybridization_probability = HybridizationProbabilityFilter(
             alignment_method=hybridization_probability_aligner,
             threshold=hybridization_probability_threshold,
@@ -875,7 +875,6 @@ class TargetProbeDesigner:
 
         # run all filters specified above
         filters = [
-            exact_matches_short,
             exact_matches,
             cross_hybridization,
             hybridization_probability,
@@ -884,6 +883,7 @@ class TargetProbeDesigner:
         specificity_filter = SpecificityFilter(filters=filters)
         oligo_database = specificity_filter.apply(
             oligo_database=oligo_database,
+            sequence_type="oligo",
             n_jobs=self.n_jobs,
         )
 
@@ -974,7 +974,7 @@ class TargetProbeDesigner:
         # We change the processing dependent on the required number of probes in the probe sets
         # For small sets, we don't pre-filter and find the initial set by iterating
         # through all possible generated sets, which is faster than the max clique approximation.
-        if set_size_opt < 15:
+        if set_size_opt < 10:
             pre_filter = False
             clique_init_approximation = False
             selection_policy = GraphBasedSelectionPolicy(
@@ -995,7 +995,7 @@ class TargetProbeDesigner:
 
         # For medium sized sets, we don't pre-filter but we apply the max clique approximation
         # to find an initial probe set faster.
-        elif 15 < set_size_opt < 30:
+        elif 10 < set_size_opt < 30:
             pre_filter = False
             clique_init_approximation = True
             selection_policy = GraphBasedSelectionPolicy(
