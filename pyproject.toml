@@ -54,7 +54,7 @@ dependencies = [
   "networkx",
   "joblib",
   "seqfold",
-  "effidict",
+  "effidict<=0.0.9",
   "joblib_progress",
   "oligo-designer-toolsuite-ai-filters",
   "ipywidgets",
