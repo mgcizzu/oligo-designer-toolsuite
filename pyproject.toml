@@ -19,13 +19,14 @@ dynamic = ["version"]
 authors = [
   { name = "Lisa Barros de Andrade e Sousa" },
   { name = "Isra Mekki" },
+  { name = "Jonas Hagenberg" },
   { name = "Francesco Campi" },
   { name = "Louis Kümmerle" },
   { name = "Chelsea Bright" },
 ]
 maintainers = [
   { name = "Lisa Barros de Andrade e Sousa", email = "lisa.barros.andrade.sousa@gmail.com" },
-  { name = "Isra Mekki", email = "isra.mekki@helmholtz-muenchen.de" },
+  { name = "Jonas Hagenberg", email = "jonas.hagenberg@helmholtz-muenchen.de" },
 ]
 description = "Develop custom oligo design pipelines."
 keywords = [
