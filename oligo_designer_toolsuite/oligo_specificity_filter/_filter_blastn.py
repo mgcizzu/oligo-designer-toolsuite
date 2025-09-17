@@ -17,7 +17,7 @@ from Bio import SeqIO
 
 from oligo_designer_toolsuite._constants import _TYPES_SEQ
 from oligo_designer_toolsuite.database import OligoAttributes, OligoDatabase
-from oligo_designer_toolsuite.oligo_specificity_filter import SpecificityFilterAlignment
+from oligo_designer_toolsuite.oligo_specificity_filter import AlignmentSpecificityFilter
 
 from ..utils._sequence_processor import get_sequence_from_annotation
 
@@ -26,7 +26,7 @@ from ..utils._sequence_processor import get_sequence_from_annotation
 ############################################
 
 
-class BlastNFilter(SpecificityFilterAlignment):
+class BlastNFilter(AlignmentSpecificityFilter):
     """
     A class for filtering oligonucleotide sequences using BLASTN alignments.
 

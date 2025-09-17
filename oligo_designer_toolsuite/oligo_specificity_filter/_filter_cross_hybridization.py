@@ -9,11 +9,11 @@ from typing import List
 from oligo_designer_toolsuite._constants import _TYPES_SEQ
 from oligo_designer_toolsuite.database import OligoDatabase, ReferenceDatabase
 from oligo_designer_toolsuite.oligo_specificity_filter import (
-    SpecificityFilterBase,
-    SpecificityFilterAlignment,
+    BaseSpecificityFilter,
+    AlignmentSpecificityFilter,
 )
 
-from ._policies import FilterPolicyBase
+from ._policies import BaseFilterPolicy
 from oligo_designer_toolsuite.utils import FastaParser
 
 
@@ -22,7 +22,7 @@ from oligo_designer_toolsuite.utils import FastaParser
 ############################################
 
 
-class CrossHybridizationFilter(SpecificityFilterBase):
+class CrossHybridizationFilter(BaseSpecificityFilter):
     """
     A filter class designed to identify and filter out oligonucleotides that are likely to cross-hybridize with other sequences in the OligoDatabase.
 
@@ -31,9 +31,9 @@ class CrossHybridizationFilter(SpecificityFilterBase):
     The filter removes sequences that show potential cross-hybridization, based on the provided filtering policy.
 
     :param policy: The policy that defines how to handle oligonucleotides that meet or violate the cross-hybridization criteria.
-    :type policy: FilterPolicyBase
+    :type policy: BaseFilterPolicy
     :param alignment_method: The alignment method used to identify potential cross-hybridization with reference sequences (i.e. OligoDatabase sequences).
-    :type alignment_method: SpecificityFilterAlignment
+    :type alignment_method: AlignmentSpecificityFilter
     :param filter_name: Name of the filter for identification purposes.
     :type filter_name: str
     :param dir_output: Directory to store output files and temporary data.
@@ -42,8 +42,8 @@ class CrossHybridizationFilter(SpecificityFilterBase):
 
     def __init__(
         self,
-        policy: FilterPolicyBase,
-        alignment_method: SpecificityFilterAlignment,
+        policy: BaseFilterPolicy,
+        alignment_method: AlignmentSpecificityFilter,
         sequence_type_reference: _TYPES_SEQ = None,
         filter_name: str = "cross_hybridization_filter",
         dir_output: str = "output",
