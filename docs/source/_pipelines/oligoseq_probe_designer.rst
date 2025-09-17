@@ -144,8 +144,6 @@ Probes with a hybridization probability greater than the user-defined trheshold 
 
 In the third step of the pipeline, the best sets of non-overlapping probes are identified for each gene.
 The ``OligosetGeneratorIndependentSet`` class is used to generate ranked, non-overlapping probe sets where each probe and probe set is scored according to a protocol dependent scoring function, i.e. by weighted GC content and melting temperature score, of the probes in the set.
-In the third step of the pipeline, the best sets of non-overlapping probes are identified for each gene.
-The ``OligosetGeneratorIndependentSet`` class is used to generate ranked, non-overlapping probe sets where each probe and probe set is scored according to a protocol dependent scoring function, i.e. by weighted GC content and melting temperature score, of the probes in the set.
 Following this step all genes with insufficient number of probes (user-defined) are removed from the database and stored in a separate file for user-inspection.
 
 In the last step of the pipeline, the ready-to-order probe sequences are reported for the best non-overlapping sets of each gene.

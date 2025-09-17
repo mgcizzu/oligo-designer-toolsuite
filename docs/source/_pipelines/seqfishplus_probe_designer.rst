@@ -206,17 +206,8 @@ Those off-target regions are identified with the ``BlastNFilter`` that removes p
 
 In the third step of the pipeline, the best sets of non-overlapping probes are identified for each gene.
 The ``OligosetGeneratorIndependentSet`` class is used to generate ranked, non-overlapping probe sets where each probe and probe set is scored according to a protocol dependent scoring function, i.e. by the distance to the optimal melting temperature penalized if located in a 5’ UTR of the probes in the set.
-In the third step of the pipeline, the best sets of non-overlapping probes are identified for each gene.
-The ``OligosetGeneratorIndependentSet`` class is used to generate ranked, non-overlapping probe sets where each probe and probe set is scored according to a protocol dependent scoring function, i.e. by the distance to the optimal melting temperature penalized if located in a 5’ UTR of the probes in the set.
 Following this step all genes with insufficient number of probes (user-defined) are removed from the database and stored in a separate file for user-inspection.
 
-In the last step of the pipeline, the ready-to-order probe sequences containing all additional required sequences are designed for the best non-overlapping sets of each gene.
-For the SeqFISH+ protocol, four readout sequences are added to the probe, creating the encoding probes.
-A pool of readout probe sequences is created from random sequences with user-defined per base probability that have a GC content (``GCContentFilter``) within a user-specified range and no homopolymeric runs of three or more G nucleotides (``HomopolymericRunsFilter``).
-Additionally, the readout probes are checked for off-target binding (``BlastNFilter``) against the transcriptome and cross-hybridization (``CrossHybridizationFilter``) against other readout probe sequences where hits are removed with the ``RemoveByDegreePolicy`` that iteratively removes readout probes with the highest number of hits against other readout probes.
-The readout probes are assigned to the probes according to a protocol-specific encoding scheme described in Eng et al. [3].
-In addition, one forward and one reverse primer is provided.
-The reverse primer is the 20nt T7 promoter sequence (TAATACGACTCACTATAGGG) and the forward primer is created from a random sequence with user-defined per base probability that fulfills the following criteria: GC content (``GCContentFilter``) and melting temperature (``MeltingTemperatureNNFilter``) within a user-specified range, CG clamp at 3’ terminal end of the sequence (``GCClampFilter``), no homopolymeric runs of any nucleotide longer than a user-specified threshold (``HomopolymericRunsFilter``), no  secondary structures below a user-defined free energy threshold (``SecondaryStructureFilter``).
 In the last step of the pipeline, the ready-to-order probe sequences containing all additional required sequences are designed for the best non-overlapping sets of each gene.
 For the SeqFISH+ protocol, four readout sequences are added to the probe, creating the encoding probes.
 A pool of readout probe sequences is created from random sequences with user-defined per base probability that have a GC content (``GCContentFilter``) within a user-specified range and no homopolymeric runs of three or more G nucleotides (``HomopolymericRunsFilter``).
