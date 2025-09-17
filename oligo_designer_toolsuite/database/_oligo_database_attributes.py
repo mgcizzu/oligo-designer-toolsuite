@@ -179,6 +179,16 @@ class OligoAttributes:
 
     @staticmethod
     def _calc_split_sequence(sequence: str, split_start_end: list) -> List[str]:
+        """
+        Extracts sub-sequences from a given sequence using a list of (start, end) index pairs.
+
+        :param sequence: The full sequence string to be split.
+        :type sequence: str
+        :param split_start_end: A list of tuples indicating start and end indices for each subsequence.
+        :type split_start_end: list
+        :return: List of sub-sequences extracted from the input sequence.
+        :rtype: List[str]
+        """
         split_sequences = []
         for start_end in split_start_end:
             split_sequences.append(sequence[start_end[0] : start_end[1]])
@@ -193,7 +203,23 @@ class OligoAttributes:
         sequence_type: _TYPES_SEQ,
         region_ids: Union[str, List[str]] = None,
     ) -> OligoDatabase:
+        """
+        Splits each sequence in the oligo database into sub-sequences based on the given start-end index pairs
+        and assigns them to specified attribute names.
 
+        :param oligo_database: The OligoDatabase containing the oligonucleotides and their associated attributes.
+        :type oligo_database: OligoDatabase
+        :param split_start_end: A list of tuples indicating (start, end) indices for sequence splitting.
+        :type split_start_end: List[tuple]
+        :param split_names: A list of names to assign to each of the split sequence segments.
+        :type split_names: List[str]
+        :param sequence_type: The type of sequence to be used for attribute calculation.
+        :type sequence_type: _TYPES_SEQ["oligo", "target"]
+        :param region_ids: List of region IDs to process. If None, all regions in the database are processed, defaults to None.
+        :type region_ids: Union[str, List[str]], optional
+        :return: The updated OligoDatabase with the calculated attribute.
+        :rtype: OligoDatabase
+        """
         if len(split_start_end) != len(split_names):
             raise ValueError(
                 "{len(split_names)} names given for {len(split_lengths)} split sequences. Must give name for each split sequence."
