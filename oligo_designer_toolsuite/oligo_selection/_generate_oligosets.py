@@ -16,7 +16,7 @@ from scipy.sparse import csr_matrix, lil_matrix
 from oligo_designer_toolsuite._constants import _TYPES_SEQ
 from oligo_designer_toolsuite.database import OligoDatabase
 from oligo_designer_toolsuite.oligo_efficiency_filter import (
-    OligoScoringBase,
+    OligoScoring,
     SetScoringBase,
 )
 
@@ -36,7 +36,7 @@ class OligosetGeneratorIndependentSet:
     :param selection_policy: Policy used to select oligos for the set based on predefined criteria.
     :type selection_policy: OligoSelectionPolicy
     :param oligos_scoring: Scoring function used to evaluate individual oligos in the selection process.
-    :type oligos_scoring: OligoScoringBase
+    :type oligos_scoring: OligoScoring
     :param set_scoring: Scoring function used to evaluate the overall quality of each oligo set.
     :type set_scoring: SetScoringBase
     :param max_oligos: Maximum number of oligos to include in the set optimizatoin process. If None, there is no limit on the number of oligos.
@@ -48,7 +48,7 @@ class OligosetGeneratorIndependentSet:
     def __init__(
         self,
         selection_policy: OligoSelectionPolicy,
-        oligos_scoring: OligoScoringBase,
+        oligos_scoring: OligoScoring,
         set_scoring: SetScoringBase,
         max_oligos: int = None,
         distance_between_oligos: int = 0,
