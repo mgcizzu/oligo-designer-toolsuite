@@ -5,14 +5,14 @@
 from Bio.SeqUtils import Seq
 
 from oligo_designer_toolsuite.database import OligoAttributes
-from oligo_designer_toolsuite.oligo_property_filter import PropertyFilterBase
+from oligo_designer_toolsuite.oligo_property_filter import BasePropertyFilter
 
 ############################################
 # Padlock Filter Classes
 ############################################
 
 
-class PadlockArmsFilter(PropertyFilterBase):
+class PadlockArmsFilter(BasePropertyFilter):
     """
     A filter class for evaluating the suitability of padlock probe arms based on specific thermodynamic criteria.
 
@@ -90,7 +90,7 @@ class PadlockArmsFilter(PropertyFilterBase):
             return False
 
 
-class DetectionOligoFilter(PropertyFilterBase):
+class DetectionOligoFilter(BasePropertyFilter):
     """
     A filter class for evaluating the suitability of detection oligonucleotides based on specific length, thymine content, and thermodynamic criteria.
 
