@@ -7,7 +7,7 @@ from typing import List, Union
 from Bio.SeqUtils import Seq
 
 from oligo_designer_toolsuite.database import OligoAttributes
-from oligo_designer_toolsuite.oligo_property_filter import PropertyFilterBase
+from oligo_designer_toolsuite.oligo_property_filter import BasePropertyFilter
 
 from ..utils._checkers_and_helpers import check_if_dna_sequence
 
@@ -16,7 +16,7 @@ from ..utils._checkers_and_helpers import check_if_dna_sequence
 ############################################
 
 
-class SoftMaskedSequenceFilter(PropertyFilterBase):
+class SoftMaskedSequenceFilter(BasePropertyFilter):
     """
     A filter class to check for the presence of soft-masked sequences.
 
@@ -45,7 +45,7 @@ class SoftMaskedSequenceFilter(PropertyFilterBase):
         return True
 
 
-class HardMaskedSequenceFilter(PropertyFilterBase):
+class HardMaskedSequenceFilter(BasePropertyFilter):
     """
     A filter class to check for the presence of hard-masked sequences.
 
@@ -78,7 +78,7 @@ class HardMaskedSequenceFilter(PropertyFilterBase):
         return True
 
 
-class ProhibitedSequenceFilter(PropertyFilterBase):
+class ProhibitedSequenceFilter(BasePropertyFilter):
     """
     A filter class for identifying and excluding sequences that contain specific prohibited subsequences.
 
@@ -118,7 +118,7 @@ class ProhibitedSequenceFilter(PropertyFilterBase):
         return True
 
 
-class HomopolymericRunsFilter(PropertyFilterBase):
+class HomopolymericRunsFilter(BasePropertyFilter):
     """
     A filter class for excluding sequences containing homopolymeric runs of specified nucleotides.
 
@@ -158,7 +158,7 @@ class HomopolymericRunsFilter(PropertyFilterBase):
         return True
 
 
-class FivePrimeSequenceFilter(PropertyFilterBase):
+class FivePrimeSequenceFilter(BasePropertyFilter):
     """
     A filter class for identifying or removing sequences based on a specified 5' (five prime) sequence.
 
@@ -200,7 +200,7 @@ class FivePrimeSequenceFilter(PropertyFilterBase):
             return False
 
 
-class ThreePrimeSequenceFilter(PropertyFilterBase):
+class ThreePrimeSequenceFilter(BasePropertyFilter):
     """
     A filter class for identifying or removing sequences based on a specified 3' (three prime) sequence.
 
@@ -241,7 +241,7 @@ class ThreePrimeSequenceFilter(PropertyFilterBase):
             return False
 
 
-class GCContentFilter(PropertyFilterBase):
+class GCContentFilter(BasePropertyFilter):
     """
     A filter class for evaluating sequences based on their GC content.
 
@@ -279,7 +279,7 @@ class GCContentFilter(PropertyFilterBase):
         return False
 
 
-class GCClampFilter(PropertyFilterBase):
+class GCClampFilter(BasePropertyFilter):
     """
     A filter class that checks for the presence of a GC clamp at the 3' end of a sequence.
 
@@ -318,7 +318,7 @@ class GCClampFilter(PropertyFilterBase):
         return False
 
 
-class MeltingTemperatureNNFilter(PropertyFilterBase):
+class MeltingTemperatureNNFilter(BasePropertyFilter):
     """
     A filter class that evaluates sequences based on their melting temperature (Tm) using the nearest-neighbor thermodynamic model.
 
@@ -383,7 +383,7 @@ class MeltingTemperatureNNFilter(PropertyFilterBase):
         return False
 
 
-class SelfComplementFilter(PropertyFilterBase):
+class SelfComplementFilter(BasePropertyFilter):
     """
     A filter class for detecting and excluding self-complementary DNA sequences.
 
@@ -416,7 +416,7 @@ class SelfComplementFilter(PropertyFilterBase):
         return False
 
 
-class ComplementFilter(PropertyFilterBase):
+class ComplementFilter(BasePropertyFilter):
     """
     A filter class for detecting and excluding sequences based on their complementarity to a comparison sequence.
 
@@ -452,7 +452,7 @@ class ComplementFilter(PropertyFilterBase):
         return False
 
 
-class SecondaryStructureFilter(PropertyFilterBase):
+class SecondaryStructureFilter(BasePropertyFilter):
     """
     A filter class for excluding sequences based on their secondary structure free energy (ΔG).
 
