@@ -22,6 +22,7 @@ from oligo_designer_toolsuite.utils import (
     CustomYamlDumper,
     FastaParser,
     check_if_list,
+    check_if_list_of_lists,
     check_if_region_in_database,
     check_tsv_format,
     collapse_attributes_for_duplicated_sequences,
@@ -689,6 +690,12 @@ class OligoDatabase:
                     for attribute in attributes:
                         if attribute in self.database[region_id][oligo_id]:
                             oligo_attribute = self.database[region_id][oligo_id][attribute]
+                            if oligo_attribute:
+                                if (
+                                    sum(len(sublist) for sublist in check_if_list_of_lists(oligo_attribute))
+                                    == 1
+                                ):
+                                    oligo_attribute = flatten_attribute_list(oligo_attribute)
                             yaml_dict_oligo_entry[attribute] = oligo_attribute
 
                     oligo_id_yaml = f"Oligo {oligo_idx + 1}"
@@ -774,16 +781,20 @@ class OligoDatabase:
 
         return region_ids
 
-    def get_oligoid_list(self) -> list[str]:
+    def get_oligoid_list(self, region_ids: Union[str, List[str]] = None) -> list[str]:
         """
-        Retrieves a list of all oligo IDs present in the database.
+        Retrieves a list of all oligo IDs present in the database for a specific region or all regions in the database.
 
+        :param region_ids: List of region IDs to retrieve. If None, all regions in the database are retrieved, defaults to None.
+        :type region_ids: Union[str, List[str]], optional
         :return: A list of oligo IDs from all regions in the database.
         :rtype: list[str]
         """
-        oligo_ids = [
-            oligo_id for database_region in self.database.values() for oligo_id in database_region.keys()
-        ]
+        if region_ids:
+            region_ids = check_if_list(region_ids)
+        else:
+            region_ids = list(self.database.keys())
+        oligo_ids = [oligo_id for region_id in region_ids for oligo_id in self.database[region_id].keys()]
 
         return oligo_ids
 
