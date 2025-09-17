@@ -15,18 +15,18 @@ from oligo_designer_toolsuite.database import OligoDatabase
 ############################################
 
 
-class FilterPolicyBase(ABC):
+class BaseFilterPolicy(ABC):
     """
     An abstract base class for defining filter policies used in specficity filters.
 
-    The `FilterPolicyBase` class provides the foundational structure for creating custom filtering policies
+    The `BaseFilterPolicy` class provides the foundational structure for creating custom filtering policies
     that dictate how oligonucleotide hits are processed and filtered in an OligoDatabase.
     It includes essential methods for applying the filter and utility functions for managing and organizing oligos by region.
 
     """
 
     def __init__(self) -> None:
-        """Constructor for the FilterPolicyBase class."""
+        """Constructor for the BaseFilterPolicy class."""
 
     @abstractmethod
     def apply(self, oligo_pair_hits: pd.DataFrame, oligo_database: OligoDatabase) -> dict:
@@ -64,16 +64,16 @@ class FilterPolicyBase(ABC):
         return {region: len(oligo_database.database[region]) for region in oligo_database.database.keys()}
 
 
-class RemoveAllPolicy(FilterPolicyBase):
+class RemoveAllFilterPolicy(BaseFilterPolicy):
     """
     A filter policy that removes all oligonucleotides involved in any hits.
 
-    The `RemoveAllPolicy` class identifies all oligonucleotides involved in a hit pair and removes them from the database.
+    The `RemoveAllFilterPolicy` class identifies all oligonucleotides involved in a hit pair and removes them from the database.
     This policy ensures that any oligos associated with potential hybridization or other conflicts are excluded from further analysis.
     """
 
     def __init__(self) -> None:
-        """Constructor for the RemoveAllPolicy class."""
+        """Constructor for the RemoveAllFilterPolicy class."""
 
     def apply(self, oligo_pair_hits: pd.DataFrame, oligo_database: OligoDatabase) -> dict:
         """
@@ -106,16 +106,16 @@ class RemoveAllPolicy(FilterPolicyBase):
         return oligos_with_hits
 
 
-class RemoveByLargerRegionPolicy(FilterPolicyBase):
+class RemoveByLargerRegionFilterPolicy(BaseFilterPolicy):
     """
     A filter policy class that removes oligonucleotides based on the number of oligos attributed to the region they belong to.
 
-    The `RemoveByLargerRegionPolicy` class applies a filtering strategy where oligonucleotides involved in cross-region hits are
+    The `RemoveByLargerRegionFilterPolicy` class applies a filtering strategy where oligonucleotides involved in cross-region hits are
     removed based on the number of oligos in their respective regions. The oligo from the larger region (with more oligos) is removed first.
     """
 
     def __init__(self) -> None:
-        """Constructor for the RemoveByLargerRegionPolicy class."""
+        """Constructor for the RemoveByLargerRegionFilterPolicy class."""
 
     def apply(self, oligo_pair_hits: pd.DataFrame, oligo_database: OligoDatabase) -> dict:
         """
@@ -151,17 +151,17 @@ class RemoveByLargerRegionPolicy(FilterPolicyBase):
         return oligos_with_hits
 
 
-class RemoveByDegreePolicy(FilterPolicyBase):
+class RemoveByDegreeFilterPolicy(BaseFilterPolicy):
     """
     A filtering policy that removes oligonucleotides based on their connectivity within a graph of oligo pair hits.
 
-    The `RemoveByDegreePolicy` class is designed to eliminate oligonucleotides that are most connected (i.e., those with the highest degree)
+    The `RemoveByDegreeFilterPolicy` class is designed to eliminate oligonucleotides that are most connected (i.e., those with the highest degree)
     within a graph of oligo pair hits. This approach aims to reduce the potential for hybridization by iteratively removing the most problematic
     sequences until no hybridization edges remain in the graph.
     """
 
     def __init__(self) -> None:
-        """Constructor for the RemoveByDegreePolicy class."""
+        """Constructor for the RemoveByDegreeFilterPolicy class."""
 
     def apply(self, oligo_pair_hits: pd.DataFrame, oligo_database: OligoDatabase) -> dict:
         """

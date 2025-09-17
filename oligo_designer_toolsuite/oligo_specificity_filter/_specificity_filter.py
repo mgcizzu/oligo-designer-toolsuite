@@ -6,7 +6,7 @@ from typing import get_args
 
 from oligo_designer_toolsuite._constants import _TYPES_SEQ
 from oligo_designer_toolsuite.database import OligoDatabase
-from oligo_designer_toolsuite.oligo_specificity_filter import SpecificityFilterBase
+from oligo_designer_toolsuite.oligo_specificity_filter import BaseSpecificityFilter
 
 ############################################
 # Specificity Filter Classe
@@ -21,13 +21,13 @@ class SpecificityFilter:
     the suitability of oligonucleotides based on their sequence specificity. This allows for the sequential application
     of various filtering methods to refine the OligoDatabase according to specificity requirements.
 
-    :param filters: A list of filters, each inheriting from the `SpecificityFilterBase`, that will be applied to the OligoDatabase.
-    :type filters: list[SpecificityFilterBase]
+    :param filters: A list of filters, each inheriting from the `BaseSpecificityFilter`, that will be applied to the OligoDatabase.
+    :type filters: list[BaseSpecificityFilter]
     """
 
     def __init__(
         self,
-        filters: list[SpecificityFilterBase],
+        filters: list[BaseSpecificityFilter],
     ) -> None:
         """Constructor for the SpecificityFilter class."""
         self.filters = filters

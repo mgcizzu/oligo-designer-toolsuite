@@ -11,7 +11,7 @@ from Bio import SeqIO
 
 from oligo_designer_toolsuite._constants import _TYPES_SEQ
 from oligo_designer_toolsuite.database import OligoDatabase
-from oligo_designer_toolsuite.oligo_specificity_filter import SpecificityFilterAlignment
+from oligo_designer_toolsuite.oligo_specificity_filter import AlignmentSpecificityFilter
 
 from ..utils._sequence_processor import get_sequence_from_annotation
 
@@ -20,7 +20,7 @@ from ..utils._sequence_processor import get_sequence_from_annotation
 ############################################
 
 
-class BowtieFilter(SpecificityFilterAlignment):
+class BowtieFilter(AlignmentSpecificityFilter):
     """
     A filter class that uses Bowtie for sequence alignment and filtering.
 
@@ -288,7 +288,7 @@ class BowtieFilter(SpecificityFilterAlignment):
 ############################################
 
 
-class Bowtie2Filter(SpecificityFilterAlignment):
+class Bowtie2Filter(AlignmentSpecificityFilter):
     """
     A filter class that utilizes Bowtie2 for alignment-based specificity filtering.
 
