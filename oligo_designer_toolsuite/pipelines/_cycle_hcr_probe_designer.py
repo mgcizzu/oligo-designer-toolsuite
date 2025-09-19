@@ -26,7 +26,9 @@ from oligo_designer_toolsuite.database import (
 )
 from oligo_designer_toolsuite.oligo_efficiency_filter import (
     AverageSetScoring,
-    WeightedIsoformTmScoring,
+    IsoformConsensusScorer,
+    DeviationFromOptimalTmScorer,
+    OligoScoring,
 )
 from oligo_designer_toolsuite.oligo_property_filter import (
     SoftMaskedSequenceFilter,
@@ -47,8 +49,8 @@ from oligo_designer_toolsuite.oligo_specificity_filter import (
     BlastNSeedregionSiteFilter,
     CrossHybridizationFilter,
     ExactMatchFilter,
-    RemoveByLargerRegionPolicy,
-    RemoveAllPolicy,
+    RemoveByLargerRegionFilterPolicy,
+    RemoveAllFilterPolicy,
     SpecificityFilter,
 )
 from oligo_designer_toolsuite.pipelines._utils import (
@@ -739,7 +741,7 @@ class TargetProbeDesigner:
         )
 
         ##### define specificity filters #####
-        exact_matches = ExactMatchFilter(policy=RemoveAllPolicy(), filter_name="oligo_exact_match")
+        exact_matches = ExactMatchFilter(policy=RemoveAllFilterPolicy(), filter_name="oligo_exact_match")
 
         if junction_region_size > 0:
             oligo_ids = oligo_database.get_oligoid_list()
@@ -780,7 +782,7 @@ class TargetProbeDesigner:
             dir_output=self.dir_output,
         )
         cross_hybridization_oligo_pair_L = CrossHybridizationFilter(
-            policy=RemoveByLargerRegionPolicy(),
+            policy=RemoveByLargerRegionFilterPolicy(),
             alignment_method=cross_hybridization_aligner_oligo_pair_L,
             sequence_type_reference="oligo_pair_L",
             filter_name="blastn_crosshybridization",
@@ -794,7 +796,7 @@ class TargetProbeDesigner:
             dir_output=self.dir_output,
         )
         cross_hybridization_oligo_pair_R = CrossHybridizationFilter(
-            policy=RemoveByLargerRegionPolicy(),
+            policy=RemoveByLargerRegionFilterPolicy(),
             alignment_method=cross_hybridization_aligner_oligo_pair_R,
             sequence_type_reference="oligo_pair_R",
             filter_name="blastn_crosshybridization",
@@ -848,6 +850,18 @@ class TargetProbeDesigner:
         heuristic: bool,
         heuristic_n_attempts: int,
     ) -> Tuple[OligoDatabase, str, str]:
+
+        # Define all scorers
+        isoform_consensus_scorer = IsoformConsensusScorer(normalize=True, score_weight=isoform_weight)
+        Tm_scorer = DeviationFromOptimalTmScorer(
+            Tm_opt=Tm_max,
+            Tm_parameters=Tm_parameters,
+            Tm_salt_correction_parameters=Tm_salt_correction_parameters,
+            Tm_chem_correction_parameters=Tm_chem_correction_parameters,
+            score_weight=Tm_weight,
+        )
+
+        oligos_scoring = OligoScoring(scorers=[isoform_consensus_scorer, Tm_scorer])
 
         # the higher the score the better, because we want to have on average oligos with high melting temperatures
         set_scoring = AverageSetScoring(ascending=False)
@@ -908,15 +922,6 @@ class TargetProbeDesigner:
                 n_attempts=n_attempts,
             )
             base_log_parameters({"pre_filter": pre_filter, "selection_policy": "Greedy"})
-
-        oligos_scoring = WeightedIsoformTmScoring(
-            Tm_content_opt=Tm_max,
-            Tm_weight=Tm_weight,
-            isoform_weight=isoform_weight,
-            Tm_parameters=Tm_parameters,
-            Tm_chem_correction_parameters=Tm_chem_correction_parameters,
-            Tm_salt_correction_parameters=Tm_salt_correction_parameters,
-        )
 
         probeset_generator = OligosetGeneratorIndependentSet(
             selection_policy=selection_policy,
