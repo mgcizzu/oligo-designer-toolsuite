@@ -30,6 +30,9 @@ CONFIG_SEQFISHPLUS_PROBE_DESIGNER = "data/configs/seqfish_plus_probe_designer.ya
 SCRIPT_MERFISH_PROBE_DESIGNER = "oligo_designer_toolsuite/pipelines/_merfish_probe_designer.py"
 CONFIG_MERFISH_PROBE_DESIGNER = "data/configs/merfish_probe_designer.yaml"
 
+SCRIPT_CYCLEHCR_PROBE_DESIGNER = "oligo_designer_toolsuite/pipelines/_cycle_hcr_probe_designer.py"
+CONFIG_CYCLEHCR_PROBE_DESIGNER = "data/configs/cycle_hcr_probe_designer.yaml"
+
 ############################################
 # Tests
 ############################################
@@ -138,3 +141,16 @@ class TestMerfishProbeDesigner(PipelinesBase, unittest.TestCase):
 
     def setup_cmd_parameters(self):
         return f"-c{os.path.abspath(CONFIG_MERFISH_PROBE_DESIGNER)}"
+
+
+class TestCycleHCRProbeDesigner(PipelinesBase, unittest.TestCase):
+    def setup_output_dir(self):
+        with open(CONFIG_CYCLEHCR_PROBE_DESIGNER, "r") as handle:
+            config = yaml.safe_load(handle)
+        return os.path.abspath(config["dir_output"])
+
+    def setup_script(self):
+        return os.path.abspath(SCRIPT_CYCLEHCR_PROBE_DESIGNER)
+
+    def setup_cmd_parameters(self):
+        return f"-c{os.path.abspath(CONFIG_CYCLEHCR_PROBE_DESIGNER)}"

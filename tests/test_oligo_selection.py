@@ -12,12 +12,16 @@ from scipy.sparse import csr_matrix
 from scipy.sparse import csr_matrix
 
 from oligo_designer_toolsuite.database import OligoDatabase, OligoAttributes
+from oligo_designer_toolsuite.database import OligoDatabase, OligoAttributes
 from oligo_designer_toolsuite.oligo_efficiency_filter import (
     LowestSetScoring,
-    WeightedTmGCOligoScoring,
+    NormalizedDeviationFromOptimalTmScorer,
+    NormalizedDeviationFromOptimalGCContentScorer,
+    OligoScoring,
 )
 from oligo_designer_toolsuite.oligo_selection import (
     GraphBasedSelectionPolicy,
+    GreedySelectionPolicy,
     HomogeneousPropertyOligoSetGenerator,
     OligosetGeneratorIndependentSet,
     OligosetGeneratorIndependentSet,
@@ -76,16 +80,23 @@ class TestOligosetGeneratorIndependentSet(unittest.TestCase):
             FILE_DATABASE, database_overwrite=True, merge_databases_on_sequence_type="oligo"
         )
 
-        self.oligo_scoring = WeightedTmGCOligoScoring(
+        Tm_scorer = NormalizedDeviationFromOptimalTmScorer(
             Tm_min=52,
             Tm_opt=60,
             Tm_max=67,
+            Tm_parameters=TM_PARAMETERS,
+            Tm_chem_correction_parameters=TM_PARAMETERS_CHEM_CORR,
+            Tm_salt_correction_parameters=None,
+            score_weight=1,
+        )
+        GC_scorer = NormalizedDeviationFromOptimalGCContentScorer(
             GC_content_min=40,
             GC_content_opt=50,
             GC_content_max=60,
-            Tm_parameters=TM_PARAMETERS,
-            Tm_chem_correction_parameters=TM_PARAMETERS_CHEM_CORR,
+            score_weight=1,
         )
+        self.oligo_scoring = OligoScoring(scorers=[Tm_scorer, GC_scorer])
+
         self.set_scoring = LowestSetScoring(ascending=True)
         self.selection_policy = GraphBasedSelectionPolicy(
             set_scoring=self.set_scoring,
@@ -182,6 +193,8 @@ class TestOligosetGeneratorIndependentSet(unittest.TestCase):
 
             computed_sets.sort_values(by=list(computed_sets.columns), inplace=True)
             computed_sets.reset_index(inplace=True, drop=True)
+            print(computed_sets)
+            print(true_sets)
 
             assert true_sets.equals(computed_sets), f"Sets for {gene} are not computed correctly!"
 
@@ -253,7 +266,7 @@ class TestHomogeneousPropertyOligoSetGenerator(unittest.TestCase):
 
         self.oligoset_generator = HomogeneousPropertyOligoSetGenerator(
             set_size=5,
-            properties={"GC_content": 1, "TmNN": 1},
+            properties={"GC_content_oligo": 1, "TmNN_oligo": 1},
         )
 
     def tearDown(self) -> None:
@@ -295,19 +308,28 @@ class TestOligoSelectionPolicy(unittest.TestCase):
             write_regions_with_insufficient_oligos=True,
             dir_output=self.tmp_path,
         )
-        self.oligo_database.load_database_from_table(FILE_DATABASE, database_overwrite=True)
+        self.oligo_database.load_database_from_table(
+            FILE_DATABASE, database_overwrite=True, merge_databases_on_sequence_type="oligo"
+        )
         self.set_scoring = LowestSetScoring(ascending=True)
 
-        self.oligo_scoring = WeightedTmGCOligoScoring(
+        Tm_scorer = NormalizedDeviationFromOptimalTmScorer(
             Tm_min=52,
             Tm_opt=60,
             Tm_max=67,
+            Tm_parameters=TM_PARAMETERS,
+            Tm_chem_correction_parameters=TM_PARAMETERS_CHEM_CORR,
+            Tm_salt_correction_parameters=None,
+            score_weight=1,
+        )
+        GC_scorer = NormalizedDeviationFromOptimalGCContentScorer(
             GC_content_min=40,
             GC_content_opt=50,
             GC_content_max=60,
-            Tm_parameters=TM_PARAMETERS,
-            Tm_chem_correction_parameters=TM_PARAMETERS_CHEM_CORR,
+            score_weight=1,
         )
+        self.oligo_scoring = OligoScoring(scorers=[Tm_scorer, GC_scorer])
+
         self.oligo_database, self.oligos_scores = self.oligo_scoring.apply(
             oligo_database=self.oligo_database,
             region_id=self.region_id,
