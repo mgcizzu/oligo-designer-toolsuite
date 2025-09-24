@@ -7,7 +7,7 @@
 [![PyPI Downloads](https://static.pepy.tech/badge/oligo-designer-toolsuite)](https://pepy.tech/projects/oligo-designer-toolsuite)
 [![DOI](https://zenodo.org/badge/397343029.svg)](https://zenodo.org/badge/latestdoi/397343029)
 [![stars](https://img.shields.io/github/stars/HelmholtzAI-Consultants-Munich/oligo-designer-toolsuite?logo=GitHub&color=yellow)](https://github.com/HelmholtzAI-Consultants-Munich/oligo-designer-toolsuite/stargazers)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)  
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 [![codecov](https://codecov.io/gh/HelmholtzAI-Consultants-Munich/oligo-designer-toolsuite/branch/main/graph/badge.svg)](https://codecov.io/gh/HelmholtzAI-Consultants-Munich/oligo-designer-toolsuite)
 [![TestUbuntuX64](https://github.com/HelmholtzAI-Consultants-Munich/oligo-designer-toolsuite/actions/workflows/test_ubuntu_x64.yml/badge.svg)](https://github.com/HelmholtzAI-Consultants-Munich/oligo-designer-toolsuite/actions/workflows/test_ubuntu_x64.yml)
@@ -29,7 +29,7 @@ ranging from research to disease diagnosis or therapeutics. Oligos can be used a
 
 Various tools exist that provide custom design of oligo sequences depending on the area of application. Even though most tools apply the same basic processing steps, ranging from the generation of custom-length oligo sequences, the filtering of oligo sequences based on thermodynamic properties as well as the selection of an optimal set of oligos, each newly developed tool uses its own implementation and different package dependencies. Consequently, not only the development of new tools is slowed down, but also the maintenance and modification of existing tools is hampered, because developers do not have a common resource for those functionalities to use. We tackle this issue with our open-source *Oligo Designer Toolsuite*.
 
-🚀 ***Oligo Designer Toolsuite*** **is a collection of modules that provides all basic functionalities for custom oligo design pipelines as well as advanced experiment-specific functionalities like machine learning models for oligo specificity prediction within a flexible Python framework.** 
+🚀 ***Oligo Designer Toolsuite*** **is a collection of modules that provides all basic functionalities for custom oligo design pipelines as well as advanced experiment-specific functionalities like machine learning models for oligo specificity prediction within a flexible Python framework.**
 
 To allow the flexible usage of different modules, depending on the required processing steps, we developed a common underlying data structure that ensures the cross-compatibility of all modules within the framework. This data structure is runtime and memory optimized to enable the processing of large sequence dataset in a reasonable time frame. With our Oligo Designer Toolsuite we aim to set new standards in the development of oligo design pipelines, helping to accelerate the development of new tools and facilitate the upgrade of existing tools with the latest developments in the field. We also provide ready-to-use oligo design pipelines for specific experimental setups, e.g. MERFISH or SeqFISH+ probe design for Spatial Transcriptomics.
 
@@ -49,7 +49,7 @@ The following pipelines are pre-implemented and ready-to-use:
 
 [🧫 Oligo-Seq Probe Designer](https://oligo-designer-toolsuite.readthedocs.io/en/latest/_pipelines/oligoseq_probe_designer.html)
 
-If you would like to modify an existing pipeline for adjusted experimental settings or to design a new pipeline for a different experimental setup, feel free to reach out to us [Lisa Barros de Andrade e Sousa](mailto:lisa.barros@helmholtz-munich.de) or [Isra Mekki](mailto:isra.mekki@helmholtz-munich.de).
+If you would like to modify an existing pipeline for adjusted experimental settings or to design a new pipeline for a different experimental setup, feel free to reach out to us [Lisa Barros de Andrade e Sousa](mailto:lisa.barros@helmholtz-munich.de) or [Jonas Hagenberg](mailto:jonas.hagenberg@helmholtz-munich.de).
 
 ## Installation
 
@@ -83,7 +83,7 @@ conda update --all
 The additional tools **Blast**, **BedTools**, **Bowtie** and **Bowtie2** need to be installed independently:
 
 ```
-conda install "blast>=2.15.0" 
+conda install "blast>=2.15.0"
 conda install "bedtools>=2.30"
 conda install "bowtie>=1.3.1"
 conda install "bowtie2>=2.5"
@@ -98,7 +98,7 @@ For the Apple M chips, there is currently no Blast installation available via co
 
 ***Option 1: Blast installation via Homebrew***
 
-*Pro: Allows to install a native M Chip (arm64) version of Blast and supports installation of* ```torch > 2.2.2```.   
+*Pro: Allows to install a native M Chip (arm64) version of Blast and supports installation of* ```torch > 2.2.2```.
 *Con: Requires installation Homebrew, which needs sudo rights.*
 
 First create a conda environment:
@@ -134,7 +134,7 @@ All other required packages are automatically installed if installation is done 
 
 ***Option 2: Blast installation via conda installation through Intel Chip (osx64) environment emulation***
 
-*Pro: Works with conda and requires no extra dependencies.*  
+*Pro: Works with conda and requires no extra dependencies.*
 *Con: Runs via Rosetta osx64 emulation, which does not support installation of* ```torch > 2.2.2```
 
 First we need to create an conda environment that emulates the osx64 processor:
@@ -156,7 +156,7 @@ conda update --all
 The following additional tools **Blast**, **BedTools**, **Bowtie** and **Bowtie2** need to be installed independently:
 
 ```
-conda install "blast>=2.15.0" 
+conda install "blast>=2.15.0"
 conda install "bedtools>=2.30"
 conda install "bowtie>=1.3.1"
 conda install "bowtie2>=2.5"
@@ -191,7 +191,7 @@ conda update --all
 The following additional tools **Blast**, **BedTools**, **Bowtie** and **Bowtie2** need to be installed independently:
 
 ```
-conda install "blast>=2.15.0" 
+conda install "blast>=2.15.0"
 conda install "bedtools>=2.30"
 conda install "bowtie>=1.3.1"
 conda install "bowtie2>=2.5"
@@ -217,7 +217,7 @@ The following additional tools **Blast**, **BedTools**, **Bowtie** and **Bowtie2
 
 - **Bowtie** (1.3 or higher) can be installed via [Bowtie webpage](https://bowtie-bio.sourceforge.net/manual.shtml#obtaining-bowtie)
 
-- **Bowtie2** (2.5 or higher) can be installed via [Bowtie2 webpage](https://bowtie-bio.sourceforge.net/bowtie2/manual.shtml#obtaining-bowtie-2) 
+- **Bowtie2** (2.5 or higher) can be installed via [Bowtie2 webpage](https://bowtie-bio.sourceforge.net/bowtie2/manual.shtml#obtaining-bowtie-2)
 
 
 ### Install Options
@@ -256,7 +256,7 @@ cd oligo-designer-toolsuite
 
 Contributions are more than welcome! Everything from code to notebooks to examples and documentation are all equally valuable so please don't feel you can't contribute. To contribute please fork the project make your changes and submit a pull request. We will do our best to work through any issues with you and get your code merged into the main branch.
 
-For any further inquiries please send an email to [Lisa Barros de Andrade e Sousa](mailto:lisa.barros@helmholtz-munich.de) or [Isra Mekki](mailto:isra.mekki@helmholtz-munich.de).
+For any further inquiries please send an email to [Lisa Barros de Andrade e Sousa](mailto:lisa.barros@helmholtz-munich.de) or [Jonas Hagenberg](mailto:jonas.hagenberg@helmholtz-munich.de).
 
 <!-- LINK CONTRIBUTION END -->
 
@@ -269,7 +269,7 @@ If the Oligo Designer Toolsuite is useful for your research, consider citing the
 ```
 @software{campi_2023_7823048,
 	author   = {Isra Mekki,
-		     Francesco Campi,  
+		     Francesco Campi,
 		     Louis Kümmerle,
 		     Chelsea Bright,
 		     Malte Lücken
