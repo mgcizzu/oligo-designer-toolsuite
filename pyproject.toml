@@ -73,3 +73,6 @@ cycle_hcr_probe_designer = "oligo_designer_toolsuite.pipelines._cycle_hcr_probe_
 [project.urls]
 documentation = "https://oligo-designer-toolsuite.readthedocs.io/"
 repository = "https://github.com/HelmholtzAI-Consultants-Munich/oligo-designer-toolsuite"
+
+[tool.pytest.ini_options]
+filterwarnings = ["ignore::pytest.PytestUnraisableExceptionWarning"]
