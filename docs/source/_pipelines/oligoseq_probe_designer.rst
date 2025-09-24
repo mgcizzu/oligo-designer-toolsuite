@@ -123,7 +123,7 @@ Probes with a hybridization probability greater than the user-defined trheshold 
 In addition, we account for length biases during sequencing, where some oligos may not be sequences to their full length. Because these truncated reads can match other oligos and create alignment ambiguities, we exclude any oligos whose first x bases match.
 
 In the third step of the pipeline, the best sets of non-overlapping probes are identified for each gene.
-The ``OligosetGeneratorIndependentSet`` class is used to generate ranked, non-overlapping probe sets where each probe and probe set is scored according to a protocol dependent scoring function, i.e. by weighted GC content and melting temperature score, of the probes in the set.
+The ``OligosetGeneratorIndependentSet`` class is used to generate ranked, non-overlapping probe sets where each probe and probe set is scored according to a protocol dependent scoring function, i.e. by the weighted GC content, melting temperature, isoform consensus and targeted exons score, of the probes in the set.
 Following this step all genes with insufficient number of probes (user-defined) are removed from the database and stored in a separate file for user-inspection.
 
 In the last step of the pipeline, the ready-to-order probe sequences are reported for the best non-overlapping sets of each gene.

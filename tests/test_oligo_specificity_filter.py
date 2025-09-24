@@ -22,9 +22,9 @@ from oligo_designer_toolsuite.oligo_specificity_filter import (
     ExactMatchFilter,
     VariantsFilter,
     HybridizationProbabilityFilter,
-    RemoveAllPolicy,
-    RemoveByDegreePolicy,
-    RemoveByLargerRegionPolicy,
+    RemoveAllFilterPolicy,
+    RemoveByDegreeFilterPolicy,
+    RemoveByLargerRegionFilterPolicy,
 )
 
 ############################################
@@ -84,7 +84,7 @@ class TestExactMatchFilter(unittest.TestCase):
         shutil.rmtree(self.tmp_path)
 
     def test_exact_match_filter_no_policy(self):
-        policy = RemoveAllPolicy()
+        policy = RemoveAllFilterPolicy()
         filter = ExactMatchFilter(policy=policy)
         res = filter.apply(oligo_database=self.oligo_database, sequence_type="oligo", n_jobs=2)
 
@@ -96,7 +96,7 @@ class TestExactMatchFilter(unittest.TestCase):
         ), "A non-matching oligo has been filtered from exact mathces!"
 
     def test_exact_match_filter_policy(self):
-        policy = RemoveByLargerRegionPolicy()
+        policy = RemoveByLargerRegionFilterPolicy()
         filter = ExactMatchFilter(policy=policy)
         res = filter.apply(oligo_database=self.oligo_database, sequence_type="oligo", n_jobs=2)
 
@@ -341,7 +341,7 @@ class TestCrossHybridizationFilter(unittest.TestCase):
             filter_name="crosshybridization_blast_larger_region",
             dir_output=self.tmp_path,
         )
-        policy = RemoveByLargerRegionPolicy()
+        policy = RemoveByLargerRegionFilterPolicy()
         cross_hyb_filter = CrossHybridizationFilter(
             policy=policy,
             alignment_method=filter_instance,
@@ -357,7 +357,7 @@ class TestCrossHybridizationFilter(unittest.TestCase):
             filter_name="crosshybridization_blast_degree",
             dir_output=self.tmp_path,
         )
-        policy = RemoveByDegreePolicy()
+        policy = RemoveByDegreeFilterPolicy()
         cross_hyb_filter = CrossHybridizationFilter(
             policy=policy,
             alignment_method=filter_instance,
@@ -372,7 +372,7 @@ class TestCrossHybridizationFilter(unittest.TestCase):
             filter_name="crosshybridization_bowtie_larger_region",
             dir_output=self.tmp_path,
         )
-        policy = RemoveByLargerRegionPolicy()
+        policy = RemoveByLargerRegionFilterPolicy()
         cross_hyb_filter = CrossHybridizationFilter(
             policy=policy,
             alignment_method=filter_instance,
@@ -387,7 +387,7 @@ class TestCrossHybridizationFilter(unittest.TestCase):
             filter_name="crosshybridization_bowtie_degree",
             dir_output=self.tmp_path,
         )
-        policy = RemoveByDegreePolicy()
+        policy = RemoveByDegreeFilterPolicy()
         cross_hyb_filter = CrossHybridizationFilter(
             policy=policy,
             alignment_method=filter_instance,

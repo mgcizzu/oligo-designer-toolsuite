@@ -25,11 +25,11 @@ from oligo_designer_toolsuite.utils import check_if_list
 ############################################
 
 
-class SpecificityFilterBase(ABC):
+class BaseSpecificityFilter(ABC):
     """
     A base class for implementing specificity filters that operate on OligoDatabase.
 
-    The `SpecificityFilterBase` class provides the structure for creating filters
+    The `BaseSpecificityFilter` class provides the structure for creating filters
     that assess the specificity of oligonucleotides. These filters can be customized and extended
     to apply various criteria to an OligoDatabase, helping to refine and select optimal oligos for
     specific applications.
@@ -41,7 +41,7 @@ class SpecificityFilterBase(ABC):
     """
 
     def __init__(self, filter_name: str, dir_output: str) -> None:
-        """Constructor for the SpecificityFilterBase class."""
+        """Constructor for the BaseSpecificityFilter class."""
         # folder where we write the intermediate files
         self.filter_name = filter_name
         self.dir_output = os.path.abspath(os.path.join(dir_output, self.filter_name))
@@ -136,11 +136,11 @@ class SpecificityFilterBase(ABC):
                     oligo_database.database[region_id][oligo_id][self.filter_name] = None
 
 
-class SpecificityFilterReference(SpecificityFilterBase):
+class ReferenceSpecificityFilter(BaseSpecificityFilter):
     """
     A base class for implementing specificity filters using a reference database.
 
-    The `SpecificityFilterReference` class provides a framework for developing filters that
+    The `ReferenceSpecificityFilter` class provides a framework for developing filters that
     assess the potential off-target effects of oligonucleotides wrt reference sequences.
 
     :param remove_hits: If True, oligos overlapping variants are removed. If False, they are flagged.
@@ -157,7 +157,7 @@ class SpecificityFilterReference(SpecificityFilterBase):
         filter_name: str,
         dir_output: str,
     ) -> None:
-        """Constructor for the SpecificityFilterReference class."""
+        """Constructor for the ReferenceSpecificityFilter class."""
         # folder where we write the intermediate files
         self.filter_name = filter_name
         self.dir_output = os.path.abspath(os.path.join(dir_output, self.filter_name))
@@ -246,7 +246,7 @@ class SpecificityFilterReference(SpecificityFilterBase):
         return search_results
 
 
-class SpecificityFilterAlignment(SpecificityFilterReference):
+class AlignmentSpecificityFilter(ReferenceSpecificityFilter):
     """
     A base class for implementing filters that utilize sequence alignment methods to evaluate oligonucleotide specificity.
 
@@ -267,7 +267,7 @@ class SpecificityFilterAlignment(SpecificityFilterReference):
         filter_name: str,
         dir_output: str,
     ) -> None:
-        """Constructor for the SpecificityFilterAlignment class."""
+        """Constructor for the AlignmentSpecificityFilter class."""
 
         # folder where we write the intermediate files
         self.filter_name = filter_name

@@ -73,6 +73,9 @@ For a complete explanation of all function parameters, refer to the API document
         target_probe_Tm_opt=70,
         target_probe_Tm_max=75,
         target_probe_homopolymeric_base_n={"A": 5, "T": 5, "C": 5, "G": 5},
+        detection_oligo_length_min=15,
+        detection_oligo_length_max=40,
+        detection_oligo_min_thymines=2,
         target_probe_padlock_arm_Tm_dif_max=2,
         target_probe_padlock_arm_length_min=10,
         target_probe_padlock_arm_Tm_min=50,
@@ -154,7 +157,7 @@ Those off-target regions are identified with the ``BlastNSeedregionSiteFilter`` 
 The coverage of the region around the ligation site of the probe by the matching off-target sequence is used as an additional filtering criterion.
 
 In the third step of the pipeline, the best sets of non-overlapping probes are identified for each gene.
-The ``OligosetGeneratorIndependentSet`` class is used to generate ranked, non-overlapping probe sets where each probe and probe set is scored according to a protocol dependent scoring function, i.e. by the distance to the optimal GC content and melting temperature, weighted by the number of targeted transcripts of the probes in the set.
+The ``OligosetGeneratorIndependentSet`` class is used to generate ranked, non-overlapping probe sets where each probe and probe set is scored according to a protocol dependent scoring function, i.e. by the weighted GC content, melting temperature, isoform consensus score of the probes in the set.
 Following this step all genes with insufficient number of probes (user-defined) are removed from the database and stored in a separate file for user-inspection.
 
 In the last step of the pipeline, the ready-to-order probe sequences containing all additional required sequences are designed for the best non-overlapping sets of each gene.

@@ -35,3 +35,7 @@ This folder contains example lists of gene names that can be used to test run th
 ## Folder ```genomic_region```
 
 This folder contains different pre-generated genomic region files that were generated from the Fasta and GTF file in the `annotations` folder using the `_genomic_region_generator.py` pipeline.
+
+# Folder ```readout_probes```
+
+This folder contains sample files for readout probes.

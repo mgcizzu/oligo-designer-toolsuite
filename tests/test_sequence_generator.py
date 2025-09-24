@@ -265,10 +265,12 @@ class TestOligoSequenceGenerator(unittest.TestCase):
     def setUp(self):
         self.tmp_path = os.path.join(os.getcwd(), "tmp_oligo_sequence_generator")
 
-        self.oligo_database = OligoDatabase()
+        self.oligo_database = OligoDatabase(dir_output=self.tmp_path)
         self.oligo_attributes = OligoAttributes()
         self.oligo_sequence_generator = OligoSequenceGenerator(dir_output=self.tmp_path)
         self.fasta_parser = FastaParser()
+
+        self.sequence_type = "oligo"
 
     def tearDown(self):
         shutil.rmtree(self.tmp_path)
@@ -288,23 +290,25 @@ class TestOligoSequenceGenerator(unittest.TestCase):
         self.oligo_database.load_database_from_fasta(
             files_fasta=file_fasta_random_seqs1,
             database_overwrite=True,
-            sequence_type="oligo",
+            sequence_type=self.sequence_type,
             region_ids=None,
         )
+        self.oligo_database = self.oligo_attributes.calculate_oligo_length(
+            oligo_database=self.oligo_database, sequence_type=self.sequence_type
+        )
 
-        assert (
-            len(self.oligo_database.database["random_sequences1"].keys()) == 100
-        ), "error: wrong number sequences created"
-        self.oligo_database = self.oligo_attributes.calculate_oligo_length(oligo_database=self.oligo_database)
-        assert (
-            self.oligo_database.get_oligo_attribute_value(
-                attribute="length_oligo",
-                flatten=True,
-                region_id="random_sequences1",
-                oligo_id="random_sequences1::1",
-            )
-            == 30
-        ), "error: wrong sequence length"
+        num_sequences = self.oligo_database.get_oligoid_list(region_ids="random_sequences1")
+        length_sequence = self.oligo_database.get_oligo_attribute_value(
+            attribute=f"length_{self.sequence_type}",
+            flatten=True,
+            region_id="random_sequences1",
+            oligo_id="random_sequences1::1",
+        )
+
+        assert len(num_sequences) == 100, "error: wrong number sequences created"
+
+        assert length_sequence == 30, "error: wrong sequence length"
+
         assert check_if_dna_sequence(
             self.oligo_database.database["random_sequences1"]["random_sequences1::50"]["oligo"]
         ), "error: the craeted sequence is not a DNA seuqnece"
@@ -328,18 +332,21 @@ class TestOligoSequenceGenerator(unittest.TestCase):
             sequence_type="oligo",
             region_ids="AARS1",
         )
+        self.oligo_database = self.oligo_attributes.calculate_oligo_length(
+            oligo_database=self.oligo_database, sequence_type=self.sequence_type
+        )
+
+        length_sequence = self.oligo_database.get_oligo_attribute_value(
+            attribute=f"length_{self.sequence_type}",
+            flatten=True,
+            region_id="AARS1",
+            oligo_id="AARS1::1",
+        )
 
         assert "AARS1" in self.oligo_database.database.keys(), "error: region missing"
-        self.oligo_database = self.oligo_attributes.calculate_oligo_length(oligo_database=self.oligo_database)
-        assert (
-            self.oligo_database.get_oligo_attribute_value(
-                attribute="length_oligo",
-                flatten=True,
-                region_id="AARS1",
-                oligo_id="AARS1::1",
-            )
-            == 30
-        ), "error: wrong sequence length"
+
+        assert length_sequence == 30, "error: wrong sequence length"
+
         assert check_if_dna_sequence(
             self.oligo_database.database["AARS1"]["AARS1::50"]["oligo"]
         ), "error: the craeted sequence is not a DNA seuqnece"

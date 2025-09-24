@@ -9,8 +9,8 @@ from oligo_designer_toolsuite_ai_filters.api import APIHybridizationProbability
 from oligo_designer_toolsuite._constants import _TYPES_SEQ
 from oligo_designer_toolsuite.database import OligoDatabase
 from oligo_designer_toolsuite.oligo_specificity_filter import (
-    SpecificityFilterReference,
-    SpecificityFilterAlignment,
+    ReferenceSpecificityFilter,
+    AlignmentSpecificityFilter,
     BlastNFilter,
     BlastNSeedregionFilter,
     BlastNSeedregionSiteFilter,
@@ -21,7 +21,7 @@ from oligo_designer_toolsuite.oligo_specificity_filter import (
 ############################################
 
 
-class HybridizationProbabilityFilter(SpecificityFilterReference):
+class HybridizationProbabilityFilter(ReferenceSpecificityFilter):
     """
     A filter for assessing hybridization probabilities of oligonucleotides using AI models.
 
@@ -52,7 +52,7 @@ class HybridizationProbabilityFilter(SpecificityFilterReference):
 
     def __init__(
         self,
-        alignment_method: SpecificityFilterAlignment,
+        alignment_method: AlignmentSpecificityFilter,
         threshold: float,
         ai_filter_path: str = None,
         remove_hits: bool = True,
