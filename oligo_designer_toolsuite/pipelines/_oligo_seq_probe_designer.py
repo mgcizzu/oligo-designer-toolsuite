@@ -20,7 +20,11 @@ from oligo_designer_toolsuite.database import (
 )
 from oligo_designer_toolsuite.oligo_efficiency_filter import (
     AverageSetScoring,
-    WeightedTmGCOligoScoring,
+    OverlapTargetedExonsScorer,
+    IsoformConsensusScorer,
+    NormalizedDeviationFromOptimalGCContentScorer,
+    NormalizedDeviationFromOptimalTmScorer,
+    OligoScoring,
 )
 from oligo_designer_toolsuite.oligo_property_filter import (
     GCContentFilter,
@@ -44,9 +48,9 @@ from oligo_designer_toolsuite.oligo_specificity_filter import (
     BowtieFilter,
     HybridizationProbabilityFilter,
     VariantsFilter,
-    RemoveByLargerRegionPolicy,
-    RemoveAllPolicy,
-    RemoveByLargerRegionPolicy,
+    RemoveByLargerRegionFilterPolicy,
+    RemoveAllFilterPolicy,
+    RemoveByLargerRegionFilterPolicy,
     SpecificityFilter,
 )
 from oligo_designer_toolsuite.pipelines._utils import (
@@ -283,7 +287,9 @@ class OligoSeqProbeDesigner:
         target_probe_length_max: int = 30,
         target_probe_split_region: int = 4,
         target_probe_targeted_exons: list = ["1", "2", "3"],
+        target_probe_targeted_exons_weight: float = 1,
         target_probe_isoform_consensus: float = 0,
+        target_probe_isoform_weight: float = 1,
         target_probe_GC_content_min: float = 45,
         target_probe_GC_content_opt: float = 55,
         target_probe_GC_content_max: float = 65,
@@ -321,8 +327,12 @@ class OligoSeqProbeDesigner:
         :type target_probe_length_max: int, optional
         :param target_probe_split_region: The number of bases required on each side of a split sequence (e.g. exon junctions) to include it, defaults to 4.
         :type target_probe_split_region: int, optional
-        :param target_probe_targeted_exons: Exons to target, defaults to ["1", "2", "3"].
-        :type target_probe_targeted_exons: list, optional
+        :param targeted_exons: Exons to target, defaults to ["1", "2", "3"].
+        :type targeted_exons: list, optional
+        :param targeted_exons_weight: Weight for overlap with targeted exons scoring.
+        :type targeted_exons_weight: float
+        :param isoform_weight: Weight for isoform consesnsus scoring.
+        :type isoform_weight: float
         :param target_probe_isoform_consensus: Minimum isoform consensus, defaults to 0.
         :type target_probe_isoform_consensus: float, optional
         :param target_probe_GC_content_min: Minimum GC content for probes, defaults to 45.
@@ -375,7 +385,6 @@ class OligoSeqProbeDesigner:
             files_fasta_oligo_database=files_fasta_target_probe_database,
             min_oligos_per_gene=set_size_min,
             isoform_consensus=target_probe_isoform_consensus,
-            targeted_exons=target_probe_targeted_exons,
         )
         check_content_oligo_database(oligo_database)
 
@@ -424,6 +433,9 @@ class OligoSeqProbeDesigner:
 
         oligo_database = target_probe_designer.create_oligo_sets(
             oligo_database=oligo_database,
+            targeted_exons=target_probe_targeted_exons,
+            targeted_exons_weight=target_probe_targeted_exons_weight,
+            isoform_weight=target_probe_isoform_weight,
             GC_content_min=target_probe_GC_content_min,
             GC_content_opt=target_probe_GC_content_opt,
             GC_content_max=target_probe_GC_content_max,
@@ -474,15 +486,14 @@ class OligoSeqProbeDesigner:
             "strand",
             "oligo",
             "target",
-            "length",
+            "length_oligo",
+            "GC_content_oligo",
+            "TmNN_oligo",
             "SNP_filter",
-            "GC_content",
-            "TmNN",
             "num_targeted_transcripts",
             "number_total_transcripts",
             "isoform_consensus",
-            "length_selfcomplement",
-            "DG_secondary_structure",
+            "length_selfcomplement_oligo",
         ],
     ) -> None:
         """
@@ -568,7 +579,6 @@ class TargetProbeDesigner:
         files_fasta_oligo_database: list[str],
         min_oligos_per_gene: int,
         isoform_consensus: float,
-        targeted_exons: list[str],
     ) -> OligoDatabase:
         """
         Creates an oligo database by generating sequences using a sliding window approach
@@ -589,8 +599,6 @@ class TargetProbeDesigner:
         :type min_oligos_per_gene: int
         :param isoform_consensus: Threshold for isoform consensus filtering.
         :type isoform_consensus: float
-        :param targeted_exons: List of exon numbers to target.
-        :type targeted_exons: list[str]
         :return: The generated oligo database.
         :rtype: OligoDatabase
         """
@@ -631,18 +639,7 @@ class TargetProbeDesigner:
             attribute_thr=isoform_consensus,
             remove_if_smaller_threshold=True,
         )
-        # add junctions in plus and minus strand direction to targeted exons list
-        targeted_exons = sorted(targeted_exons)
-        targeted_exons = (
-            targeted_exons
-            + [f"{i}__JUNC__{j}" for i, j in zip(targeted_exons, targeted_exons[1:])]
-            + [f"{j}__JUNC__{i}" for i, j in zip(targeted_exons, targeted_exons[1:])]
-        )
-        oligo_database.filter_database_by_attribute_category(
-            attribute_name="exon_number",
-            attribute_category=targeted_exons,
-            remove_if_equals_category=False,
-        )
+
         oligo_database.remove_regions_with_insufficient_oligos(pipeline_step="Pre-Filters")
 
         dir = oligo_sequences.dir_output
@@ -815,14 +812,14 @@ class TargetProbeDesigner:
             database_name=f"{self.subdir_db_reference}_sequences", dir_output=self.dir_output
         )
         reference_database_alignment.load_database_from_file(
-            files=files_fasta_reference_database, file_type="fasta", database_overwrite=False
+            files=files_fasta_reference_database, file_type="fasta", database_overwrite=True
         )
 
         reference_database_variants = ReferenceDatabase(
             database_name=f"{self.subdir_db_reference}_variants", dir_output=self.dir_output
         )
         reference_database_variants.load_database_from_file(
-            files=files_vcf_reference_database, file_type="vcf", database_overwrite=False
+            files=files_vcf_reference_database, file_type="vcf", database_overwrite=True
         )
 
         ##### define exact match filter #####
@@ -834,7 +831,7 @@ class TargetProbeDesigner:
         )
 
         exact_matches_short = ExactMatchFilter(
-            policy=RemoveAllPolicy(), filter_name="exact_match_read_length_bias"
+            policy=RemoveAllFilterPolicy(), filter_name="exact_match_read_length_bias"
         )
 
         ##### run exact match filter #####
@@ -846,7 +843,10 @@ class TargetProbeDesigner:
         )
 
         ##### define specificity filters #####
-        exact_matches = ExactMatchFilter(policy=RemoveAllPolicy(), filter_name="exact_match")
+        exact_matches = ExactMatchFilter(policy=RemoveAllFilterPolicy(), filter_name="exact_match")
+
+        variants = VariantsFilter(remove_hits=False, filter_name="SNP_filter", dir_output=self.dir_output)
+        variants.set_reference_database(reference_database=reference_database_variants)
 
         cross_hybridization_aligner = _get_alignment_method(
             alignment_method=cross_hybridization_alignment_method,
@@ -856,7 +856,7 @@ class TargetProbeDesigner:
             dir_output=self.dir_output,
         )
         cross_hybridization = CrossHybridizationFilter(
-            policy=RemoveByLargerRegionPolicy(),
+            policy=RemoveByLargerRegionFilterPolicy(),
             alignment_method=cross_hybridization_aligner,
             filter_name="cross_hybridization_filter",
             dir_output=self.dir_output,
@@ -879,15 +879,12 @@ class TargetProbeDesigner:
             dir_output=self.dir_output,
         )
 
-        variants = VariantsFilter(remove_hits=False, filter_name="SNP_filter", dir_output=self.dir_output)
-        variants.set_reference_database(reference_database=reference_database_variants)
-
         # run all filters specified above
         filters = [
             exact_matches,
+            variants,
             cross_hybridization,
             hybridization_probability,
-            variants,
         ]
         specificity_filter = SpecificityFilter(filters=filters)
         oligo_database = specificity_filter.apply(
@@ -902,6 +899,7 @@ class TargetProbeDesigner:
             cross_hybridization.dir_output,
             hybridization_probability_aligner.dir_output,
             hybridization_probability.dir_output,
+            variants.dir_output,
         ]:
             if os.path.exists(directory):
                 shutil.rmtree(directory)
@@ -912,6 +910,9 @@ class TargetProbeDesigner:
     def create_oligo_sets(
         self,
         oligo_database: OligoDatabase,
+        targeted_exons: list[str],
+        targeted_exons_weight: float,
+        isoform_weight: float,
         GC_content_min: float,
         GC_content_opt: float,
         GC_content_max: float,
@@ -937,6 +938,12 @@ class TargetProbeDesigner:
 
         :param oligo_database: The oligo database to process.
         :type oligo_database: OligoDatabase
+        :param targeted_exons: List of exon numbers to target.
+        :type targeted_exons: list[str]
+        :param targeted_exons_weight: Weight for overlap with targeted exons scoring.
+        :type targeted_exons_weight: float
+        :param isoform_weight: Weight for isoform consesnsus scoring.
+        :type isoform_weight: float
         :param GC_content_min: Minimum GC content for scoring.
         :type GC_content_min: float
         :param GC_content_opt: Optimal GC content for scoring.
@@ -978,6 +985,29 @@ class TargetProbeDesigner:
         :return: The updated oligo database.
         :rtype: OligoDatabase
         """
+        # Define all scorers
+        exon_scorer = OverlapTargetedExonsScorer(
+            targeted_exons=targeted_exons, score_weight=targeted_exons_weight
+        )
+        isoform_scorer = IsoformConsensusScorer(normalize=True, score_weight=isoform_weight)
+        Tm_scorer = NormalizedDeviationFromOptimalTmScorer(
+            Tm_min=Tm_min,
+            Tm_opt=Tm_opt,
+            Tm_max=Tm_max,
+            Tm_parameters=Tm_parameters,
+            Tm_chem_correction_parameters=Tm_chem_correction_parameters,
+            Tm_salt_correction_parameters=Tm_salt_correction_parameters,
+            score_weight=Tm_weight,
+        )
+        GC_scorer = NormalizedDeviationFromOptimalGCContentScorer(
+            GC_content_min=GC_content_min,
+            GC_content_opt=GC_content_opt,
+            GC_content_max=GC_content_max,
+            score_weight=GC_weight,
+        )
+
+        oligos_scoring = OligoScoring(scorers=[exon_scorer, isoform_scorer, Tm_scorer, GC_scorer])
+
         set_scoring = AverageSetScoring(ascending=True)
 
         # We change the processing dependent on the required number of probes in the probe sets
@@ -1037,19 +1067,6 @@ class TargetProbeDesigner:
             )
             base_log_parameters({"pre_filter": pre_filter, "selection_policy": "Greedy"})
 
-        oligos_scoring = WeightedTmGCOligoScoring(
-            Tm_min=Tm_min,
-            Tm_opt=Tm_opt,
-            Tm_max=Tm_max,
-            GC_content_min=GC_content_min,
-            GC_content_opt=GC_content_opt,
-            GC_content_max=GC_content_max,
-            Tm_parameters=Tm_parameters,
-            Tm_chem_correction_parameters=Tm_chem_correction_parameters,
-            Tm_salt_correction_parameters=Tm_salt_correction_parameters,
-            Tm_weight=Tm_weight,
-            GC_weight=GC_weight,
-        )
         oligoset_generator = OligosetGeneratorIndependentSet(
             selection_policy=selection_policy,
             oligos_scoring=oligos_scoring,
@@ -1162,7 +1179,9 @@ def main():
         target_probe_length_max=config["target_probe_length_max"],
         target_probe_split_region=config["target_probe_split_region"],
         target_probe_targeted_exons=config["target_probe_targeted_exons"],
+        target_probe_targeted_exons_weight=config["target_probe_targeted_exons_weight"],
         target_probe_isoform_consensus=config["target_probe_isoform_consensus"],
+        target_probe_isoform_weight=config["target_probe_isoform_weight"],
         target_probe_GC_content_min=config["target_probe_GC_content_min"],
         target_probe_GC_content_opt=config["target_probe_GC_content_opt"],
         target_probe_GC_content_max=config["target_probe_GC_content_max"],
