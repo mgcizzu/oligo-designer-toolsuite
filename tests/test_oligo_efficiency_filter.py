@@ -12,12 +12,15 @@ from pandas import Series
 from oligo_designer_toolsuite.database import OligoDatabase
 from oligo_designer_toolsuite.oligo_efficiency_filter import (
     AverageSetScoring,
-    GCOligoScoring,
     LowestSetScoring,
-    WeightedGCUtrScoring,
-    WeightedIsoformTmGCOligoScoring,
-    WeightedIsoformTmGCOligoScoringTargetedExons,
-    WeightedTmGCOligoScoring,
+    OligoScoring,
+    IsoformConsensusScorer,
+    OverlapTargetedExonsScorer,
+    OverlapUTRScorer,
+    DeviationFromOptimalGCContentScorer,
+    DeviationFromOptimalTmScorer,
+    NormalizedDeviationFromOptimalGCContentScorer,
+    NormalizedDeviationFromOptimalTmScorer,
 )
 
 ############################################
@@ -71,109 +74,147 @@ class TestOligoScoring(unittest.TestCase):
         )
         self.sequence_type = "oligo"
 
-        self.score_gc = GCOligoScoring(GC_content_opt=43.75)
-        self.score_weighted_gc_utr = WeightedGCUtrScoring(GC_content_opt=43.75, GC_weight=1, UTR_weight=10)
-        self.score_weighted_gc_tm = WeightedTmGCOligoScoring(
-            Tm_min=50,
-            Tm_opt=65,
-            Tm_max=70,
-            GC_content_min=25,
-            GC_content_opt=50,
-            GC_content_max=75,
+        self.utr_scorer = OverlapUTRScorer(score_weight=10)
+        self.exon_scorer = OverlapTargetedExonsScorer(targeted_exons=["21", "4"], score_weight=2)
+        self.isoform_consensus_scorer = IsoformConsensusScorer(normalize=True, score_weight=2)
+        self.Tm_scorer = DeviationFromOptimalTmScorer(
+            Tm_opt=57.55,
             Tm_parameters=TM_PARAMETERS,
-            Tm_weight=1,
-            GC_weight=1,
-            )
-        self.score_weighted_isoform_gc_tm = WeightedIsoformTmGCOligoScoring(
-            Tm_min=50,
-            Tm_opt=65,
-            Tm_max=70,
-            GC_content_min=25,
-            GC_content_opt=50,
-            GC_content_max=75,
-            Tm_parameters=TM_PARAMETERS,
-            Tm_weight=1,
-            GC_weight=1,
-            isoform_weight=2
+            Tm_salt_correction_parameters=None,
+            Tm_chem_correction_parameters=None,
+            score_weight=1,
         )
-        self.score_weighted_isoform_gc_tm_targeted_exons = WeightedIsoformTmGCOligoScoringTargetedExons(
+        self.GC_scorer = DeviationFromOptimalGCContentScorer(
+            GC_content_opt=43.75,
+            score_weight=1,
+        )
+        self.Tm_norm_scorer = NormalizedDeviationFromOptimalTmScorer(
             Tm_min=50,
             Tm_opt=65,
             Tm_max=70,
+            Tm_parameters=TM_PARAMETERS,
+            Tm_chem_correction_parameters=None,
+            Tm_salt_correction_parameters=None,
+            score_weight=1,
+        )
+        self.GC_norm_scorer = NormalizedDeviationFromOptimalGCContentScorer(
             GC_content_min=25,
             GC_content_opt=50,
-            GC_content_max=75,
-            Tm_parameters=TM_PARAMETERS,
-            targeted_exons=["21", "4"],
-            Tm_weight=1,
-            GC_weight=1,
-            isoform_weight=2,
-            targeted_exons_weight=2,
+            GC_content_max=80,
+            score_weight=1,
         )
 
     def tearDown(self):
         shutil.rmtree(self.tmp_path)
 
-    def test_GC_score(self):
-        oligo_score = self.score_gc.get_score(
+    def test_utr_scorer(self):
+        oligo_score_wo_utr = self.utr_scorer.apply(
             oligo_database=self.oligo_database,
             region_id="region_1",
             oligo_id="region_1::1",
             sequence_type=self.sequence_type,
         )
-        assert oligo_score == 0, "GC score failed!"
-
-    def test_weighted_GC_UTR_score(self):
-        oligo_score_wo_utr = self.score_weighted_gc_utr.get_score(
-            oligo_database=self.oligo_database,
-            region_id="region_1",
-            oligo_id="region_1::1",
-            sequence_type=self.sequence_type,
-        )
-        oligo_score_with_utr = self.score_weighted_gc_utr.get_score(
+        oligo_score_with_utr = self.utr_scorer.apply(
             oligo_database=self.oligo_database,
             region_id="region_1",
             oligo_id="region_1::2",
             sequence_type=self.sequence_type,
         )
-        assert oligo_score_wo_utr < oligo_score_with_utr, "Weighted GC-UTR score failed!"
+        assert oligo_score_wo_utr == 0, "error: scoring for region wo UTR incorrect."
+        assert oligo_score_wo_utr < oligo_score_with_utr, "error: UTR score incorrect."
 
-    def test_weighted_GC_Tm_score(self):
-        oligo_score = self.score_weighted_gc_tm.get_score(
+    def test_exon_scorer(self):
+        oligo_score_wo_exon = self.exon_scorer.apply(
             oligo_database=self.oligo_database,
             region_id="region_1",
             oligo_id="region_1::1",
             sequence_type=self.sequence_type,
         )
-        assert abs(oligo_score - 0.74666) < 1e-5, "Weighted GC-Tm score failed!"
-
-    def test_weighted_isoform_GC_Tm_score(self):
-        oligo_score = self.score_weighted_isoform_gc_tm.get_score(
-            oligo_database=self.oligo_database,
-            region_id="region_1",
-            oligo_id="region_1::1",
-            sequence_type=self.sequence_type,
-        )
-
-        assert abs(oligo_score - 0.74666) < 1e-5, "Weighted isoform GC-Tm score failed!"
-
-    def test_weighted_isoform_GC_Tm_score_targeted_exons(self):
-        oligo_score_not_in_targeted = self.score_weighted_isoform_gc_tm_targeted_exons.get_score(
-            oligo_database=self.oligo_database,
-            region_id="region_1",
-            oligo_id="region_1::1",
-            sequence_type=self.sequence_type,
-        )
-
-        oligo_score_in_targeted = self.score_weighted_isoform_gc_tm_targeted_exons.get_score(
+        oligo_score_with_exon1 = self.exon_scorer.apply(
             oligo_database=self.oligo_database,
             region_id="region_1",
             oligo_id="region_1::2",
             sequence_type=self.sequence_type,
         )
+        oligo_score_with_exon2 = self.exon_scorer.apply(
+            oligo_database=self.oligo_database,
+            region_id="region_1",
+            oligo_id="region_1::3",
+            sequence_type=self.sequence_type,
+        )
+        assert oligo_score_wo_exon == 0, "error: scoring for region wo exon incorrect."
+        assert oligo_score_wo_exon < oligo_score_with_exon1, "error: exon score incorrect."
+        assert oligo_score_with_exon2 == 2, "error: exon score incorrect."
 
-        assert abs(oligo_score_in_targeted - 0.74666) < 1e-5, "Weighted isoform GC-Tm score failed!"
-        assert abs(oligo_score_not_in_targeted - 2.74666) < 1e-5, "Weighted isoform GC-Tm score failed!"
+    def test_isoform_consensus(self):
+        oligo_score1 = self.isoform_consensus_scorer.apply(
+            oligo_database=self.oligo_database,
+            region_id="region_1",
+            oligo_id="region_1::1",
+            sequence_type=self.sequence_type,
+        )
+        assert oligo_score1 == 1, "error: scoring for isoform consensus incorrect."
+
+        self.isoform_consensus_scorer.normalize = False
+        self.isoform_consensus_scorer.score_weight = 1
+        oligo_score2 = self.isoform_consensus_scorer.apply(
+            oligo_database=self.oligo_database,
+            region_id="region_1",
+            oligo_id="region_1::2",
+            sequence_type=self.sequence_type,
+        )
+        assert oligo_score2 == 100, "error: scoring for isoform consensus incorrect."
+
+    def test_Tm_scorer(self):
+        oligo_score = self.Tm_scorer.apply(
+            oligo_database=self.oligo_database,
+            region_id="region_1",
+            oligo_id="region_1::1",
+            sequence_type=self.sequence_type,
+        )
+        assert oligo_score == 0, "error: scoring for Tm incorrect."
+
+    def test_GC_scorer(self):
+        oligo_score = self.GC_scorer.apply(
+            oligo_database=self.oligo_database,
+            region_id="region_1",
+            oligo_id="region_1::1",
+            sequence_type=self.sequence_type,
+        )
+        assert oligo_score == 0, "error: scoring for GC content incorrect."
+
+    def test_Tm_norm_scorer(self):
+        oligo_score = self.Tm_norm_scorer.apply(
+            oligo_database=self.oligo_database,
+            region_id="region_1",
+            oligo_id="region_1::1",
+            sequence_type=self.sequence_type,
+        )
+        assert abs(oligo_score - 0.496) < 1e-3, "error: scoring for Tm incorrect."
+
+    def test_GC_norm_scorer(self):
+        oligo_score = self.GC_norm_scorer.apply(
+            oligo_database=self.oligo_database,
+            region_id="region_1",
+            oligo_id="region_1::1",
+            sequence_type=self.sequence_type,
+        )
+        assert oligo_score == 0.25, "error: scoring for GC content incorrect."
+
+    def test_oligo_scoring(self):
+        oligos_scoring = OligoScoring(
+            scorers=[self.exon_scorer, self.isoform_consensus_scorer, self.Tm_scorer, self.GC_norm_scorer]
+        )
+        oligos_scoring.apply(
+            oligo_database=self.oligo_database, region_id="region_1", sequence_type=self.sequence_type
+        )
+
+        assert (
+            self.oligo_database.database["region_1"]["region_1::1"]["oligo_score"] == 1.25
+        ), "error: wrong score computed for oligo region_1::1"
+        assert (
+            self.oligo_database.database["region_1"]["region_1::2"]["oligo_score"] == 2.25
+        ), "error: wrong score computed for oligo region_1::2"
 
 
 class TestSetScoring(unittest.TestCase):
