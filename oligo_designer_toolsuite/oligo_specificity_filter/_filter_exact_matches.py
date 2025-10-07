@@ -11,37 +11,37 @@ from joblib_progress import joblib_progress
 
 from oligo_designer_toolsuite._constants import _TYPES_SEQ
 from oligo_designer_toolsuite.database import OligoDatabase, OligoAttributes
-from oligo_designer_toolsuite.oligo_specificity_filter import SpecificityFilterBase
+from oligo_designer_toolsuite.oligo_specificity_filter import BaseSpecificityFilter
 
-from ._policies import FilterPolicyBase, RemoveAllPolicy
+from ._policies import BaseFilterPolicy, RemoveAllFilterPolicy
 
 ############################################
 # Oligo Exact Match Filter Classes
 ############################################
 
 
-class ExactMatchFilter(SpecificityFilterBase):
+class ExactMatchFilter(BaseSpecificityFilter):
     """
     A filter class for identifying and handling exact sequence matches within an OligoDatabase.
 
     The `ExactMatchFilter` class is designed to apply a specific policy to oligonucleotides that have exact sequence matches in the OligoDatabase.
     This filter can be used to remove or handle exact matches based on the provided policy.
 
-    :param policy: The policy to apply to exact matches. If not provided, a default policy (`RemoveAllPolicy`) will be used.
-    :type policy: FilterPolicyBase
+    :param policy: The policy to apply to exact matches. If not provided, a default policy (`RemoveAllFilterPolicy`) will be used.
+    :type policy: BaseFilterPolicy
     :param filter_name: Name of the filter for identification purposes.
     :type filter_name: str
     """
 
     def __init__(
         self,
-        policy: FilterPolicyBase = None,
+        policy: BaseFilterPolicy = None,
         filter_name: str = "exact_match_filter",
     ) -> None:
         """Constructor for the ExactMatches class."""
 
         if not policy:
-            policy = RemoveAllPolicy()
+            policy = RemoveAllFilterPolicy()
         self.policy = policy
         self.filter_name = filter_name
         self.sequence_type = None

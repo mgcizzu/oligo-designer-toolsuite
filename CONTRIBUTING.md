@@ -12,7 +12,7 @@ Thank you for your interest in contributing to Oligo Designer Toolsuite! Here's 
 
 ### Implementing Modules
 
-1. **Inheritance from Base Class**: When creating a new function, make sure you put it in a class that inherit from the relevant base class. The base class offers a consistent structure shared across all classes in the sub-module. For example, a class designed for property filtering should inherit from `PropertyFilterBase` and must implement the `apply` method.
+1. **Inheritance from Base Class**: When creating a new function, make sure you put it in a class that inherit from the relevant base class. The base class offers a consistent structure shared across all classes in the sub-module. For example, a class designed for property filtering should inherit from `BasePropertyFilter` and must implement the `apply` method.
 
 3. **Unit Tests**: Write unit tests for your contributions in the `test/test_<module_name>.py` file. Ensure they pass before submitting.
 

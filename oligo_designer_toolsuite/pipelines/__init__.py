@@ -7,6 +7,7 @@ from ._merfish_probe_designer import MerfishProbeDesigner
 from ._oligo_seq_probe_designer import OligoSeqProbeDesigner
 from ._scrinshot_probe_designer import ScrinshotProbeDesigner
 from ._seqfish_plus_probe_designer import SeqFishPlusProbeDesigner
+from ._cycle_hcr_probe_designer import CycleHCRProbeDesigner
 
 __all__ = [
     "GenomicRegionGenerator",
@@ -14,4 +15,5 @@ __all__ = [
     "ScrinshotProbeDesigner",
     "SeqFishPlusProbeDesigner",
     "MerfishProbeDesigner",
+    "CycleHCRProbeDesigner",
 ]

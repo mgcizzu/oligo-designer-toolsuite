@@ -11,7 +11,7 @@ from joblib_progress import joblib_progress
 from oligo_designer_toolsuite._constants import _TYPES_SEQ
 from oligo_designer_toolsuite.database import OligoDatabase
 from oligo_designer_toolsuite.oligo_specificity_filter import (
-    SpecificityFilterReference,
+    ReferenceSpecificityFilter,
 )
 
 from oligo_designer_toolsuite.utils import get_intersection
@@ -21,12 +21,12 @@ from oligo_designer_toolsuite.utils import get_intersection
 ############################################
 
 
-class VariantsFilter(SpecificityFilterReference):
+class VariantsFilter(ReferenceSpecificityFilter):
     """
     A specificity filter that removes or flags oligos overlapping known variants (e.g., SNPs)
     by intersecting oligo positions with a reference database using BEDTools.
 
-    This class extends the `SpecificityFilterReference` and implements a BED-based
+    This class extends the `ReferenceSpecificityFilter` and implements a BED-based
     filtering pipeline. Depending on the `remove_hits` flag, oligos overlapping
     entries in the variant reference are either removed from the database or flagged
     with the associated hit information.
