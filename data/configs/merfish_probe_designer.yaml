@@ -126,23 +126,23 @@ target_probe_Tm_salt_correction_parameters: null # if salt correction desired, p
 target_probe_secondary_structures_threshold_deltaG: 0 # threshold for the secondary structure free energy -> oligo rejected if it presents a structure with a negative free energy at the defined temperature
 # Specificity filter with BlastN
 target_probe_specificity_blastn_search_parameters:
-  perc_identity: 80 # the higher the percent identity is, the more significant the match
-  strand: "minus" # this parameter is fixed, if reference is whole genome, consider using "both"
-  word_size: 10
-  dust: "no"
-  soft_masking: "false"
-  max_target_seqs: 10
-  max_hsps: 1000
+  -perc_identity: 80
+  -strand: "minus" # this parameter is fixed, if reference is whole genome, consider using "both"
+  -word_size: 10
+  -dust: "no"
+  -soft_masking: "false"
+  -max_target_seqs: 10
+  -max_hsps: 1000
 target_probe_specificity_blastn_hit_parameters:
   min_alignment_length: 17 # can be turned into coverage
 # Crosshybridization filter with BlastN
 target_probe_cross_hybridization_blastn_search_parameters:
-  perc_identity: 80 # the higher the percent identity is, the more significant the match
-  strand: "minus" # this parameter is fixed
-  word_size: 7
-  dust: "no"
-  soft_masking: "false"
-  max_target_seqs: 10
+  -perc_identity: 80
+  -strand: "minus" # this parameter is fixed
+  -word_size: 7
+  -dust: "no"
+  -soft_masking: "false"
+  -max_target_seqs: 10
 target_probe_cross_hybridization_blastn_hit_parameters:
   min_alignment_length: 17 # can be turned into coverage
 # Parameters for the oligo set selection
@@ -173,23 +173,23 @@ readout_probe_Tm_chem_correction_parameters: null # if chem correction desired, 
 readout_probe_Tm_salt_correction_parameters: null # if salt correction desired, please add parameters below
 # Specificity filter with BlastN
 readout_probe_specificity_blastn_search_parameters:
-  perc_identity: 100 # the higher the percent identity is, the more significant the match
-  strand: "minus" # this parameter is fixed, if reference is whole genome, consider using "both"
-  word_size: 7
-  dust: "no"
-  soft_masking: "false"
-  max_target_seqs: 10
-  max_hsps: 1000
+  -perc_identity: 100
+  -strand: "minus" # this parameter is fixed, if reference is whole genome, consider using "both"
+  -word_size: 7
+  -dust: "no"
+  -soft_masking: "false"
+  -max_target_seqs: 10
+  -max_hsps: 1000
 readout_probe_specificity_blastn_hit_parameters:
   min_alignment_length: 11 # can be turned into coverage
 # Crosshybridization filter with BlastN
 readout_probe_cross_hybridization_blastn_search_parameters:
-  perc_identity: 100 # the higher the percent identity is, the more significant the match
-  strand: "minus" # this parameter is fixed
-  word_size: 7
-  dust: "no"
-  soft_masking: "false"
-  max_target_seqs: 10
+  -perc_identity: 100
+  -strand: "minus" # this parameter is fixed
+  -word_size: 7
+  -dust: "no"
+  -soft_masking: "false"
+  -max_target_seqs: 10
 readout_probe_cross_hybridization_blastn_hit_parameters:
   min_alignment_length: 11 # can be turned into coverage
 # Parameters for the oligo set selection
@@ -218,23 +218,23 @@ primer_Tm_chem_correction_parameters: null # if chem correction desired, please 
 primer_Tm_salt_correction_parameters: null # if salt correction desired, please add parameters below
 # Specificity filter with BlastN against reference
 primer_specificity_refrence_blastn_search_parameters:
-  perc_identity: 100 # the higher the percent identity is, the more significant the match
-  strand: "minus" # this parameter is fixed, if reference is whole genome, consider using "both"
-  word_size: 7
-  dust: "no"
-  soft_masking: "false"
-  max_target_seqs: 10
-  max_hsps: 1000
+  -perc_identity: 100
+  -strand: "minus" # this parameter is fixed, if reference is whole genome, consider using "both"
+  -word_size: 7
+  -dust: "no"
+  -soft_masking: "false"
+  -max_target_seqs: 10
+  -max_hsps: 1000
 primer_specificity_refrence_blastn_hit_parameters:
   min_alignment_length: 14 # can be turned into coverage
 # Specificity filter with BlastN against encoding rpobes
 primer_specificity_encoding_probes_blastn_search_parameters:
-  perc_identity: 100 # the higher the percent identity is, the more significant the match
-  strand: "minus" # this parameter is fixed, if reference is whole genome, consider using "both"
-  word_size: 7
-  dust: "no"
-  soft_masking: "false"
-  max_target_seqs: 10
-  max_hsps: 1000
+  -perc_identity: 100
+  -strand: "minus" # this parameter is fixed, if reference is whole genome, consider using "both"
+  -word_size: 7
+  -dust: "no"
+  -soft_masking: "false"
+  -max_target_seqs: 10
+  -max_hsps: 1000
 primer_specificity_encoding_probes_blastn_hit_parameters:
   min_alignment_length: 11 # can be turned into coverage

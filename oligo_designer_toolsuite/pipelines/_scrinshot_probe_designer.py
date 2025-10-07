@@ -23,10 +23,10 @@ from oligo_designer_toolsuite.database import (
     ReferenceDatabase,
 )
 from oligo_designer_toolsuite.oligo_efficiency_filter import (
-    LowestSetScoring,
     IsoformConsensusScorer,
-    NormalizedDeviationFromOptimalTmScorer,
+    LowestSetScoring,
     NormalizedDeviationFromOptimalGCContentScorer,
+    NormalizedDeviationFromOptimalTmScorer,
     OligoScoring,
 )
 from oligo_designer_toolsuite.oligo_property_filter import (
@@ -113,22 +113,22 @@ class ScrinshotProbeDesigner:
     def set_developer_parameters(
         self,
         target_probe_specificity_blastn_search_parameters: dict = {
-            "perc_identity": 80,
-            "strand": "minus",
-            "word_size": 10,
-            "dust": "no",
-            "soft_masking": "false",
-            "max_target_seqs": 10,
-            "max_hsps": 1000,
+            "-perc_identity": 80,
+            "-strand": "minus",
+            "-word_size": 10,
+            "-dust": "no",
+            "-soft_masking": "false",
+            "-max_target_seqs": 10,
+            "-max_hsps": 1000,
         },
         target_probe_specificity_blastn_hit_parameters: dict = {"coverage": 50},
         target_probe_cross_hybridization_blastn_search_parameters: dict = {
-            "perc_identity": 80,
-            "strand": "minus",
-            "word_size": 10,
-            "dust": "no",
-            "soft_masking": "false",
-            "max_target_seqs": 10,
+            "-perc_identity": 80,
+            "-strand": "minus",
+            "-word_size": 10,
+            "-dust": "no",
+            "-soft_masking": "false",
+            "-max_target_seqs": 10,
         },
         target_probe_cross_hybridization_blastn_hit_parameters: dict = {"coverage": 80},
         max_graph_size: int = 5000,

@@ -20,11 +20,11 @@ from oligo_designer_toolsuite.oligo_specificity_filter import (
     BowtieFilter,
     CrossHybridizationFilter,
     ExactMatchFilter,
-    VariantsFilter,
     HybridizationProbabilityFilter,
     RemoveAllFilterPolicy,
     RemoveByDegreeFilterPolicy,
     RemoveByLargerRegionFilterPolicy,
+    VariantsFilter,
 )
 
 ############################################
@@ -201,9 +201,9 @@ class AlignmentFilterTestBase:
 class TestBlastFilter(AlignmentFilterTestBase, unittest.TestCase):
     def _setup_filter(self):
         blastn_search_parameters = {
-            "perc_identity": 80,
-            "strand": "plus",
-            "word_size": 10,
+            "-perc_identity": 80,
+            "-strand": "plus",
+            "-word_size": 10,
         }
         hit_parameters = {"coverage": 50}
 
@@ -240,9 +240,9 @@ class TestBowtie2Filter(AlignmentFilterTestBase, unittest.TestCase):
 class TestBlastNSeedregionSiteFilter(AlignmentFilterTestBase, unittest.TestCase):
     def _setup_filter(self):
         blastn_search_parameters = {
-            "perc_identity": 80,
-            "strand": "plus",
-            "word_size": 10,
+            "-perc_identity": 80,
+            "-strand": "plus",
+            "-word_size": 10,
         }
         hit_parameters = {"coverage": 50}
         seedregion_size = 10
@@ -274,9 +274,9 @@ class TestCrossHybridizationFilter(unittest.TestCase):
 
         # Blast parameters
         self.blastn_search_parameters_crosshyb = {
-            "perc_identity": 80,
-            "strand": "minus",
-            "word_size": 10,
+            "-perc_identity": 80,
+            "-strand": "minus",
+            "-word_size": 10,
         }
         self.hit_parameters_crosshyb = {"coverage": 50}
 
@@ -514,9 +514,9 @@ class TestHybridizationProbabilityBalstn(unittest.TestCase):
         self.region_id = "region"
 
         blastn_search_parameters = {
-            "perc_identity": 80,
-            "strand": "both",
-            "word_size": 10,
+            "-perc_identity": 80,
+            "-strand": "both",
+            "-word_size": 10,
         }
         hit_parameters = {"coverage": 50}
         self.alignment_filter = BlastNFilter(

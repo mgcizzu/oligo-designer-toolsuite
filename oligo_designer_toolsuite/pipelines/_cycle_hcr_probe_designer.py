@@ -2,22 +2,20 @@
 # imports
 ############################################
 
-import os
-import yaml
-import shutil
-import logging
-import warnings
 import itertools
-
-import pandas as pd
-import numpy as np
-
-from typing import List, Tuple
-from pathlib import Path
+import logging
+import os
+import shutil
+import warnings
 from datetime import datetime
+from pathlib import Path
+from typing import List, Tuple
 
-from Bio.SeqUtils import Seq
+import numpy as np
+import pandas as pd
+import yaml
 from Bio.SeqUtils import MeltingTemp as mt
+from Bio.SeqUtils import Seq
 
 from oligo_designer_toolsuite.database import (
     OligoAttributes,
@@ -26,38 +24,37 @@ from oligo_designer_toolsuite.database import (
 )
 from oligo_designer_toolsuite.oligo_efficiency_filter import (
     AverageSetScoring,
-    IsoformConsensusScorer,
     DeviationFromOptimalTmScorer,
+    IsoformConsensusScorer,
     OligoScoring,
 )
 from oligo_designer_toolsuite.oligo_property_filter import (
-    SoftMaskedSequenceFilter,
+    GCContentFilter,
     HardMaskedSequenceFilter,
     HomopolymericRunsFilter,
-    GCContentFilter,
     MeltingTemperatureNNFilter,
-    SecondaryStructureFilter,
     PropertyFilter,
+    SecondaryStructureFilter,
 )
 from oligo_designer_toolsuite.oligo_selection import (
-    OligosetGeneratorIndependentSet,
     GraphBasedSelectionPolicy,
     GreedySelectionPolicy,
+    OligosetGeneratorIndependentSet,
 )
 from oligo_designer_toolsuite.oligo_specificity_filter import (
     BlastNFilter,
     BlastNSeedregionSiteFilter,
     CrossHybridizationFilter,
     ExactMatchFilter,
-    RemoveByLargerRegionFilterPolicy,
     RemoveAllFilterPolicy,
+    RemoveByLargerRegionFilterPolicy,
     SpecificityFilter,
 )
 from oligo_designer_toolsuite.pipelines._utils import (
-    base_parser,
     base_log_parameters,
-    pipeline_step_basic,
+    base_parser,
     check_content_oligo_database,
+    pipeline_step_basic,
 )
 from oligo_designer_toolsuite.sequence_generator import OligoSequenceGenerator
 
@@ -115,22 +112,22 @@ class CycleHCRProbeDesigner:
     def set_developer_parameters(
         self,
         target_probe_specificity_blastn_search_parameters: dict = {
-            "perc_identity": 80,
-            "strand": "plus",
-            "word_size": 10,
-            "dust": "no",
-            "soft_masking": "false",
-            "max_target_seqs": 10,
-            "max_hsps": 1000,
+            "-perc_identity": 80,
+            "-strand": "plus",
+            "-word_size": 10,
+            "-dust": "no",
+            "-soft_masking": "false",
+            "-max_target_seqs": 10,
+            "-max_hsps": 1000,
         },
         target_probe_specificity_blastn_hit_parameters: dict = {"coverage": 50},
         target_probe_cross_hybridization_blastn_search_parameters: dict = {
-            "perc_identity": 80,
-            "strand": "minus",
-            "word_size": 7,
-            "dust": "no",
-            "soft_masking": "false",
-            "max_target_seqs": 10,
+            "-perc_identity": 80,
+            "-strand": "minus",
+            "-word_size": 7,
+            "-dust": "no",
+            "-soft_masking": "false",
+            "-max_target_seqs": 10,
         },
         target_probe_cross_hybridization_blastn_hit_parameters: dict = {"coverage": 50},
         target_probe_Tm_parameters: dict = {
@@ -409,10 +406,12 @@ class CycleHCRProbeDesigner:
             n_jobs=self.n_jobs,
         )
         if file_readout_probe_table:
-            readout_probe_table, n_channels, n_readout_probes_LR = (
-                readout_probe_designer.load_readout_probe_table(
-                    file_readout_probe_table=file_readout_probe_table
-                )
+            (
+                readout_probe_table,
+                n_channels,
+                n_readout_probes_LR,
+            ) = readout_probe_designer.load_readout_probe_table(
+                file_readout_probe_table=file_readout_probe_table
             )
             logging.info(
                 f"Loaded readout probes table from file and retrieved {n_channels} channels and {n_readout_probes_LR} L and R readout probes."
