@@ -2217,6 +2217,7 @@ def main():
 
     ##### design probes #####
     target_probe_database = pipeline.design_target_probes(
+        gene_ids=gene_ids,
         files_fasta_target_probe_database=config["files_fasta_target_probe_database"],
         files_fasta_reference_database_target_probe=config["files_fasta_reference_database_target_probe"],
         gene_ids=gene_ids,
