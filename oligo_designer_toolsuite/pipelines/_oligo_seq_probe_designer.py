@@ -20,11 +20,11 @@ from oligo_designer_toolsuite.database import (
 )
 from oligo_designer_toolsuite.oligo_efficiency_filter import (
     AverageSetScoring,
-    OverlapTargetedExonsScorer,
     IsoformConsensusScorer,
     NormalizedDeviationFromOptimalGCContentScorer,
     NormalizedDeviationFromOptimalTmScorer,
     OligoScoring,
+    OverlapTargetedExonsScorer,
 )
 from oligo_designer_toolsuite.oligo_property_filter import (
     GCContentFilter,
@@ -42,16 +42,15 @@ from oligo_designer_toolsuite.oligo_selection import (
     OligosetGeneratorIndependentSet,
 )
 from oligo_designer_toolsuite.oligo_specificity_filter import (
-    CrossHybridizationFilter,
-    ExactMatchFilter,
     BlastNFilter,
     BowtieFilter,
+    CrossHybridizationFilter,
+    ExactMatchFilter,
     HybridizationProbabilityFilter,
-    VariantsFilter,
-    RemoveByLargerRegionFilterPolicy,
     RemoveAllFilterPolicy,
     RemoveByLargerRegionFilterPolicy,
     SpecificityFilter,
+    VariantsFilter,
 )
 from oligo_designer_toolsuite.pipelines._utils import (
     base_log_parameters,
@@ -113,9 +112,9 @@ class OligoSeqProbeDesigner:
         self,
         target_probe_hybridization_probability_alignment_method: str = "blastn",
         target_probe_hybridization_probability_blastn_search_parameters: dict = {
-            "perc_identity": 80,
-            "strand": "minus",
-            "word_size": 10,
+            "-perc_identity": 80,
+            "-strand": "minus",
+            "-word_size": 10,
         },
         target_probe_hybridization_probability_blastn_hit_parameters: dict = {"coverage": 50},
         target_probe_hybridization_probability_bowtie_search_parameters: dict = {
@@ -125,9 +124,9 @@ class OligoSeqProbeDesigner:
         target_probe_hybridization_probability_bowtie_hit_parameters: dict = None,
         target_probe_cross_hybridization_alignment_method: str = "blastn",
         target_probe_cross_hybridization_blastn_search_parameters: dict = {
-            "perc_identity": 80,
-            "strand": "minus",
-            "word_size": 10,
+            "-perc_identity": 80,
+            "-strand": "minus",
+            "-word_size": 10,
         },
         target_probe_cross_hybridization_blastn_hit_parameters: dict = {"coverage": 50},
         target_probe_cross_hybridization_bowtie_search_parameters: dict = {

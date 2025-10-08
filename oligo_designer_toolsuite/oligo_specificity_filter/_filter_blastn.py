@@ -10,11 +10,8 @@ from typing import Tuple, Union
 
 import numpy as np
 import pandas as pd
-
-from abc import abstractmethod
 from Bio import SeqIO
 
-from oligo_designer_toolsuite._constants import _TYPES_SEQ
 from oligo_designer_toolsuite.database import OligoAttributes, OligoDatabase
 from oligo_designer_toolsuite.oligo_specificity_filter import AlignmentSpecificityFilter
 
@@ -88,8 +85,8 @@ class BlastNFilter(AlignmentSpecificityFilter):
 
         # Define default output format for blast search filter. The fields are:
         # query, reference, alignment_length, query_start, query_end, query_length
-        if "outfmt" not in self.search_parameters.keys():
-            self.search_parameters["outfmt"] = "6 qseqid sseqid length qstart qend qlen"
+        if "-outfmt" not in self.search_parameters.keys():
+            self.search_parameters["-outfmt"] = "6 qseqid sseqid length qstart qend qlen"
 
     def create_reference(
         self,
@@ -152,7 +149,7 @@ class BlastNFilter(AlignmentSpecificityFilter):
         for parameter, value in self.search_parameters.items():
             # add quotes if list of strings seperated by whitespace
             value = f'"{value}"' if " " in str(value) else value
-            cmd_parameters += f" -{parameter} {value}"
+            cmd_parameters += f" {parameter} {value}"
 
         cmd = (
             "blastn"
