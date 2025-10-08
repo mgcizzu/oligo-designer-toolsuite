@@ -2220,9 +2220,9 @@ def main():
 
     ##### design probes #####
     target_probe_database = pipeline.design_target_probes(
+        gene_ids=gene_ids,
         files_fasta_target_probe_database=config["files_fasta_target_probe_database"],
         files_fasta_reference_database_targe_probe=config["files_fasta_reference_database_targe_probe"],
-        gene_ids=gene_ids,
         target_probe_length_min=config["target_probe_length_min"],
         target_probe_length_max=config["target_probe_length_max"],
         target_probe_isoform_consensus=config["target_probe_isoform_consensus"],

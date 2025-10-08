@@ -1171,10 +1171,10 @@ def main():
 
     ##### design probes #####
     oligo_database = pipeline.design_target_probes(
+        gene_ids=gene_ids,
         files_fasta_target_probe_database=config["files_fasta_target_probe_database"],
         files_fasta_reference_database_targe_probe=config["files_fasta_reference_database_targe_probe"],
         files_vcf_reference_database_target_probe=config["files_vcf_reference_database_target_probe"],
-        gene_ids=gene_ids,
         target_probe_length_min=config["target_probe_length_min"],
         target_probe_length_max=config["target_probe_length_max"],
         target_probe_split_region=config["target_probe_split_region"],
@@ -1185,9 +1185,11 @@ def main():
         target_probe_GC_content_min=config["target_probe_GC_content_min"],
         target_probe_GC_content_opt=config["target_probe_GC_content_opt"],
         target_probe_GC_content_max=config["target_probe_GC_content_max"],
+        target_probe_GC_weight=config["target_probe_GC_weight"],
         target_probe_Tm_min=config["target_probe_Tm_min"],
         target_probe_Tm_opt=config["target_probe_Tm_opt"],
         target_probe_Tm_max=config["target_probe_Tm_max"],
+        target_probe_Tm_weight=config["target_probe_Tm_weight"],
         target_probe_secondary_structures_T=config["target_probe_secondary_structures_T"],
         target_probe_secondary_structures_threshold_deltaG=config[
             "target_probe_secondary_structures_threshold_deltaG"
@@ -1198,8 +1200,6 @@ def main():
             "target_probe_hybridization_probability_threshold"
         ],
         target_probe_read_length_bias=config["target_probe_read_length_bias"],
-        target_probe_GC_weight=config["target_probe_GC_weight"],
-        target_probe_Tm_weight=config["target_probe_Tm_weight"],
         set_size_min=config["set_size_min"],
         set_size_opt=config["set_size_opt"],
         distance_between_target_probes=config["distance_between_target_probes"],

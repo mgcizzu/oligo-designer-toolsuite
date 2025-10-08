@@ -70,7 +70,11 @@ class CycleHCRProbeDesigner:
     """
     A class for designing encoding probes for the CycleHCR experiments.
 
-    A CycleHCR encoding probe is a ... [ADD DESCRIPTION HERE]
+    A CycleHCR encoding probe is a fluorescent probe that contains a 92-nt targeting sequence (divided into
+    45-nt segments for the left and right probe pairs, separated by a 2-nt gap), which directs their binding
+    to the specific RNA, two 14-nt barcode sequences, which are read out by fluorescent secondary readout probes,
+    TT-nucleotide spacers between readout and gene-specific regions, and two PCR primer binding sites.
+    The specific readout sequences contained by an encoding probe are determined by the binary barcode assigned to that RNA.
 
     :param write_intermediate_steps: Whether to save intermediate results during the probe design pipeline.
     :type write_intermediate_steps: bool
@@ -1435,9 +1439,9 @@ def main():
 
     ##### design probes #####
     target_probe_database = pipeline.design_target_probes(
+        gene_ids=gene_ids,
         files_fasta_target_probe_database=config["files_fasta_target_probe_database"],
         files_fasta_reference_database_targe_probe=config["files_fasta_reference_database_targe_probe"],
-        gene_ids=gene_ids,
         target_probe_isoform_consensus=config["target_probe_isoform_consensus"],
         target_probe_L_probe_sequence_length=config["target_probe_L_probe_sequence_length"],
         target_probe_gap_sequence_length=config["target_probe_gap_sequence_length"],
