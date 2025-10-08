@@ -119,7 +119,7 @@ class TestOligosetGeneratorIndependentSet(unittest.TestCase):
     def test_nonoverlapping_matrix_ovelapping_oligos(self):
         # check the overlapping matrix is created correctly with 2 oligos given in input
         # generate sinthetic oligos that overlap
-        oligo_database = OligoDatabase()
+        oligo_database = OligoDatabase(dir_output=self.tmp_path)
         oligo_database.database = {
             "region_1": {
                 "A_0": {"start": [[10], [50]], "end": [[15], [55]]},
@@ -143,7 +143,7 @@ class TestOligosetGeneratorIndependentSet(unittest.TestCase):
 
     def test_nonoverlapping_matrix_for_nonovelapping_oligos(self):
         # generate sinthetic oligos that overlap
-        oligo_database = OligoDatabase()
+        oligo_database = OligoDatabase(dir_output=self.tmp_path)
         oligo_database.database = {
             "region_1": {
                 "A_0": {"start": [[10], [50]], "end": [[15], [55]]},
@@ -196,7 +196,7 @@ class TestOligosetGeneratorIndependentSet(unittest.TestCase):
             assert true_sets.equals(computed_sets), f"Sets for {gene} are not computed correctly!"
 
     def test_non_overlapping_sets(self):
-        oligo_database = OligoDatabase()
+        oligo_database = OligoDatabase(dir_output=self.tmp_path)
         oligo_database.database = {
             "region_1": {
                 "A_0": {"oligo": "GCATCTCACTAAGATGTCTGTATCTGCGTGTGCG"},
