@@ -7,7 +7,7 @@
 n_jobs: 2 # number of cores used to run the pipeline and 2*n_jobs +1 of regions that should be stored in cache. If memory consumption of pipeline is too high reduce this number, if a lot of RAM is available increase this number to decrease runtime
 dir_output: output_cyclehcr_probe_designer # name of the directory where the output files will be written
 write_intermediate_steps: true # if true, writes the oligo sequences after each step of the pipeline into a csv file
-top_n_sets: 1 #maximum number of sets to report in padlock_probes.yaml and "padlock_probes_order.yaml"
+top_n_sets: 3 #maximum number of sets to report in cyclehcr_probes.yaml and "cyclehcr_probes_order.yaml"
 
 
 ### Target Probe Parameters
@@ -58,7 +58,6 @@ reverse_primer_sequence: CGACACCGAACGTGCGACAA # defaults to oligo sequence, chan
 ### Target Probe Parameters
 ### -----------------------------------------------
 # Parameters for property filters
-# The melting temperature is used in 2 different stages (property filters and padlock detection probe design), where a few parameters are shared and the others differ.
 # parameters for melting temperature -> for more information on parameters, see: https://biopython.org/docs/1.75/api/Bio.SeqUtils.MeltingTemp.html#Bio.SeqUtils.MeltingTemp.Tm_NN
 target_probe_Tm_parameters:
   nn_table: DNA_NN3 # default

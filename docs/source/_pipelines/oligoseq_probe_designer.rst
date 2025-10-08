@@ -54,27 +54,31 @@ For a complete explanation of all function parameters, refer to the API document
     # We first generate probes that hybridize specifically to target genes sequences.
     # The pipeline will generate multiple candidate sets (n_sets) and return them as part of the probe database.
     oligo_database = pipeline.design_target_probes(
+        gene_ids=...,                                           # List of gene symbols or identifiers
         files_fasta_target_probe_database=...,                  # List of FASTA files with target gene sequences
         files_fasta_reference_database_targe_probe=...,         # List of FASTA files for specificity reference
-        gene_ids=...,                                           # List of gene symbols or identifiers
+        files_vcf_reference_database_target_probe=...,          # List of VCF files for SNP masking
         target_probe_length_min=26,
         target_probe_length_max=30,
         target_probe_split_region=4,
         target_probe_targeted_exons=[1,2,3],
+        target_probe_targeted_exons_weight=1,
         target_probe_isoform_consensus=0,
+        target_probe_isoform_weight=1,
         target_probe_GC_content_min=45,
         target_probe_GC_content_opt=55,
         target_probe_GC_content_max=65,
+        target_probe_GC_weight=1,
         target_probe_Tm_min=50,
         target_probe_Tm_opt=60,
         target_probe_Tm_max=70,
+        target_probe_Tm_weight=1,
         target_probe_secondary_structures_T=37,
         target_probe_secondary_structures_threshold_deltaG=0,
         target_probe_homopolymeric_base_n={"A": 6, "T": 6, "C": 6, "G": 6},
         target_probe_max_len_selfcomplement=10,
         target_probe_hybridization_probability_threshold=0.001,
-        target_probe_GC_weight=1,
-        target_probe_Tm_weight=1,
+        target_probe_read_length_bias=20,
         set_size_min=3,
         set_size_opt=5,
         distance_between_target_probes=0,
