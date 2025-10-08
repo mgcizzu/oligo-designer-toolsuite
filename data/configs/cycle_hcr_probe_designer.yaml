@@ -65,10 +65,10 @@ target_probe_Tm_parameters:
   tmm_table: DNA_TMM1 # default
   imm_table: DNA_IMM1 # default
   de_table: DNA_DE1 # default
-  dnac1: 25 #[nM] 
-  dnac2: 25 #[nM] 
-  saltcorr: 0 # 
-  Na: 50 #[mM] 
+  dnac1: 25 #[nM]
+  dnac2: 25 #[nM]
+  saltcorr: 0 #
+  Na: 50 #[mM]
   K: 0 #[mM] default
   Tris: 0 #[mM] default
   Mg: 0 #[mM] default
@@ -78,23 +78,23 @@ target_probe_Tm_salt_correction_parameters: null # if salt correction desired, p
 target_probe_secondary_structures_threshold_deltaG: 0 # threshold for the secondary structure free energy -> oligo rejected if it presents a structure with a negative free energy at the defined temperature
 # Specificity filter with BlastN
 target_probe_specificity_blastn_search_parameters:
-  perc_identity: 100
-  strand: "plus" # this parameter is fixed, if reference is whole genome, consider using "both"
-  word_size: 10
-  dust: "no"
-  soft_masking: "false"
-  max_target_seqs: 10
-  max_hsps: 1000
+  -perc_identity: 100
+  -strand: "plus" # this parameter is fixed, if reference is whole genome, consider using "both"
+  -word_size: 10
+  -dust: "no"
+  -soft_masking: "false"
+  -max_target_seqs: 10
+  -max_hsps: 1000
 target_probe_specificity_blastn_hit_parameters:
   coverage: 90 # can be turned into min_alignment_length
 # Crosshybridization filter with BlastN
 target_probe_cross_hybridization_blastn_search_parameters:
-  perc_identity: 100
-  strand: "minus" # this parameter is fixed
-  word_size: 7
-  dust: "no"
-  soft_masking: "false"
-  max_target_seqs: 10
+  -perc_identity: 100
+  -strand: "minus" # this parameter is fixed
+  -word_size: 7
+  -dust: "no"
+  -soft_masking: "false"
+  -max_target_seqs: 10
 target_probe_cross_hybridization_blastn_hit_parameters:
   coverage: 90 # can be turned into min_alignment_length
 # Parameters for the Oligo set selection
@@ -112,4 +112,3 @@ heuristic_n_attempts: 100 # number of attempts to find the optimal set of oligos
 
 ### Primer Parameters
 ### -----------------------------------------------
-
