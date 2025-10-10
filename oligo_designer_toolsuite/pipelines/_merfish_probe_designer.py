@@ -1120,7 +1120,7 @@ class TargetProbeDesigner:
         oligo_database = OligoDatabase(
             min_oligos_per_region=min_oligos_per_gene,
             write_regions_with_insufficient_oligos=True,
-            lru_db_max_in_memory=self.n_jobs * 2 + 2,
+            max_entries_in_memory=self.n_jobs * 2 + 2,
             database_name=self.subdir_db_oligos,
             dir_output=self.dir_output,
             n_jobs=1,
@@ -1550,7 +1550,7 @@ class ReadoutProbeDesigner:
         oligo_database = OligoDatabase(
             min_oligos_per_region=0,
             write_regions_with_insufficient_oligos=False,
-            lru_db_max_in_memory=self.n_jobs * 2 + 2,
+            max_entries_in_memory=self.n_jobs * 2 + 2,
             database_name=self.subdir_db_oligos,
             dir_output=self.dir_output,
             n_jobs=1,
@@ -1916,7 +1916,7 @@ class PrimerDesigner:
         oligo_database = OligoDatabase(
             min_oligos_per_region=0,
             write_regions_with_insufficient_oligos=False,
-            lru_db_max_in_memory=self.n_jobs * 2 + 2,
+            max_entries_in_memory=self.n_jobs * 2 + 2,
             database_name=self.subdir_db_oligos,
             dir_output=self.dir_output,
             n_jobs=1,
