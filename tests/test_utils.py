@@ -8,7 +8,7 @@ import unittest
 from pathlib import Path
 
 import pandas as pd
-from effidict import LRUPickleDict
+from effidict import EffiDict, PickleBackend, LRUReplacement
 
 from oligo_designer_toolsuite.database import OligoDatabase
 from oligo_designer_toolsuite.sequence_generator import OligoSequenceGenerator
@@ -47,6 +47,17 @@ FILE_NCBI_EXONS = "tests/data/genomic_regions/sequences_ncbi_exons.fna"
 # Tests
 ############################################
 class TestCheckers(unittest.TestCase):
+    def setUp(self):
+        self.tmp_path = os.path.join(os.getcwd(), "tmp_utils")
+        os.makedirs(self.tmp_path, exist_ok=True)
+
+        self._dir_cache_files = os.path.join(self.tmp_path, "cache_files")
+        self.backend = PickleBackend(storage_path=self._dir_cache_files)
+        self.strategy = LRUReplacement(disk_backend=self.backend, max_in_memory=100)
+
+    def tearDown(self):
+        shutil.rmtree(self.tmp_path)
+
     def test_check_if_dna_sequence_valid(self):
         """Test if check_if_dna_sequence works correctly for a valid DNA sequence."""
         seq = "GGctAAgTTCCaGTttGCA"
@@ -63,12 +74,12 @@ class TestCheckers(unittest.TestCase):
 
     def test_check_if_key_exists_empty(self):
         """Test the check_if_key_exists function with an empty cache."""
-        empty_dict = LRUPickleDict()
+        empty_dict = EffiDict(disk_backend=self.backend, replacement_strategy=self.strategy)
         assert not check_if_key_exists(empty_dict, "a"), "Failed: Should return False for empty dictionary"
 
     def test_check_if_key_exists_flat(self):
         """Test the check_if_key_exists function with a flat cache."""
-        flat_database = LRUPickleDict()
+        flat_database = EffiDict(disk_backend=self.backend, replacement_strategy=self.strategy)
         flat_database.load_from_dict({"a": 1, "b": 2})
 
         assert check_if_key_exists(flat_database, "a"), "Failed: Key 'a' should exist in flat_database"
@@ -79,7 +90,7 @@ class TestCheckers(unittest.TestCase):
     def test_check_if_key_exists_nested(self):
         """Test the check_if_key_exists function with a nested cache."""
 
-        nested_database = LRUPickleDict()
+        nested_database = EffiDict(disk_backend=self.backend, replacement_strategy=self.strategy)
         nested_database.load_from_dict({"a": {"b": {"c": 1}}, "d": 2, "e": {"f": {"g": {"h": 3}}}})
 
         assert check_if_key_exists(nested_database, "c"), "Failed: Key 'c' should exist in nested_database"
@@ -184,7 +195,7 @@ class TestDatabaseProcessor(unittest.TestCase):
             self.oligo_database2.database,
             sequence_type="oligo",
             dir_cache_files=self.oligo_database1._dir_cache_files,
-            lru_db_max_in_memory=self.oligo_database1.lru_db_max_in_memory,
+            max_entries_in_memory=self.oligo_database1._max_entries_in_memory,
         )
 
         assert len(oligo_database_merged["AARS1"]) == 4, "error: region not succesfully merged"

@@ -5,7 +5,7 @@
 import warnings
 from typing import Union, get_args
 
-from effidict import LRUPickleDict
+from effidict import EffiDict, PickleBackend, LRUReplacement
 
 from oligo_designer_toolsuite._constants import _TYPES_SEQ, SEPARATOR_OLIGO_ID
 from ._checkers_and_helpers import check_if_list, check_if_list_of_lists
@@ -20,7 +20,7 @@ def merge_databases(
     database2: dict,
     sequence_type: _TYPES_SEQ,
     dir_cache_files: str,
-    lru_db_max_in_memory: int,
+    max_entries_in_memory: int,
 ) -> dict:
     """
     Merges two oligo databases by combining their content based on sequence keys,
@@ -34,8 +34,8 @@ def merge_databases(
     :type sequence_type: _TYPES_SEQ["oligo", "target"]
     :param dir_cache_files: Directory to store cache files used for merging.
     :type dir_cache_files: str
-    :param lru_db_max_in_memory: Maximum number of entries to keep in memory for the LRU (Least Recently Used) cache.
-    :type lru_db_max_in_memory: int
+    :param max_entries_in_memory: Maximum number of entries to keep in memory for the LRU (Least Recently Used) cache.
+    :type max_entries_in_memory: int
     :return: The merged database.
     :rtype: dict
     """
@@ -53,10 +53,10 @@ def merge_databases(
         :return: A dictionary with sequences as keys and oligo attributes as values.
         :rtype: dict
         """
-        database_modified = LRUPickleDict(
-            max_in_memory=lru_db_max_in_memory,
-            storage_path=dir_cache_files,
-        )
+        backend = PickleBackend(storage_path=dir_cache_files)
+        strategy = LRUReplacement(disk_backend=backend, max_in_memory=max_entries_in_memory)
+        database_modified = EffiDict(disk_backend=backend, replacement_strategy=strategy)
+
         for region in regions:
             database_modified[region] = {}
             database_region = database[region]
@@ -91,10 +91,10 @@ def merge_databases(
     # keys that are in both dicts
     regions_intersection = list(set(database1) & set(database2))
 
-    database_merged = LRUPickleDict(
-        max_in_memory=lru_db_max_in_memory,
-        storage_path=dir_cache_files,
-    )
+    backend = PickleBackend(storage_path=dir_cache_files)
+    strategy = LRUReplacement(disk_backend=backend, max_in_memory=max_entries_in_memory)
+    database_merged = EffiDict(disk_backend=backend, replacement_strategy=strategy)
+
     for region in regions_intersection:
         database_merged[region] = {}
 
@@ -105,10 +105,10 @@ def merge_databases(
     database_merged = _add_database_content(database_merged, db1_sequences_as_keys)
     database_merged = _add_database_content(database_merged, db2_sequences_as_keys)
 
-    database_concat = LRUPickleDict(
-        max_in_memory=lru_db_max_in_memory,
-        storage_path=dir_cache_files,
-    )
+    backend = PickleBackend(storage_path=dir_cache_files)
+    strategy = LRUReplacement(disk_backend=backend, max_in_memory=max_entries_in_memory)
+    database_concat = EffiDict(disk_backend=backend, replacement_strategy=strategy)
+
     for region in regions_intersection:
         database_concat[region] = {}
 

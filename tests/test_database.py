@@ -122,7 +122,7 @@ class TestOligoDatabase(unittest.TestCase):
         self.oligo_database = OligoDatabase(
             min_oligos_per_region=2,
             write_regions_with_insufficient_oligos=True,
-            lru_db_max_in_memory=10,
+            max_entries_in_memory=10,
             n_jobs=4,
             database_name="test_oligo_database",
             dir_output=self.tmp_path,
