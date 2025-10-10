@@ -13,7 +13,7 @@ import yaml
 from Bio import SeqIO
 from Bio.Seq import Seq
 from Bio.SeqRecord import SeqRecord
-from effidict import LRUPickleDict
+from effidict import EffiDict, PickleBackend, LRUReplacement
 from joblib import Parallel, delayed
 from joblib_progress import joblib_progress
 
@@ -53,8 +53,8 @@ class OligoDatabase:
     :type min_oligos_per_region: int
     :param write_regions_with_insufficient_oligos: Flag to log regions with insufficient oligos.
     :type write_regions_with_insufficient_oligos: bool
-    :param lru_db_max_in_memory: Maximum number of database entries to keep in memory.
-    :type lru_db_max_in_memory: int
+    :param max_entries_in_memory: Maximum number of database entries to keep in memory.
+    :type max_entries_in_memory: int
     :param n_jobs: Number of parallel jobs to use for processing.
     :type n_jobs: int
     :param database_name: Name of the database for storing oligo data.
@@ -67,7 +67,7 @@ class OligoDatabase:
         self,
         min_oligos_per_region: int = 0,
         write_regions_with_insufficient_oligos: bool = True,
-        lru_db_max_in_memory: int = 10,
+        max_entries_in_memory: int = 10,
         n_jobs: int = 1,
         database_name: str = "db_oligo",
         dir_output: str = "output",
@@ -76,7 +76,7 @@ class OligoDatabase:
 
         self.min_oligos_per_region = min_oligos_per_region
         self.write_regions_with_insufficient_oligos = write_regions_with_insufficient_oligos
-        self.lru_db_max_in_memory = lru_db_max_in_memory
+        self._max_entries_in_memory = max_entries_in_memory
         self.n_jobs = n_jobs
 
         self.database_name = database_name
@@ -88,15 +88,14 @@ class OligoDatabase:
         self.fasta_parser = FastaParser()
 
         # Initialize databse object
-        self.database = LRUPickleDict(
-            max_in_memory=self.lru_db_max_in_memory,
-            storage_path=self._dir_cache_files,
-        )
+        backend = PickleBackend(storage_path=self._dir_cache_files)
+        strategy = LRUReplacement(disk_backend=backend, max_in_memory=self._max_entries_in_memory)
+        self.database = EffiDict(disk_backend=backend, replacement_strategy=strategy)
 
-        self.oligosets = LRUPickleDict(
-            max_in_memory=self.lru_db_max_in_memory,
-            storage_path=self._dir_cache_files,
-        )  # will be used later in the gereration of oligo sets
+        # will be used later in the generation of oligo sets
+        backend = PickleBackend(storage_path=self._dir_cache_files)
+        strategy = LRUReplacement(disk_backend=backend, max_in_memory=self._max_entries_in_memory)
+        self.oligosets = EffiDict(disk_backend=backend, replacement_strategy=strategy)
 
         # Initialize the file for regions with insufficient oligos
         if self.write_regions_with_insufficient_oligos:
@@ -198,7 +197,7 @@ class OligoDatabase:
                         database2=database_region,
                         sequence_type=sequence_type,
                         dir_cache_files=self._dir_cache_files,
-                        lru_db_max_in_memory=self.lru_db_max_in_memory,
+                        max_entries_in_memory=self._max_entries_in_memory,
                     )
                 else:
                     for region in database_region.keys():
@@ -218,10 +217,9 @@ class OligoDatabase:
 
         # Clear database if it should be overwritten
         if database_overwrite:
-            self.database = LRUPickleDict(
-                max_in_memory=self.lru_db_max_in_memory,
-                storage_path=self._dir_cache_files,
-            )
+            backend = PickleBackend(storage_path=self._dir_cache_files)
+            strategy = LRUReplacement(disk_backend=backend, max_in_memory=self._max_entries_in_memory)
+            self.database = EffiDict(disk_backend=backend, replacement_strategy=strategy)
 
         # Load files parallel into database
         with joblib_progress(description=f"Database Loading", total=len(files_fasta)):
@@ -277,10 +275,9 @@ class OligoDatabase:
 
         # Clear database if it should be overwritten
         if database_overwrite:
-            self.database = LRUPickleDict(
-                max_in_memory=self.lru_db_max_in_memory,
-                storage_path=self._dir_cache_files,
-            )
+            backend = PickleBackend(storage_path=self._dir_cache_files)
+            strategy = LRUReplacement(disk_backend=backend, max_in_memory=self._max_entries_in_memory)
+            self.database = EffiDict(disk_backend=backend, replacement_strategy=strategy)
 
         # Load file and process content
         file_tsv_content = pd.read_table(file_database, sep="\t")
@@ -301,10 +298,11 @@ class OligoDatabase:
 
         # Merge loaded database with existing one
         database_tmp1 = file_tsv_content.to_dict(orient="records")
-        database_tmp2 = LRUPickleDict(
-            max_in_memory=self.lru_db_max_in_memory,
-            storage_path=self._dir_cache_files,
-        )
+
+        backend = PickleBackend(storage_path=self._dir_cache_files)
+        strategy = LRUReplacement(disk_backend=backend, max_in_memory=self._max_entries_in_memory)
+        database_tmp2 = EffiDict(disk_backend=backend, replacement_strategy=strategy)
+
         for entry in database_tmp1:
             region_id, oligo_id = entry.pop("region_id"), entry.pop("oligo_id")
             if (not region_ids) or (region_ids and region_id in region_ids):
@@ -318,7 +316,7 @@ class OligoDatabase:
                 database2=database_tmp2,
                 sequence_type=merge_databases_on_sequence_type,
                 dir_cache_files=self._dir_cache_files,
-                lru_db_max_in_memory=self.lru_db_max_in_memory,
+                max_entries_in_memory=self._max_entries_in_memory,
             )
 
         # Filter for region ids
@@ -382,7 +380,7 @@ class OligoDatabase:
                     database2={region_id: database_region},
                     sequence_type=merge_databases_on_sequence_type,
                     dir_cache_files=self._dir_cache_files,
-                    lru_db_max_in_memory=self.lru_db_max_in_memory,
+                    max_entries_in_memory=self._max_entries_in_memory,
                 )
                 self.oligosets[region_id] = pd.concat([self.oligosets[region_id], oligoset_region])
             else:
@@ -396,10 +394,9 @@ class OligoDatabase:
             raise ValueError("Database directory does not exist!")
 
         if database_overwrite:
-            self.database = LRUPickleDict(
-                max_in_memory=self.lru_db_max_in_memory,
-                storage_path=self._dir_cache_files,
-            )
+            backend = PickleBackend(storage_path=self._dir_cache_files)
+            strategy = LRUReplacement(disk_backend=backend, max_in_memory=self._max_entries_in_memory)
+            self.database = EffiDict(disk_backend=backend, replacement_strategy=strategy)
 
         # retrieve all files in the directory
         path = os.path.abspath(dir_database)
@@ -453,7 +450,10 @@ class OligoDatabase:
 
         for region_id in region_ids:
             database_region = self.database[region_id]
-            oligoset_region = self.oligosets[region_id]
+            if self.oligosets and region_id in self.oligosets:
+                oligoset_region = self.oligosets[region_id]
+            else:
+                oligoset_region = None
             file_output = os.path.join(dir_database, region_id)
             with open(file_output, "wb") as file:
                 pickle.dump(
@@ -754,13 +754,14 @@ class OligoDatabase:
 
         for region in regions_to_remove:
             # TODO: this is a workaround due to a bug fix in EffiDict which needs to be fixed
+            # With new EffiDict version, the second del is not required anymore
             self.database[region] = None
             del self.database[region]
-            del self.database[region]
+            # del self.database[region]
 
             self.oligosets[region] = None
             del self.oligosets[region]
-            del self.oligosets[region]
+            # del self.oligosets[region]
 
         if self.write_regions_with_insufficient_oligos and regions_to_remove:
             with open(self.file_removed_regions, "a") as handle:
