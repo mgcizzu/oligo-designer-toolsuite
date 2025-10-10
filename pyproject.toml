@@ -45,7 +45,7 @@ dependencies = [
   "Bio",
   "cyvcf2",
   "datetime",
-  "effidict",
+  "effidict>0.0.9",
   "ipywidgets",
   "iteration_utilities",
   "joblib",
