@@ -753,15 +753,11 @@ class OligoDatabase:
         ]
 
         for region in regions_to_remove:
-            # TODO: this is a workaround due to a bug fix in EffiDict which needs to be fixed
-            # With new EffiDict version, the second del is not required anymore
             self.database[region] = None
             del self.database[region]
-            # del self.database[region]
 
             self.oligosets[region] = None
             del self.oligosets[region]
-            # del self.oligosets[region]
 
         if self.write_regions_with_insufficient_oligos and regions_to_remove:
             with open(self.file_removed_regions, "a") as handle:
