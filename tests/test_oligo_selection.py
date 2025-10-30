@@ -192,8 +192,6 @@ class TestOligosetGeneratorIndependentSet(unittest.TestCase):
 
             computed_sets.sort_values(by=list(computed_sets.columns), inplace=True)
             computed_sets.reset_index(inplace=True, drop=True)
-            print(computed_sets)
-            print(true_sets)
 
             assert true_sets.equals(computed_sets), f"Sets for {gene} are not computed correctly!"
 

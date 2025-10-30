@@ -28,11 +28,8 @@ class OverlapTargetedExonsScorer(BaseScorer):
     def __init__(self, targeted_exons: list, score_weight: float):
         """Constructor for the OverlapTargetedExonsScorer class."""
 
-        self.targeted_exons = targeted_exons
+        self.targeted_exons = sorted(targeted_exons)
         self.score_weight = score_weight
-
-        # add junctions in plus and minus strand direction to targeted exons list
-        self.targeted_exons = sorted(self.targeted_exons)
 
     def apply(self, oligo_database: OligoDatabase, region_id: str, oligo_id: str, sequence_type: _TYPES_SEQ):
         """
@@ -158,7 +155,7 @@ class IsoformConsensusScorer(BaseScorer):
                 # we use 1 - isoform consensus as normalized score
                 isoform_consensus = 1 - (isoform_consensus / 100)
         else:
-            # if information on available, don't consider isoform consensus in scoring
+            # if information not available, don't consider isoform consensus in scoring
             isoform_consensus = 0
         score = self.score_weight * isoform_consensus
 

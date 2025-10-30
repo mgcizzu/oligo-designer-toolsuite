@@ -8,7 +8,8 @@ import pandas as pd
 
 from oligo_designer_toolsuite._constants import _TYPES_SEQ
 from oligo_designer_toolsuite.database import OligoDatabase
-from oligo_designer_toolsuite.oligo_efficiency_filter import BaseScorer
+
+from ._scorer_base import BaseScorer
 
 ############################################
 # Oligo Scoring Classes
