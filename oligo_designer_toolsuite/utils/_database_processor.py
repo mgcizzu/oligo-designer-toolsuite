@@ -5,9 +5,10 @@
 import warnings
 from typing import Union, get_args
 
-from effidict import EffiDict, PickleBackend, LRUReplacement
+from effidict import EffiDict, LRUReplacement, PickleBackend
 
 from oligo_designer_toolsuite._constants import _TYPES_SEQ, SEPARATOR_OLIGO_ID
+
 from ._checkers_and_helpers import check_if_list, check_if_list_of_lists
 
 ############################################

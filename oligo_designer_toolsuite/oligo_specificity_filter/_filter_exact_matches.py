@@ -2,7 +2,7 @@
 # imports
 ############################################
 
-from typing import List, get_args
+from typing import List
 
 import iteration_utilities
 import pandas as pd
@@ -10,7 +10,7 @@ from joblib import Parallel, delayed
 from joblib_progress import joblib_progress
 
 from oligo_designer_toolsuite._constants import _TYPES_SEQ
-from oligo_designer_toolsuite.database import OligoDatabase, OligoAttributes
+from oligo_designer_toolsuite.database import OligoAttributes, OligoDatabase
 from oligo_designer_toolsuite.oligo_specificity_filter import BaseSpecificityFilter
 
 from ._policies import BaseFilterPolicy, RemoveAllFilterPolicy

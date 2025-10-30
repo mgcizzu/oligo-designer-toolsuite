@@ -13,10 +13,7 @@ from joblib import Parallel, delayed
 
 from oligo_designer_toolsuite.utils import FastaParser
 
-from .._constants import (
-    SEPARATOR_FASTA_HEADER_FIELDS,
-    SEPARATOR_FASTA_HEADER_FIELDS_LIST,
-)
+from .._constants import SEPARATOR_FASTA_HEADER_FIELDS, SEPARATOR_FASTA_HEADER_FIELDS_LIST
 from ..utils._checkers_and_helpers import check_if_list, generate_unique_filename
 
 ############################################

@@ -6,17 +6,13 @@ import os
 import re
 from abc import ABC, abstractmethod
 from pathlib import Path
-from typing import List, Tuple, get_args
+from typing import List, Tuple
 
 import pandas as pd
 from joblib import Parallel, delayed
 from joblib_progress import joblib_progress
 
-from oligo_designer_toolsuite._constants import (
-    _TYPES_SEQ,
-    SEPARATOR_FASTA_HEADER_FIELDS,
-    SEPARATOR_OLIGO_ID,
-)
+from oligo_designer_toolsuite._constants import _TYPES_SEQ, SEPARATOR_FASTA_HEADER_FIELDS, SEPARATOR_OLIGO_ID
 from oligo_designer_toolsuite.database import OligoDatabase, ReferenceDatabase
 from oligo_designer_toolsuite.utils import check_if_list
 

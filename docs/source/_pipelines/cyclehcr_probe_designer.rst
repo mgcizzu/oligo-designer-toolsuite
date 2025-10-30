@@ -1,14 +1,14 @@
 CycleHCR Probe Designer
 ==========================
 
-CycleHCR (Cycle Hybridization Chain Reaction) technology leverages multicycle DNA barcoding and Hybridization Chain Reaction (HCR) to surpass 
-the conventional color barrier. CycleHCR facilitates high-specificity, single-shot imaging per target for RNA, mitigating the molecular crowding 
-issues encountered with other imaging-based spatial omics techniques, which can restrict the decoding capacity for targets that are either abundant 
-or exhibit heterogeneous distributions. 
+CycleHCR (Cycle Hybridization Chain Reaction) technology leverages multicycle DNA barcoding and Hybridization Chain Reaction (HCR) to surpass
+the conventional color barrier. CycleHCR facilitates high-specificity, single-shot imaging per target for RNA, mitigating the molecular crowding
+issues encountered with other imaging-based spatial omics techniques, which can restrict the decoding capacity for targets that are either abundant
+or exhibit heterogeneous distributions.
 
-A CycleHCR encoding probe is a fluorescent probe that contains a 92-nt targeting sequence (divided into 45-nt segments for the left and right probe pairs, 
-separated by a 2-nt gap), which directs their binding to the specific RNA, two 14-nt barcode sequences, which are read out by fluorescent secondary readout 
-probes, TT-nucleotide spacers between readout and gene-specific regions, and two PCR primer binding sites. The specific readout sequences contained by an 
+A CycleHCR encoding probe is a fluorescent probe that contains a 92-nt targeting sequence (divided into 45-nt segments for the left and right probe pairs,
+separated by a 2-nt gap), which directs their binding to the specific RNA, two 14-nt barcode sequences, which are read out by fluorescent secondary readout
+probes, TT-nucleotide spacers between readout and gene-specific regions, and two PCR primer binding sites. The specific readout sequences contained by an
 encoding probe are determined by the binary barcode assigned to that RNA.
 
 If you are using the CycleHCR Probe Design Pipeline, consider citing the Oligo Designer Toolsuite package [1].

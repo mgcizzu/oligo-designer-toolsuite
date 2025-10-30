@@ -2,13 +2,13 @@
 # imports
 ############################################
 
+from typing import List, Tuple, get_args
+
 import pandas as pd
 
-from typing import Tuple, List, get_args
-
-from oligo_designer_toolsuite.oligo_efficiency_filter import BaseScorer
 from oligo_designer_toolsuite._constants import _TYPES_SEQ
 from oligo_designer_toolsuite.database import OligoDatabase
+from oligo_designer_toolsuite.oligo_efficiency_filter import BaseScorer
 
 ############################################
 # Oligo Scoring Classes

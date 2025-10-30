@@ -262,13 +262,13 @@ If the Oligo Designer Toolsuite is useful for your research, consider citing the
 
 ```
 @software{
-	author		= 	{	Barros de Andrade e Sousa L., 
-  						Mekki I., 
-						Campi F., 
-						Kümmerle L., 
-						Bright C., 
-						Lücken M., 
-						Theis F., 
+	author		= 	{	Barros de Andrade e Sousa L.,
+  						Mekki I.,
+						Campi F.,
+						Kümmerle L.,
+						Bright C.,
+						Lücken M.,
+						Theis F.,
 						Piraud M.
 					},
 	title		= 	{Oligo Designer Toolsuite},
@@ -285,7 +285,7 @@ If you are using the SCRINSHOT, MERFISH or SeqFISH+ pipeline provided along the 
 
 ```
 @article{
-	author 	 	= 	{ 
+	author 	 	= 	{
 						Louis B. Kuemmerle,
 		     			Malte D. Luecken,
 		     			Alexandra B. Firsova

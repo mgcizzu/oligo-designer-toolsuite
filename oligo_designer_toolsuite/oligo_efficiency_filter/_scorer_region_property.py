@@ -2,9 +2,9 @@
 # imports
 ############################################
 
-from oligo_designer_toolsuite.oligo_efficiency_filter import BaseScorer
 from oligo_designer_toolsuite._constants import _TYPES_SEQ
 from oligo_designer_toolsuite.database import OligoAttributes, OligoDatabase
+from oligo_designer_toolsuite.oligo_efficiency_filter import BaseScorer
 from oligo_designer_toolsuite.utils import check_if_list
 
 ############################################

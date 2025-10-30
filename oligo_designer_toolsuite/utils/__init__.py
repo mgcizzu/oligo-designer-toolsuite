@@ -22,9 +22,8 @@ from ._sequence_parser import FastaParser, GffParser, VCFParser
 from ._sequence_processor import (
     append_nucleotide_to_sequences,
     get_complement_regions,
-    get_sequence_from_annotation,
     get_intersection,
-    append_nucleotide_to_sequences,
+    get_sequence_from_annotation,
 )
 
 __all__ = [

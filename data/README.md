@@ -14,7 +14,7 @@ using ```awk``` or
 seqkit grep -i -r -p '^16' GCF_000001405.40_GRCh38.p14_genomic.fna -o custom_GCF_000001405.40_GRCh38.p14_genomic_chr16.fna
 ```
 
-using ```seqkit``` tool or 
+using ```seqkit``` tool or
 
 ```
 bcftools view -r 16 --output-file custom_GCF_000001405.40.chr16.vcf --output-type v GCF_000001405.40.gz

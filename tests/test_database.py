@@ -9,11 +9,7 @@ import unittest
 import pandas as pd
 import yaml
 
-from oligo_designer_toolsuite.database import (
-    OligoAttributes,
-    OligoDatabase,
-    ReferenceDatabase,
-)
+from oligo_designer_toolsuite.database import OligoAttributes, OligoDatabase, ReferenceDatabase
 from oligo_designer_toolsuite.sequence_generator import OligoSequenceGenerator
 from oligo_designer_toolsuite.utils import FastaParser, VCFParser, check_tsv_format
 

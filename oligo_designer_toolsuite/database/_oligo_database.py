@@ -13,7 +13,7 @@ import yaml
 from Bio import SeqIO
 from Bio.Seq import Seq
 from Bio.SeqRecord import SeqRecord
-from effidict import EffiDict, PickleBackend, LRUReplacement
+from effidict import EffiDict, LRUReplacement, PickleBackend
 from joblib import Parallel, delayed
 from joblib_progress import joblib_progress
 
