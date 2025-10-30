@@ -17,14 +17,13 @@ from Bio.SeqUtils import MeltingTemp as mt
 from joblib import Parallel, delayed
 from joblib_progress import joblib_progress
 
-from oligo_designer_toolsuite.database import (
-    OligoAttributes,
-    OligoDatabase,
-    ReferenceDatabase,
-)
+from oligo_designer_toolsuite.database import OligoAttributes, OligoDatabase, ReferenceDatabase
 from oligo_designer_toolsuite.oligo_efficiency_filter import (
+    IsoformConsensusScorer,
     LowestSetScoring,
-    WeightedIsoformTmGCOligoScoring,
+    NormalizedDeviationFromOptimalGCContentScorer,
+    NormalizedDeviationFromOptimalTmScorer,
+    OligoScoring,
 )
 from oligo_designer_toolsuite.oligo_property_filter import (
     DetectionOligoFilter,
@@ -42,11 +41,11 @@ from oligo_designer_toolsuite.oligo_selection import (
 )
 from oligo_designer_toolsuite.oligo_specificity_filter import (
     BlastNFilter,
-    BlastNSeedregionLigationsiteFilter,
+    BlastNSeedregionSiteFilter,
     CrossHybridizationFilter,
     ExactMatchFilter,
-    RemoveAllPolicy,
-    RemoveByLargerRegionPolicy,
+    RemoveAllFilterPolicy,
+    RemoveByLargerRegionFilterPolicy,
     SpecificityFilter,
 )
 from oligo_designer_toolsuite.pipelines._utils import (
@@ -110,22 +109,22 @@ class ScrinshotProbeDesigner:
     def set_developer_parameters(
         self,
         target_probe_specificity_blastn_search_parameters: dict = {
-            "perc_identity": 80,
-            "strand": "minus",
-            "word_size": 10,
-            "dust": "no",
-            "soft_masking": "false",
-            "max_target_seqs": 10,
-            "max_hsps": 1000,
+            "-perc_identity": 80,
+            "-strand": "minus",
+            "-word_size": 10,
+            "-dust": "no",
+            "-soft_masking": "false",
+            "-max_target_seqs": 10,
+            "-max_hsps": 1000,
         },
         target_probe_specificity_blastn_hit_parameters: dict = {"coverage": 50},
         target_probe_cross_hybridization_blastn_search_parameters: dict = {
-            "perc_identity": 80,
-            "strand": "minus",
-            "word_size": 10,
-            "dust": "no",
-            "soft_masking": "false",
-            "max_target_seqs": 10,
+            "-perc_identity": 80,
+            "-strand": "minus",
+            "-word_size": 10,
+            "-dust": "no",
+            "-soft_masking": "false",
+            "-max_target_seqs": 10,
         },
         target_probe_cross_hybridization_blastn_hit_parameters: dict = {"coverage": 80},
         max_graph_size: int = 5000,
@@ -636,7 +635,8 @@ class ScrinshotProbeDesigner:
             "sequence_padlock_arm2",
             "sequence_target",
             "sequence_target_probe",
-            "length",
+            "GC_content_sequence_target_probe",
+            "TmNN_sequence_target_probe",
             "ligation_site",
             "Tm_arm1",
             "Tm_arm2",
@@ -661,17 +661,14 @@ class ScrinshotProbeDesigner:
             oligo_database=oligo_database
         )
         oligo_database = self.oligo_attributes_calculator.calculate_GC_content(
-            oligo_database=oligo_database, sequence_type="oligo"
+            oligo_database=oligo_database, sequence_type="sequence_target_probe"
         )
         oligo_database = self.oligo_attributes_calculator.calculate_TmNN(
             oligo_database=oligo_database,
-            sequence_type="oligo",
+            sequence_type="sequence_target_probe",
             Tm_parameters=self.target_probe_Tm_parameters,
             Tm_chem_correction_parameters=self.target_probe_Tm_chem_correction_parameters,
             Tm_salt_correction_parameters=self.target_probe_Tm_salt_correction_parameters,
-        )
-        oligo_database = self.oligo_attributes_calculator.calculate_num_targeted_transcripts(
-            oligo_database=oligo_database
         )
         oligo_database = self.oligo_attributes_calculator.calculate_isoform_consensus(
             oligo_database=oligo_database
@@ -791,7 +788,7 @@ class TargetProbeDesigner:
         oligo_database = OligoDatabase(
             min_oligos_per_region=min_oligos_per_gene,
             write_regions_with_insufficient_oligos=True,
-            lru_db_max_in_memory=self.n_jobs * 2 + 2,
+            max_entries_in_memory=self.n_jobs * 2 + 2,
             database_name=self.subdir_db_probes,
             dir_output=self.dir_output,
             n_jobs=1,
@@ -985,13 +982,11 @@ class TargetProbeDesigner:
         ##### exact match filter #####
         # removing duplicated probes from the region with the most probes
         # exectute seperately before specificity filter to compute ligation side for less oligos
-        exact_matches = ExactMatchFilter(
-            sequence_type="oligo", policy=RemoveAllPolicy(), filter_name="exact_match"
-        )
-        filters = [exact_matches]
-        specificity_filter = SpecificityFilter(filters=filters)
+        exact_matches = ExactMatchFilter(policy=RemoveAllFilterPolicy(), filter_name="exact_match")
+        specificity_filter = SpecificityFilter(filters=[exact_matches])
         oligo_database = specificity_filter.apply(
             oligo_database=oligo_database,
+            sequence_type="oligo",
             n_jobs=self.n_jobs,
         )
 
@@ -1017,7 +1012,6 @@ class TargetProbeDesigner:
 
         ##### specificity filters #####
         cross_hybridization_aligner = BlastNFilter(
-            sequence_type="oligo",
             search_parameters=cross_hybridization_blastn_search_parameters,
             hit_parameters=cross_hybridization_blastn_hit_parameters,
             filter_name="blastn_crosshybridization",
@@ -1025,17 +1019,16 @@ class TargetProbeDesigner:
         )
         cross_hybridization_aligner.set_reference_database(reference_database=reference_database)
         cross_hybridization = CrossHybridizationFilter(
-            sequence_type="oligo",
-            policy=RemoveByLargerRegionPolicy(),
+            policy=RemoveByLargerRegionFilterPolicy(),
             alignment_method=cross_hybridization_aligner,
             filter_name="blastn_crosshybridization",
             dir_output=self.dir_output,
         )
 
         if ligation_region_size > 0:
-            specificity = BlastNSeedregionLigationsiteFilter(
+            specificity = BlastNSeedregionSiteFilter(
                 seedregion_size=ligation_region_size,
-                sequence_type="oligo",
+                seedregion_site_name="ligation_site",
                 search_parameters=specificity_blastn_search_parameters,
                 hit_parameters=specificity_blastn_hit_parameters,
                 filter_name="blastn_specificity",
@@ -1044,7 +1037,6 @@ class TargetProbeDesigner:
             specificity.set_reference_database(reference_database=reference_database)
         else:
             specificity = BlastNFilter(
-                sequence_type="oligo",
                 search_parameters=specificity_blastn_search_parameters,
                 hit_parameters=specificity_blastn_hit_parameters,
                 filter_name="blastn_specificity",
@@ -1052,10 +1044,10 @@ class TargetProbeDesigner:
             )
             specificity.set_reference_database(reference_database=reference_database)
 
-        filters = [specificity, cross_hybridization]
-        specificity_filter = SpecificityFilter(filters=filters)
+        specificity_filter = SpecificityFilter(filters=[specificity, cross_hybridization])
         oligo_database = specificity_filter.apply(
             oligo_database=oligo_database,
+            sequence_type="oligo",
             n_jobs=self.n_jobs,
         )
 
@@ -1143,12 +1135,31 @@ class TargetProbeDesigner:
         :return: Updated oligo database.
         :rtype: OligoDatabase
         """
+        # Define all scorers
+        isoform_consensus_scorer = IsoformConsensusScorer(normalize=True, score_weight=isoform_weight)
+        Tm_scorer = NormalizedDeviationFromOptimalTmScorer(
+            Tm_min=Tm_min,
+            Tm_opt=Tm_opt,
+            Tm_max=Tm_max,
+            Tm_parameters=Tm_parameters,
+            Tm_chem_correction_parameters=Tm_chem_correction_parameters,
+            Tm_salt_correction_parameters=Tm_salt_correction_parameters,
+            score_weight=Tm_weight,
+        )
+        GC_scorer = NormalizedDeviationFromOptimalGCContentScorer(
+            GC_content_min=GC_content_min,
+            GC_content_opt=GC_content_opt,
+            GC_content_max=GC_content_max,
+            score_weight=GC_weight,
+        )
+        oligos_scoring = OligoScoring(scorers=[isoform_consensus_scorer, Tm_scorer, GC_scorer])
+
         set_scoring = LowestSetScoring(ascending=True)
 
         # We change the processing dependent on the required number of probes in the probe sets
         # For small sets, we don't pre-filter and find the initial set by iterating
         # through all possible generated sets, which is faster than the max clique approximation.
-        if set_size_min < 15:
+        if set_size_opt < 10:
             pre_filter = False
             clique_init_approximation = False
             selection_policy = GraphBasedSelectionPolicy(
@@ -1169,7 +1180,7 @@ class TargetProbeDesigner:
 
         # For medium sized sets, we don't pre-filter but we apply the max clique approximation
         # to find an initial probe set faster.
-        if set_size_min > 15:
+        elif 10 < set_size_opt < 30:
             pre_filter = False
             clique_init_approximation = True
             selection_policy = GraphBasedSelectionPolicy(
@@ -1191,7 +1202,7 @@ class TargetProbeDesigner:
         # For large sets, we apply the pre-filter which removes all probes from the
         # graph that are only part of cliques which are smaller than the minimum set size
         # and we apply the Greedy Selection Policy istead of the graph-based selection policy.
-        if set_size_min > 30:
+        else:
             pre_filter = True
             selection_policy = GreedySelectionPolicy(
                 set_scoring=set_scoring,
@@ -1202,20 +1213,6 @@ class TargetProbeDesigner:
             )
             base_log_parameters({"pre_filter": pre_filter, "selection_policy": "Greedy"})
 
-        oligos_scoring = WeightedIsoformTmGCOligoScoring(
-            Tm_min=Tm_min,
-            Tm_opt=Tm_opt,
-            Tm_max=Tm_max,
-            GC_content_min=GC_content_min,
-            GC_content_opt=GC_content_opt,
-            GC_content_max=GC_content_max,
-            Tm_parameters=Tm_parameters,
-            Tm_chem_correction_parameters=Tm_chem_correction_parameters,
-            Tm_salt_correction_parameters=Tm_salt_correction_parameters,
-            isoform_weight=isoform_weight,
-            Tm_weight=Tm_weight,
-            GC_weight=GC_weight,
-        )
         oligoset_generator = OligosetGeneratorIndependentSet(
             selection_policy=selection_policy,
             oligos_scoring=oligos_scoring,

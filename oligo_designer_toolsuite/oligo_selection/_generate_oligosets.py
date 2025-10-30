@@ -15,10 +15,7 @@ from scipy.sparse import csr_matrix, lil_matrix
 
 from oligo_designer_toolsuite._constants import _TYPES_SEQ
 from oligo_designer_toolsuite.database import OligoDatabase
-from oligo_designer_toolsuite.oligo_efficiency_filter import (
-    OligoScoringBase,
-    SetScoringBase,
-)
+from oligo_designer_toolsuite.oligo_efficiency_filter import OligoScoring, SetScoringBase
 
 from ._selection_methods import OligoSelectionPolicy
 
@@ -36,7 +33,7 @@ class OligosetGeneratorIndependentSet:
     :param selection_policy: Policy used to select oligos for the set based on predefined criteria.
     :type selection_policy: OligoSelectionPolicy
     :param oligos_scoring: Scoring function used to evaluate individual oligos in the selection process.
-    :type oligos_scoring: OligoScoringBase
+    :type oligos_scoring: OligoScoring
     :param set_scoring: Scoring function used to evaluate the overall quality of each oligo set.
     :type set_scoring: SetScoringBase
     :param max_oligos: Maximum number of oligos to include in the set optimizatoin process. If None, there is no limit on the number of oligos.
@@ -48,7 +45,7 @@ class OligosetGeneratorIndependentSet:
     def __init__(
         self,
         selection_policy: OligoSelectionPolicy,
-        oligos_scoring: OligoScoringBase,
+        oligos_scoring: OligoScoring,
         set_scoring: SetScoringBase,
         max_oligos: int = None,
         distance_between_oligos: int = 0,
@@ -104,7 +101,7 @@ class OligosetGeneratorIndependentSet:
             Parallel(
                 n_jobs=n_jobs, prefer="threads", require="sharedmem"
             )(  # there should be an explicit return
-                delayed(self._get_oligo_set_for_gene)(
+                delayed(self._get_oligo_set_for_region)(
                     oligo_database, region_id, sequence_type, set_size_opt, set_size_min, n_sets
                 )
                 for region_id in region_ids
@@ -113,7 +110,7 @@ class OligosetGeneratorIndependentSet:
         oligo_database.remove_regions_with_insufficient_oligos(pipeline_step="oligoset generation")
         return oligo_database
 
-    def _get_oligo_set_for_gene(
+    def _get_oligo_set_for_region(
         self,
         oligo_database: OligoDatabase,
         region_id: str,
@@ -123,7 +120,7 @@ class OligosetGeneratorIndependentSet:
         n_sets: int,
     ) -> None:
         """
-        Computes the oligo set for a specific gene region by scoring, filtering, and selecting oligos.
+        Computes the oligo set for a specific region by scoring, filtering, and selecting oligos.
         This includes generating a proximity matrix and applying a selection policy to create the optimal oligo set.
 
         :param oligo_database: The OligoDatabase containing the oligonucleotides and their associated attributes.

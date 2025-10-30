@@ -8,14 +8,14 @@ import unittest
 from pathlib import Path
 
 import pandas as pd
-from effidict import LRUPickleDict
+from effidict import EffiDict, LRUReplacement, PickleBackend
 
 from oligo_designer_toolsuite.database import OligoDatabase
 from oligo_designer_toolsuite.sequence_generator import OligoSequenceGenerator
-from oligo_designer_toolsuite.utils import FastaParser, GffParser, VCFParser
 from oligo_designer_toolsuite.utils import (
     FastaParser,
     GffParser,
+    VCFParser,
     check_if_dna_sequence,
     check_if_key_exists,
     check_if_list,
@@ -35,6 +35,7 @@ from oligo_designer_toolsuite.utils import (
 
 FILE_GFF = "tests/data/annotations/custom_GCF_000001405.40_GRCh38.p14_genomic_chr16.gff"
 FILE_GTF = "tests/data/annotations/custom_GCF_000001405.40_GRCh38.p14_genomic_chr16.gtf"
+FILE_GTF_COMPLEX = "tests/data/annotations/custom_GCF_000001405.40_GRCh38.p14_genomic_chr16_KI270728-1.gtf"
 FILE_FASTA = "tests/data/annotations/custom_GCF_000001405.40_GRCh38.p14_genomic_chr16.fna"
 FILE_VCF = "tests/data/annotations/custom_GCF_000001405.40.chr16.vcf"
 FILE_TSV = "tests/data/annotations/custom_GCF_000001405.40_GRCh38.p14_genomic_chr16.gtf.tsv"
@@ -46,6 +47,17 @@ FILE_NCBI_EXONS = "tests/data/genomic_regions/sequences_ncbi_exons.fna"
 # Tests
 ############################################
 class TestCheckers(unittest.TestCase):
+    def setUp(self):
+        self.tmp_path = os.path.join(os.getcwd(), "tmp_utils")
+        os.makedirs(self.tmp_path, exist_ok=True)
+
+        self._dir_cache_files = os.path.join(self.tmp_path, "cache_files")
+        self.backend = PickleBackend(storage_path=self._dir_cache_files)
+        self.strategy = LRUReplacement(disk_backend=self.backend, max_in_memory=100)
+
+    def tearDown(self):
+        shutil.rmtree(self.tmp_path)
+
     def test_check_if_dna_sequence_valid(self):
         """Test if check_if_dna_sequence works correctly for a valid DNA sequence."""
         seq = "GGctAAgTTCCaGTttGCA"
@@ -62,12 +74,12 @@ class TestCheckers(unittest.TestCase):
 
     def test_check_if_key_exists_empty(self):
         """Test the check_if_key_exists function with an empty cache."""
-        empty_dict = LRUPickleDict()
+        empty_dict = EffiDict(disk_backend=self.backend, replacement_strategy=self.strategy)
         assert not check_if_key_exists(empty_dict, "a"), "Failed: Should return False for empty dictionary"
 
     def test_check_if_key_exists_flat(self):
         """Test the check_if_key_exists function with a flat cache."""
-        flat_database = LRUPickleDict()
+        flat_database = EffiDict(disk_backend=self.backend, replacement_strategy=self.strategy)
         flat_database.load_from_dict({"a": 1, "b": 2})
 
         assert check_if_key_exists(flat_database, "a"), "Failed: Key 'a' should exist in flat_database"
@@ -78,7 +90,7 @@ class TestCheckers(unittest.TestCase):
     def test_check_if_key_exists_nested(self):
         """Test the check_if_key_exists function with a nested cache."""
 
-        nested_database = LRUPickleDict()
+        nested_database = EffiDict(disk_backend=self.backend, replacement_strategy=self.strategy)
         nested_database.load_from_dict({"a": {"b": {"c": 1}}, "d": 2, "e": {"f": {"g": {"h": 3}}}})
 
         assert check_if_key_exists(nested_database, "c"), "Failed: Key 'c' should exist in nested_database"
@@ -141,7 +153,7 @@ class TestDatabaseProcessor(unittest.TestCase):
         self.tmp_path = os.path.join(os.getcwd(), "tmp_oligo_sequence_generator")
         Path(self.tmp_path).mkdir(parents=True, exist_ok=True)
 
-        self.oligo_sequence_generator = OligoSequenceGenerator()
+        self.oligo_sequence_generator = OligoSequenceGenerator(dir_output=self.tmp_path)
         file_fasta_exons = self.oligo_sequence_generator.create_sequences_sliding_window(
             files_fasta_in=FILE_NCBI_EXONS,
             length_interval_sequences=(100, 100),
@@ -149,7 +161,7 @@ class TestDatabaseProcessor(unittest.TestCase):
         )
 
         # create two database with identical entries
-        self.oligo_database1 = OligoDatabase()
+        self.oligo_database1 = OligoDatabase(dir_output=self.tmp_path)
         self.oligo_database1.load_database_from_fasta(
             files_fasta=file_fasta_exons,
             database_overwrite=True,
@@ -161,7 +173,7 @@ class TestDatabaseProcessor(unittest.TestCase):
             remove_region=False, oligo_ids=["AARS1::1", "AARS1::2", "AARS1::3"]
         )
 
-        self.oligo_database2 = OligoDatabase()
+        self.oligo_database2 = OligoDatabase(dir_output=self.tmp_path)
         self.oligo_database2.load_database_from_fasta(
             files_fasta=file_fasta_exons,
             database_overwrite=True,
@@ -183,7 +195,7 @@ class TestDatabaseProcessor(unittest.TestCase):
             self.oligo_database2.database,
             sequence_type="oligo",
             dir_cache_files=self.oligo_database1._dir_cache_files,
-            lru_db_max_in_memory=self.oligo_database1.lru_db_max_in_memory,
+            max_entries_in_memory=self.oligo_database1._max_entries_in_memory,
         )
 
         assert len(oligo_database_merged["AARS1"]) == 4, "error: region not succesfully merged"
@@ -288,6 +300,15 @@ class TestGffParser(unittest.TestCase):
         result = self.parser.parse_annotation_from_gff(FILE_GTF, target_lines=10)
         assert result.shape[1] == 20, "error: GTF dataframe not correctly loaded"
 
+    def test_parse_annotation_from_gtf_no_duplicates(self):
+        """Test when parsing GTF annotation chromosomes are not read in as both integers and strings."""
+        result = self.parser.parse_annotation_from_gff(FILE_GTF_COMPLEX)
+        self.assertListEqual(
+            result["seqid"].unique().tolist(),
+            ["16", "KI270728.1"],
+            "error: GTF parsing does not generate unique chromosome values",
+        )
+
     def test_load_annotation_from_pickle_file(self):
         """Test loading annotation from a pickle file."""
         result = self.parser.load_annotation_from_pickle(FILE_PICKLE)
@@ -321,7 +342,7 @@ class TestFastaParser(unittest.TestCase):
             assert (
                 out == False
             ), f"error: checker: check_fasta_format did not raise an exception with file {FILE_GFF}"
-        except Exception as e:
+        except Exception:
             pass  # should go into this case
 
     def test_is_coordinate(self):
@@ -429,7 +450,7 @@ class TestVCFParser(unittest.TestCase):
             assert (
                 out == False
             ), f"error: checker: check_fasta_format did not raise an exception with file {FILE_GFF}"
-        except Exception as e:
+        except Exception:
             pass  # should go into this case
 
     def test_read_vcf_variants(self):

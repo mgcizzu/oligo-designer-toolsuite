@@ -78,7 +78,6 @@ TM_PARAMETERS_SALT_CORRECTION = {
 
 
 class TestMaskedSequenceFilters(unittest.TestCase):
-    """Test if masked sequence filters work, e.g. sequences containing a mask string or lower case letters should be removed."""
 
     def setUp(self):
         self.softmasked_sequence_filter = SoftMaskedSequenceFilter()
@@ -126,7 +125,6 @@ class TestMaskedSequenceFilters(unittest.TestCase):
 
 
 class TestSequenceContentFilters(unittest.TestCase):
-    """Test if sequence content filters work, e.g. sequences containing / not containing certain nucleotides should be removed."""
 
     def setUp(self):
         self.prohibited_sequence_filter_str = ProhibitedSequenceFilter(prohibited_sequence="ACT")
@@ -206,7 +204,6 @@ class TestSequenceContentFilters(unittest.TestCase):
 
 
 class TestGCContentFilters(unittest.TestCase):
-    """Test if GC content filters work, e.g. sequences having certain GC content or no GC clamp should be removed."""
 
     def setUp(self):
         self.GC_content_filter = GCContentFilter(GC_content_min=40, GC_content_max=60)
@@ -240,7 +237,6 @@ class TestGCContentFilters(unittest.TestCase):
 
 
 class TestSequenceStructureFilters(unittest.TestCase):
-    """Test if melting temperature filters work, e.g. sequences having certain Tm or secondary structure probability should be removed."""
 
     def setUp(self):
         self.Tm_filter_default = MeltingTemperatureNNFilter(Tm_min=52, Tm_max=67, Tm_parameters={})
@@ -320,7 +316,6 @@ class TestSequenceStructureFilters(unittest.TestCase):
 
 
 class TestExperimentSpecificFilters(unittest.TestCase):
-    """Test if melting temperature filters work, e.g. sequences having certain Tm or secondary structure probability should be removed."""
 
     def setUp(self):
         self.padlock_arms_filter = PadlockArmsFilter(
@@ -374,7 +369,6 @@ class TestExperimentSpecificFilters(unittest.TestCase):
 
 
 class TestPropertyFilter(unittest.TestCase):
-    """Test if melting temperature filters work, e.g. sequences having certain Tm or secondary structure probability should be removed."""
 
     def setUp(self):
         self.tmp_path = os.path.join(os.getcwd(), "tmp_property_filters")

@@ -6,17 +6,13 @@ import os
 import re
 from abc import ABC, abstractmethod
 from pathlib import Path
-from typing import List, Tuple, get_args
+from typing import List, Tuple
 
 import pandas as pd
 from joblib import Parallel, delayed
 from joblib_progress import joblib_progress
 
-from oligo_designer_toolsuite._constants import (
-    _TYPES_SEQ,
-    SEPARATOR_FASTA_HEADER_FIELDS,
-    SEPARATOR_OLIGO_ID,
-)
+from oligo_designer_toolsuite._constants import _TYPES_SEQ, SEPARATOR_FASTA_HEADER_FIELDS, SEPARATOR_OLIGO_ID
 from oligo_designer_toolsuite.database import OligoDatabase, ReferenceDatabase
 from oligo_designer_toolsuite.utils import check_if_list
 
@@ -25,11 +21,11 @@ from oligo_designer_toolsuite.utils import check_if_list
 ############################################
 
 
-class SpecificityFilterBase(ABC):
+class BaseSpecificityFilter(ABC):
     """
     A base class for implementing specificity filters that operate on OligoDatabase.
 
-    The `SpecificityFilterBase` class provides the structure for creating filters
+    The `BaseSpecificityFilter` class provides the structure for creating filters
     that assess the specificity of oligonucleotides. These filters can be customized and extended
     to apply various criteria to an OligoDatabase, helping to refine and select optimal oligos for
     specific applications.
@@ -41,16 +37,19 @@ class SpecificityFilterBase(ABC):
     """
 
     def __init__(self, filter_name: str, dir_output: str) -> None:
-        """Constructor for the SpecificityFilterBase class."""
+        """Constructor for the BaseSpecificityFilter class."""
         # folder where we write the intermediate files
         self.filter_name = filter_name
         self.dir_output = os.path.abspath(os.path.join(dir_output, self.filter_name))
         Path(self.dir_output).mkdir(parents=True, exist_ok=True)
 
+        self.sequence_type = None
+
     @abstractmethod
     def apply(
         self,
         oligo_database: OligoDatabase,
+        sequence_type: _TYPES_SEQ,
         n_jobs: int = 1,
     ) -> OligoDatabase:
         """
@@ -62,6 +61,8 @@ class SpecificityFilterBase(ABC):
 
         :param oligo_database: The OligoDatabase containing the oligonucleotides and their associated attributes.
         :type oligo_database: OligoDatabase
+        :param sequence_type: The type of sequence to be used for filter calculations.
+        :type sequence_type: _TYPES_SEQ["oligo", "target"]
         :param n_jobs: The number of parallel jobs to use for processing.
         :type n_jobs: int
         :return: The filtered OligoDatabase.
@@ -131,11 +132,11 @@ class SpecificityFilterBase(ABC):
                     oligo_database.database[region_id][oligo_id][self.filter_name] = None
 
 
-class SpecificityFilterReference(SpecificityFilterBase):
+class ReferenceSpecificityFilter(BaseSpecificityFilter):
     """
     A base class for implementing specificity filters using a reference database.
 
-    The `SpecificityFilterReference` class provides a framework for developing filters that
+    The `ReferenceSpecificityFilter` class provides a framework for developing filters that
     assess the potential off-target effects of oligonucleotides wrt reference sequences.
 
     :param remove_hits: If True, oligos overlapping variants are removed. If False, they are flagged.
@@ -152,15 +153,15 @@ class SpecificityFilterReference(SpecificityFilterBase):
         filter_name: str,
         dir_output: str,
     ) -> None:
-        """Constructor for the SpecificityFilterReference class."""
+        """Constructor for the ReferenceSpecificityFilter class."""
         # folder where we write the intermediate files
-        self.remove_hits = remove_hits
-
         self.filter_name = filter_name
         self.dir_output = os.path.abspath(os.path.join(dir_output, self.filter_name))
         Path(self.dir_output).mkdir(parents=True, exist_ok=True)
 
+        self.remove_hits = remove_hits
         self.reference_database = None
+        self.sequence_type = None
 
     def set_reference_database(self, reference_database: ReferenceDatabase) -> None:
         """
@@ -241,15 +242,13 @@ class SpecificityFilterReference(SpecificityFilterBase):
         return search_results
 
 
-class SpecificityFilterAlignment(SpecificityFilterReference):
+class AlignmentSpecificityFilter(ReferenceSpecificityFilter):
     """
     A base class for implementing filters that utilize sequence alignment methods to evaluate oligonucleotide specificity.
 
     The `AlignmentSpecificityFilter` class provides a framework for developing filters that assess the potential
     off-target effects of oligonucleotides by aligning them against reference sequences.
 
-    :param sequence_type: The type of sequence to be used for the filter calculations.
-    :type sequence_type: _TYPES_SEQ["oligo", "target"]
     :param remove_hits: If True, oligos overlapping variants are removed. If False, they are flagged.
     :type remove_hits: bool
     :param filter_name: Name of the filter for identification purposes.
@@ -260,29 +259,25 @@ class SpecificityFilterAlignment(SpecificityFilterReference):
 
     def __init__(
         self,
-        sequence_type: _TYPES_SEQ,
         remove_hits: bool,
         filter_name: str,
         dir_output: str,
     ) -> None:
-        """Constructor for the SpecificityFilterAlignment class."""
-        # folder where we write the intermediate files
-        options = get_args(_TYPES_SEQ)
-        assert (
-            sequence_type in options
-        ), f"Sequence type not supported! '{sequence_type}' is not in {options}."
+        """Constructor for the AlignmentSpecificityFilter class."""
 
-        self.sequence_type = sequence_type
-        self.remove_hits = remove_hits
+        # folder where we write the intermediate files
         self.filter_name = filter_name
         self.dir_output = os.path.abspath(os.path.join(dir_output, self.filter_name))
         Path(self.dir_output).mkdir(parents=True, exist_ok=True)
 
+        self.remove_hits = remove_hits
         self.reference_database = None
+        self.sequence_type = None
 
     def apply(
         self,
         oligo_database: OligoDatabase,
+        sequence_type: _TYPES_SEQ,
         n_jobs: int = 1,
     ) -> OligoDatabase:
         """
@@ -293,11 +288,15 @@ class SpecificityFilterAlignment(SpecificityFilterReference):
 
         :param oligo_database: The OligoDatabase containing the oligonucleotides and their associated attributes.
         :type oligo_database: OligoDatabase
+        :param sequence_type: The type of sequence to be used for filter calculations.
+        :type sequence_type: _TYPES_SEQ["oligo", "target"]
         :param n_jobs: The number of parallel jobs to use for processing.
         :type n_jobs: int
         :return: The filtered OligoDatabase.
         :rtype: OligoDatabase
         """
+        self.sequence_type = sequence_type
+
         # when applying filters we don't want to consider hits within the same region
         consider_hits_from_input_region = False
 
@@ -325,6 +324,7 @@ class SpecificityFilterAlignment(SpecificityFilterReference):
     def get_oligo_pair_hits(
         self,
         oligo_database: OligoDatabase,
+        sequence_type: _TYPES_SEQ,
         n_jobs: int,
     ) -> list:
         """
@@ -335,11 +335,15 @@ class SpecificityFilterAlignment(SpecificityFilterReference):
 
         :param oligo_database: The OligoDatabase containing the oligonucleotides and their associated attributes.
         :type oligo_database: OligoDatabase
+        :param sequence_type: The type of sequence to be used for filter calculations.
+        :type sequence_type: _TYPES_SEQ["oligo", "target"]
         :param n_jobs: The number of parallel jobs to use for processing.
         :type n_jobs: int
         :return: A list of tuples representing oligo pairs that have significant hits.
         :rtype: list
         """
+        self.sequence_type = sequence_type
+
         # when getting oligo pair hits we want to consider hits within the same region
         consider_hits_from_input_region = True
 

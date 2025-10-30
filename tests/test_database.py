@@ -9,11 +9,7 @@ import unittest
 import pandas as pd
 import yaml
 
-from oligo_designer_toolsuite.database import (
-    OligoAttributes,
-    OligoDatabase,
-    ReferenceDatabase,
-)
+from oligo_designer_toolsuite.database import OligoAttributes, OligoDatabase, ReferenceDatabase
 from oligo_designer_toolsuite.sequence_generator import OligoSequenceGenerator
 from oligo_designer_toolsuite.utils import FastaParser, VCFParser, check_tsv_format
 
@@ -122,7 +118,7 @@ class TestOligoDatabase(unittest.TestCase):
         self.oligo_database = OligoDatabase(
             min_oligos_per_region=2,
             write_regions_with_insufficient_oligos=True,
-            lru_db_max_in_memory=10,
+            max_entries_in_memory=10,
             n_jobs=4,
             database_name="test_oligo_database",
             dir_output=self.tmp_path,
@@ -318,8 +314,14 @@ class TestOligoDatabase(unittest.TestCase):
             "set_score_lowest": 1.59,
             "set_score_sum": 2.36,
         }, f"error: wrong oligoset loaded"
+
         assert yaml_oligosets["region_1"]["Oligoset 1"]["Oligo 1"]["test_attribute"] == [
-            ["red"]
+            "red"
+        ], f"error: wrong oligoset loaded"
+
+        assert yaml_oligosets["region_1"]["Oligoset 1"]["Oligo 1"]["transcript_id"] == [
+            ["NM_001605.3"],
+            ["XM_047433666.1"],
         ], f"error: wrong oligoset loaded"
 
     def test_write_oligosets_to_table(self):
@@ -372,6 +374,18 @@ class TestOligoDatabase(unittest.TestCase):
 
         assert len(list_attributes) == 13, "error: wrong number of attributes in database"
         assert "oligo" in list_attributes, "error: missing attribute"
+
+    def test_get_regionid_list(self):
+        self.oligo_database.load_database_from_table(
+            file_database=FILE_DATABASE_OLIGO_ATTRIBUTES,
+            region_ids=None,
+            database_overwrite=True,
+            merge_databases_on_sequence_type="oligo",
+        )
+
+        list_regionid = self.oligo_database.get_regionid_list()
+        assert len(list_regionid) == 3, "error: wrong number of regionids in database"
+        assert "region_3" in list_regionid, "error: missing regionid"
 
     def test_get_oligoid_list(self):
         self.oligo_database.load_database_from_table(
@@ -491,6 +505,24 @@ class TestOligoDatabase(unittest.TestCase):
 
         assert len(self.oligo_database.database.keys()) == 2, "error: keep regions were removed"
 
+    def test_filter_database_by_oligo(self):
+        self.oligo_database.load_database_from_table(
+            file_database=FILE_DATABASE_OLIGO_ATTRIBUTES,
+            region_ids=None,
+            database_overwrite=True,
+            merge_databases_on_sequence_type="oligo",
+        )
+
+        self.oligo_database.filter_database_by_oligo(remove_region=True, oligo_ids="region_3::5")
+
+        assert len(self.oligo_database.database["region_3"].keys()) == 4, "error: remove oligo was kept"
+
+        self.oligo_database.filter_database_by_oligo(
+            remove_region=False, oligo_ids=["region_3::3", "region_3::4"]
+        )
+
+        assert len(self.oligo_database.database["region_3"].keys()) == 2, "error: keep oligo were removed"
+
     def test_filter_database_by_attribute_threshold(self):
         self.oligo_database.load_database_from_table(
             file_database=FILE_DATABASE_OLIGO_ATTRIBUTES,
@@ -551,13 +583,15 @@ class TestOligoAttributes(unittest.TestCase):
         shutil.rmtree(self.tmp_path)
 
     def test_calculate_oligo_length(self):
-        oligo_database = self.oligo_attributes.calculate_oligo_length(self.oligo_database)
+        oligo_database = self.oligo_attributes.calculate_oligo_length(
+            self.oligo_database, sequence_type="oligo"
+        )
 
         length1 = oligo_database.get_oligo_attribute_value(
-            attribute="length", flatten=True, region_id="region_1", oligo_id="region_1::1"
+            attribute="length_oligo", flatten=True, region_id="region_1", oligo_id="region_1::1"
         )
         length2 = oligo_database.get_oligo_attribute_value(
-            attribute="length", flatten=True, region_id="region_1", oligo_id="region_1::2"
+            attribute="length_oligo", flatten=True, region_id="region_1", oligo_id="region_1::2"
         )
 
         assert length1 == 20, "error: wrong oligo length"
@@ -678,9 +712,9 @@ class TestOligoAttributes(unittest.TestCase):
 
         assert (seedregion_start == 8) and (seedregion_end == 12), "error: wrong seedregion calculated"
 
-    def test_calculate_seedregion_ligationsite(self):
-        oligo_database = self.oligo_attributes.calculate_seedregion_ligationsite(
-            self.oligo_database, seedregion_size=5
+    def test_calculate_seedregion_site(self):
+        oligo_database = self.oligo_attributes.calculate_seedregion_site(
+            self.oligo_database, seedregion_size=5, seedregion_site_name="ligation_site"
         )
 
         seedregion_start = oligo_database.get_oligo_attribute_value(
@@ -698,7 +732,7 @@ class TestOligoAttributes(unittest.TestCase):
         )
 
         GC_content = oligo_database.get_oligo_attribute_value(
-            attribute="GC_content", flatten=True, region_id="region_1", oligo_id="region_1::1"
+            attribute="GC_content_oligo", flatten=True, region_id="region_1", oligo_id="region_1::1"
         )
 
         assert GC_content == 50, "error: wrong GC content calculated"
@@ -709,7 +743,7 @@ class TestOligoAttributes(unittest.TestCase):
         )
 
         TmNN = oligo_database.get_oligo_attribute_value(
-            attribute="TmNN", flatten=True, region_id="region_1", oligo_id="region_1::1"
+            attribute="TmNN_oligo", flatten=True, region_id="region_1", oligo_id="region_1::1"
         )
 
         assert TmNN == 53.57, "error: wrong Tm calculated"
@@ -720,7 +754,10 @@ class TestOligoAttributes(unittest.TestCase):
         )
 
         length_selfcomplement = oligo_database.get_oligo_attribute_value(
-            attribute="length_selfcomplement", flatten=True, region_id="region_3", oligo_id="region_3::3"
+            attribute="length_selfcomplement_oligo",
+            flatten=True,
+            region_id="region_3",
+            oligo_id="region_3::3",
         )
 
         assert length_selfcomplement == 18, "error: wrong length of selfcomplement calculated"
@@ -731,7 +768,10 @@ class TestOligoAttributes(unittest.TestCase):
         )
 
         length_complement = oligo_database.get_oligo_attribute_value(
-            attribute="length_complement_AGTC", flatten=True, region_id="region_1", oligo_id="region_1::3"
+            attribute="length_complement_oligo_AGTC",
+            flatten=True,
+            region_id="region_1",
+            oligo_id="region_1::3",
         )
 
         assert length_complement == 3, "error: wrong length of complement calculated"
@@ -742,7 +782,10 @@ class TestOligoAttributes(unittest.TestCase):
         )
 
         DG_secondary_structure = oligo_database.get_oligo_attribute_value(
-            attribute="DG_secondary_structure", flatten=True, region_id="region_1", oligo_id="region_1::1"
+            attribute="DG_secondary_structure_oligo",
+            flatten=True,
+            region_id="region_1",
+            oligo_id="region_1::1",
         )
 
         assert DG_secondary_structure == 0.8, "error: wrong DG calculated"

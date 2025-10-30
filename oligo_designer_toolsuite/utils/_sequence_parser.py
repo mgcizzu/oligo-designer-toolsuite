@@ -8,7 +8,7 @@ import os
 import pickle
 import re
 from subprocess import Popen
-from typing import List, Union, Tuple
+from typing import List, Tuple, Union
 
 import pandas as pd
 from Bio import SeqIO
@@ -97,7 +97,9 @@ class GffParser:
         )
 
         info_df = self._info_to_df(extra_info_file, chunk_size=chunk_size)
-        csv_df = pd.read_csv(csv_file, sep="\t", names=self.GFF_HEADER, header=None)
+        csv_df = pd.read_csv(
+            csv_file, sep="\t", names=self.GFF_HEADER, header=None, dtype={"seqid": "string"}
+        )
 
         csv_df.reset_index(inplace=True, drop=True)
         info_df.reset_index(inplace=True, drop=True)
@@ -308,8 +310,40 @@ class FastaParser:
         :return: True if the string matches the coordinate pattern, otherwise False.
         :rtype: bool
         """
-        pattern = r"(\d+):(\d+)-(\d+)\(.*\)"
+        pattern = r"(\S+):(\d+)-(\d+)\(.*\)"
         return bool(re.match(pattern, entry))
+
+    def parse_number(self, s: str):
+        """
+        Check if a string is an integer or a float. If so, return
+        the integer or float value. Otherwise, return the original string.
+
+        Examples:
+            >>> parse_number("42")
+            42
+            >>> parse_number("3.14")
+            3.14
+            >>> parse_number("abc")
+            "abc"
+            >>> parse_number("5.0")
+            5.0   # note that "5.0" is treated as a float, not an integer
+
+        :param s: The string to parse.
+        :type s: str
+        :return: The parsed integer or float value if successful, or None otherwise.
+        :rtype: int, float, or None
+        """
+        try:
+            return int(s)
+        except ValueError:
+            pass
+
+        try:
+            return float(s)
+        except ValueError:
+            pass
+
+        return s
 
     def get_fasta_regions(self, file_fasta_in: str) -> list:
         """
@@ -417,6 +451,7 @@ class FastaParser:
 
                         for infos in info_list:
                             key, value = infos.split("=")
+                            value = self.parse_number(value)
 
                             if key in additional_info:
                                 additional_info[key].append(value)
@@ -425,6 +460,7 @@ class FastaParser:
 
                     else:
                         key, value = info_list.split("=")
+                        value = self.parse_number(value)
                         additional_info[key] = [value]
                 else:
                     additional_info = info_list

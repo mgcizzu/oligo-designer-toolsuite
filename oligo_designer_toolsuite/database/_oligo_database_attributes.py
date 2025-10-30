@@ -40,12 +40,17 @@ class OligoAttributes:
         return len(sequence)
 
     def calculate_oligo_length(
-        self, oligo_database: OligoDatabase, region_ids: Union[str, List[str]] = None
+        self,
+        oligo_database: OligoDatabase,
+        sequence_type: _TYPES_SEQ = "oligo",
+        region_ids: Union[str, List[str]] = None,
     ) -> OligoDatabase:
         """Calculate and update the length of oligonucleotides for the specified regions of the OligoDatabase.
 
         :param oligo_database: The OligoDatabase containing the oligonucleotides and their associated attributes.
         :type oligo_database: OligoDatabase
+        :param sequence_type: The type of sequence to be used for attribute calculation, defaults to "oligo".
+        :type sequence_type: _TYPES_SEQ["oligo", "target"], optional
         :param region_ids: List of region IDs to process. If None, all regions in the database are processed, defaults to None.
         :type region_ids: Union[str, List[str]], optional
         :return: The updated OligoDatabase with the calculated attribute.
@@ -59,11 +64,11 @@ class OligoAttributes:
             for oligo_id in oligo_database.database[region_id].keys():
                 # oligo and target have always same length
                 sequence = oligo_database.get_oligo_attribute_value(
-                    attribute="oligo", region_id=region_id, oligo_id=oligo_id, flatten=True
+                    attribute=sequence_type, region_id=region_id, oligo_id=oligo_id, flatten=True
                 )
                 length = self._calc_oligo_length(sequence=sequence)
                 new_oligo_attribute[oligo_id] = {
-                    "length": length,
+                    f"length_{sequence_type}": length,
                 }
         oligo_database.update_oligo_attributes(new_oligo_attribute)
 
@@ -168,6 +173,74 @@ class OligoAttributes:
                 else:
                     sequence_rc = None
                 new_oligo_attribute[oligo_id] = {sequence_type_reverse_complement: sequence_rc}
+        oligo_database.update_oligo_attributes(new_oligo_attribute)
+
+        return oligo_database
+
+    @staticmethod
+    def _calc_split_sequence(sequence: str, split_start_end: list) -> List[str]:
+        """
+        Extracts sub-sequences from a given sequence using a list of (start, end) index pairs.
+
+        :param sequence: The full sequence string to be split.
+        :type sequence: str
+        :param split_start_end: A list of tuples indicating start and end indices for each subsequence.
+        :type split_start_end: list
+        :return: List of sub-sequences extracted from the input sequence.
+        :rtype: List[str]
+        """
+        split_sequences = []
+        for start_end in split_start_end:
+            split_sequences.append(sequence[start_end[0] : start_end[1]])
+
+        return split_sequences
+
+    def calculate_split_sequence(
+        self,
+        oligo_database: OligoDatabase,
+        split_start_end: List[tuple],
+        split_names: List[str],
+        sequence_type: _TYPES_SEQ,
+        region_ids: Union[str, List[str]] = None,
+    ) -> OligoDatabase:
+        """
+        Splits each sequence in the oligo database into sub-sequences based on the given start-end index pairs
+        and assigns them to specified attribute names.
+
+        :param oligo_database: The OligoDatabase containing the oligonucleotides and their associated attributes.
+        :type oligo_database: OligoDatabase
+        :param split_start_end: A list of tuples indicating (start, end) indices for sequence splitting.
+        :type split_start_end: List[tuple]
+        :param split_names: A list of names to assign to each of the split sequence segments.
+        :type split_names: List[str]
+        :param sequence_type: The type of sequence to be used for attribute calculation.
+        :type sequence_type: _TYPES_SEQ["oligo", "target"]
+        :param region_ids: List of region IDs to process. If None, all regions in the database are processed, defaults to None.
+        :type region_ids: Union[str, List[str]], optional
+        :return: The updated OligoDatabase with the calculated attribute.
+        :rtype: OligoDatabase
+        """
+        if len(split_start_end) != len(split_names):
+            raise ValueError(
+                f"{len(split_names)} names given for {len(split_lengths)} split sequences. Must give name for each split sequence."
+            )
+
+        region_ids = check_if_list(region_ids) if region_ids else oligo_database.database.keys()
+        new_oligo_attribute = {}
+
+        for region_id in region_ids:
+            for oligo_id in oligo_database.database[region_id].keys():
+                sequence = oligo_database.get_oligo_attribute_value(
+                    attribute=sequence_type, region_id=region_id, oligo_id=oligo_id, flatten=True
+                )
+                if sequence:
+                    split_sequences = self._calc_split_sequence(
+                        sequence=sequence, split_start_end=split_start_end
+                    )
+                    attributes = dict(zip(split_names, split_sequences))
+                else:
+                    attributes = dict.fromkeys(split_names, None)
+                new_oligo_attribute[oligo_id] = attributes
         oligo_database.update_oligo_attributes(new_oligo_attribute)
 
         return oligo_database
@@ -368,16 +441,16 @@ class OligoAttributes:
         return oligo_database
 
     @staticmethod
-    def _calc_seedregion_ligationsite(
-        sequence: str, ligation_site: int, seedregion_size: int
+    def _calculate_seedregion_site(
+        sequence: str, seedregion_site: int, seedregion_size: int
     ) -> Tuple[int, int]:
-        """Calculate the start and end positions of the seed region around a ligation site for a nucleotide sequence.
-        The seed region is defined symmetrically around the ligation site, considering the provided `seedregion_size`.
+        """Calculate the start and end positions of the seed region around a seed region site for a nucleotide sequence.
+        The seed region is defined symmetrically around the seed region site, considering the provided `seedregion_size`.
 
         :param sequence: The nucleotide sequence.
         :type sequence: str
-        :param ligation_site: The position of the ligation site within the sequence.
-        :type ligation_site: int
+        :param seedregion_site: The position of the seed region site within the sequence.
+        :type seedregion_site: int
         :param seedregion_size: The size of the seed region to be calculated.
         :type seedregion_size: int
         :return: A tuple containing the start and end positions of the seed region.
@@ -385,30 +458,33 @@ class OligoAttributes:
         """
         length = len(sequence)
 
-        seedregion_start = int(max(0, ligation_site - (seedregion_size - 1)))
+        seedregion_start = int(max(0, seedregion_site - (seedregion_size - 1)))
         seedregion_end = int(
             min(
                 length,
-                ligation_site + seedregion_size,
+                seedregion_site + seedregion_size,
             )
         )
         return seedregion_start, seedregion_end
 
-    def calculate_seedregion_ligationsite(
+    def calculate_seedregion_site(
         self,
         oligo_database: OligoDatabase,
         seedregion_size: int,
+        seedregion_site_name: str,
         sequence_type: _TYPES_SEQ = "oligo",
         region_ids: Union[str, List[str]] = None,
     ) -> OligoDatabase:
-        """Calculate and update the seed region around the ligation site for each oligonucleotide for the
-        specified regions of the OligoDatabase. If the required information for `_calc_seedregion_ligationsite`
+        """Calculate and update the seed region around the seeed region site for each oligonucleotide for the
+        specified regions of the OligoDatabase. If the required information for `_calc_seedregion_seedregion_site`
         is not available, the 'seedregion_start' and 'seedregion_end' attributes are set to None.
 
         :param oligo_database: The OligoDatabase containing the oligonucleotides and their associated attributes.
         :type oligo_database: OligoDatabase
-        :param seedregion_size: The size of the seed region to be calculated around the ligation site.
+        :param seedregion_size: The size of the seed region to be calculated around the seed region site.
         :type seedregion_size: int
+        :param seedregion_site_name: The attribute name of the seed region site stored in the OligoDatabase.
+        :type seedregion_site_name: str
         :param sequence_type: The type of sequence to be used for attribute calculation, defaults to "oligo".
         :type sequence_type: _TYPES_SEQ["oligo", "target"], optional
         :param region_ids: List of region IDs to process. If None, all regions in the database are processed, defaults to None.
@@ -424,13 +500,13 @@ class OligoAttributes:
                 sequence = oligo_database.get_oligo_attribute_value(
                     attribute=sequence_type, region_id=region_id, oligo_id=oligo_id, flatten=True
                 )
-                ligation_site = oligo_database.get_oligo_attribute_value(
-                    attribute="ligation_site", region_id=region_id, oligo_id=oligo_id, flatten=True
+                seedregion_site = oligo_database.get_oligo_attribute_value(
+                    attribute=seedregion_site_name, region_id=region_id, oligo_id=oligo_id, flatten=True
                 )
-                if ligation_site:
+                if seedregion_site:
                     # oligo and target have always same length
-                    seedregion_start, seedregion_end = self._calc_seedregion_ligationsite(
-                        sequence=sequence, ligation_site=ligation_site, seedregion_size=seedregion_size
+                    seedregion_start, seedregion_end = self._calculate_seedregion_site(
+                        sequence=sequence, seedregion_site=seedregion_site, seedregion_size=seedregion_size
                     )
                 else:
                     seedregion_start = seedregion_end = None
@@ -481,7 +557,7 @@ class OligoAttributes:
                 )
                 GC_content = self._calc_GC_content(sequence=sequence)
                 new_oligo_attribute[oligo_id] = {
-                    "GC_content": GC_content,
+                    f"GC_content_{sequence_type}": GC_content,
                 }
         oligo_database.update_oligo_attributes(new_oligo_attribute)
 
@@ -568,7 +644,7 @@ class OligoAttributes:
                     Tm_chem_correction_parameters=Tm_chem_correction_parameters,
                 )
                 new_oligo_attribute[oligo_id] = {
-                    "TmNN": TmNN,
+                    f"TmNN_{sequence_type}": TmNN,
                 }
         oligo_database.update_oligo_attributes(new_oligo_attribute)
 
@@ -665,7 +741,7 @@ class OligoAttributes:
                 sequence_rev = sequence[::-1]
                 len_overlap = self._calc_length_complement(sequence1=sequence, sequence2=sequence_rev)
                 new_oligo_attribute[oligo_id] = {
-                    "length_selfcomplement": len_overlap,
+                    f"length_selfcomplement_{sequence_type}": len_overlap,
                 }
         oligo_database.update_oligo_attributes(new_oligo_attribute)
 
@@ -701,7 +777,7 @@ class OligoAttributes:
                 )
                 len_overlap = self._calc_length_complement(sequence1=sequence, sequence2=comparison_sequence)
                 new_oligo_attribute[oligo_id] = {
-                    f"length_complement_{comparison_sequence}": len_overlap,
+                    f"length_complement_{sequence_type}_{comparison_sequence}": len_overlap,
                 }
         oligo_database.update_oligo_attributes(new_oligo_attribute)
 
@@ -750,7 +826,7 @@ class OligoAttributes:
                 )
                 DG_secondary_structure = self._calc_DG_secondary_structure(sequence=sequence, T=T)
                 new_oligo_attribute[oligo_id] = {
-                    "DG_secondary_structure": DG_secondary_structure,
+                    f"DG_secondary_structure_{sequence_type}": DG_secondary_structure,
                 }
         oligo_database.update_oligo_attributes(new_oligo_attribute)
 

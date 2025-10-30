@@ -2,7 +2,7 @@
 # imports
 ############################################
 
-from typing import get_args
+from typing import List, get_args
 
 from Bio.SeqUtils import Seq
 from joblib import Parallel, delayed
@@ -10,7 +10,7 @@ from joblib_progress import joblib_progress
 
 from oligo_designer_toolsuite._constants import _TYPES_SEQ
 from oligo_designer_toolsuite.database import OligoDatabase
-from oligo_designer_toolsuite.oligo_property_filter import PropertyFilterBase
+from oligo_designer_toolsuite.oligo_property_filter import BasePropertyFilter
 
 ############################################
 # Property Filter Class
@@ -21,16 +21,16 @@ class PropertyFilter:
     """
     A class for applying multiple property filters to sequences in an OligoDatabase.
 
-    The `PropertyFilter` class allows you to apply a list of sequence filters (subclasses of `PropertyFilterBase`) to an OligoDatabase.
+    The `PropertyFilter` class allows you to apply a list of sequence filters (subclasses of `BasePropertyFilter`) to an OligoDatabase.
     The filters are applied in parallel across all regions of the database, and sequences that do not meet all filter criteria are removed.
 
     :param filters: A list of property filters to apply to sequences.
-    :type filters: list[PropertyFilterBase]
+    :type filters: List[BasePropertyFilter]
     """
 
     def __init__(
         self,
-        filters: list[PropertyFilterBase],
+        filters: List[BasePropertyFilter],
     ) -> None:
         """Constructor for the PropertyFilter class."""
         self.filters = filters

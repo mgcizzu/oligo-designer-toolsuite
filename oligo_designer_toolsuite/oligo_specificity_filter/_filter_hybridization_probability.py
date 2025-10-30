@@ -9,11 +9,11 @@ from oligo_designer_toolsuite_ai_filters.api import APIHybridizationProbability
 from oligo_designer_toolsuite._constants import _TYPES_SEQ
 from oligo_designer_toolsuite.database import OligoDatabase
 from oligo_designer_toolsuite.oligo_specificity_filter import (
-    SpecificityFilterReference,
-    SpecificityFilterAlignment,
+    AlignmentSpecificityFilter,
     BlastNFilter,
     BlastNSeedregionFilter,
-    BlastNSeedregionLigationsiteFilter,
+    BlastNSeedregionSiteFilter,
+    ReferenceSpecificityFilter,
 )
 
 ############################################
@@ -21,7 +21,7 @@ from oligo_designer_toolsuite.oligo_specificity_filter import (
 ############################################
 
 
-class HybridizationProbabilityFilter(SpecificityFilterReference):
+class HybridizationProbabilityFilter(ReferenceSpecificityFilter):
     """
     A filter for assessing hybridization probabilities of oligonucleotides using AI models.
 
@@ -52,7 +52,7 @@ class HybridizationProbabilityFilter(SpecificityFilterReference):
 
     def __init__(
         self,
-        alignment_method: SpecificityFilterAlignment,
+        alignment_method: AlignmentSpecificityFilter,
         threshold: float,
         ai_filter_path: str = None,
         remove_hits: bool = True,
@@ -85,6 +85,7 @@ class HybridizationProbabilityFilter(SpecificityFilterReference):
     def apply(
         self,
         oligo_database: OligoDatabase,
+        sequence_type: _TYPES_SEQ,
         n_jobs: int = 1,
     ) -> OligoDatabase:
         """
@@ -96,11 +97,15 @@ class HybridizationProbabilityFilter(SpecificityFilterReference):
 
         :param oligo_database: The OligoDatabase containing the oligonucleotides and their associated attributes.
         :type oligo_database: OligoDatabase
+        :param sequence_type: The type of sequence to be used for the filter calculations.
+        :type sequence_type: _TYPES_SEQ["oligo", "target"]
         :param n_jobs: The number of parallel jobs to use for processing.
         :type n_jobs: int
         :return: The filtered OligoDatabase with off-targets removed.
         :rtype: OligoDatabase
         """
+        self.alignment_method.sequence_type = sequence_type
+
         # When applying the filter we don't want to consider hits within the same region
         consider_hits_from_input_region = False
 
@@ -222,7 +227,7 @@ class HybridizationProbabilityFilter(SpecificityFilterReference):
         if type(self.alignment_method) in [
             BlastNFilter,
             BlastNSeedregionFilter,
-            BlastNSeedregionLigationsiteFilter,
+            BlastNSeedregionSiteFilter,
         ]:
             self.alignment_method.names_search_output = [
                 "query",
@@ -237,6 +242,6 @@ class HybridizationProbabilityFilter(SpecificityFilterReference):
                 "reference_sequence",
                 "reference_strand",
             ]
-            self.alignment_method.search_parameters["outfmt"] = (
+            self.alignment_method.search_parameters["-outfmt"] = (
                 "6 qseqid sseqid length qstart qend qlen qseq sstart send sseq sstrand"
             )

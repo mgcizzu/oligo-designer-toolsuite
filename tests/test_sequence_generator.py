@@ -42,6 +42,10 @@ METADATA_ENSEMBL = {
 }
 
 FILE_NCBI_EXONS = "tests/data/genomic_regions/sequences_ncbi_exons.fna"
+FILE_NCBI_EXON_EXON_JUNCTIONS = "tests/data/genomic_regions/sequences_ABAT_ncbi_exon_exon_junctions.fna"
+FILE_NCBI_EXON_EXON_JUNCTIONS_SHORT = (
+    "tests/data/genomic_regions/sequences_AARS1_ncbi_exon_exon_junctions_short.fna"
+)
 
 ############################################
 # Tests
@@ -262,10 +266,13 @@ class TestOligoSequenceGenerator(unittest.TestCase):
     def setUp(self):
         self.tmp_path = os.path.join(os.getcwd(), "tmp_oligo_sequence_generator")
 
-        self.oligo_database = OligoDatabase()
+        self.oligo_database_1 = OligoDatabase(dir_output=self.tmp_path, database_name="db1")
+        self.oligo_database_2 = OligoDatabase(dir_output=self.tmp_path, database_name="db2")
         self.oligo_attributes = OligoAttributes()
         self.oligo_sequence_generator = OligoSequenceGenerator(dir_output=self.tmp_path)
         self.fasta_parser = FastaParser()
+
+        self.sequence_type = "oligo"
 
     def tearDown(self):
         shutil.rmtree(self.tmp_path)
@@ -282,31 +289,48 @@ class TestOligoSequenceGenerator(unittest.TestCase):
             self.fasta_parser.check_fasta_format(file_fasta_random_seqs1) == True
         ), f"error: wrong file format for file: {file_fasta_random_seqs1}"
 
-        self.oligo_database.load_database_from_fasta(
+        self.oligo_database_1.load_database_from_fasta(
             files_fasta=file_fasta_random_seqs1,
             database_overwrite=True,
-            sequence_type="oligo",
+            sequence_type=self.sequence_type,
             region_ids=None,
         )
+        self.oligo_database_1 = self.oligo_attributes.calculate_oligo_length(
+            oligo_database=self.oligo_database_1, sequence_type=self.sequence_type
+        )
 
-        assert (
-            len(self.oligo_database.database["random_sequences1"].keys()) == 100
-        ), "error: wrong number sequences created"
-        self.oligo_database = self.oligo_attributes.calculate_oligo_length(oligo_database=self.oligo_database)
-        assert (
-            self.oligo_database.get_oligo_attribute_value(
-                attribute="length",
-                flatten=True,
-                region_id="random_sequences1",
-                oligo_id="random_sequences1::1",
-            )
-            == 30
-        ), "error: wrong sequence length"
+        num_sequences = self.oligo_database_1.get_oligoid_list(region_ids="random_sequences1")
+        length_sequence = self.oligo_database_1.get_oligo_attribute_value(
+            attribute=f"length_{self.sequence_type}",
+            flatten=True,
+            region_id="random_sequences1",
+            oligo_id="random_sequences1::1",
+        )
+
+        assert len(num_sequences) == 100, "error: wrong number sequences created"
+
+        assert length_sequence == 30, "error: wrong sequence length"
+
         assert check_if_dna_sequence(
-            self.oligo_database.database["random_sequences1"]["random_sequences1::50"]["oligo"]
+            self.oligo_database_1.database["random_sequences1"]["random_sequences1::50"]["oligo"]
         ), "error: the craeted sequence is not a DNA seuqnece"
 
     def test_create_sequences_sliding_window(self):
+
+        # test if warning is raised if no oligos can be created because of too short
+        # exon-exon-junction sequences
+        with self.assertWarns(Warning):
+            file_fasta_exon_exon_junctions_short = (
+                self.oligo_sequence_generator.create_sequences_sliding_window(
+                    files_fasta_in=FILE_NCBI_EXON_EXON_JUNCTIONS_SHORT,
+                    length_interval_sequences=(30, 31),
+                    region_ids=[
+                        "AARS1",
+                    ],
+                )
+            )
+
+        # test sliding window without strides
         file_fasta_exons = self.oligo_sequence_generator.create_sequences_sliding_window(
             files_fasta_in=FILE_NCBI_EXONS,
             length_interval_sequences=(30, 31),
@@ -318,25 +342,93 @@ class TestOligoSequenceGenerator(unittest.TestCase):
                 "WASIR2",
             ],
         )
+        file_fasta_exon_exon_junctions = self.oligo_sequence_generator.create_sequences_sliding_window(
+            files_fasta_in=FILE_NCBI_EXON_EXON_JUNCTIONS,
+            length_interval_sequences=(30, 31),
+            region_ids=[
+                "ABAT",
+            ],
+        )
 
-        self.oligo_database.load_database_from_fasta(
-            files_fasta=file_fasta_exons,
+        self.oligo_database_1.load_database_from_fasta(
+            files_fasta=file_fasta_exons + file_fasta_exon_exon_junctions,
+            database_overwrite=True,
+            sequence_type="oligo",
+            region_ids=["AARS1", "ABAT"],
+        )
+        self.oligo_database_1 = self.oligo_attributes.calculate_oligo_length(
+            oligo_database=self.oligo_database_1, sequence_type=self.sequence_type
+        )
+
+        length_sequence = self.oligo_database_1.get_oligo_attribute_value(
+            attribute=f"length_{self.sequence_type}",
+            flatten=True,
+            region_id="AARS1",
+            oligo_id="AARS1::1",
+        )
+
+        sequence = self.oligo_database_1.get_oligo_attribute_value(
+            attribute="oligo",
+            flatten=True,
+            region_id="ABAT",
+            oligo_id="ABAT::1",
+        )
+
+        num_start = len(
+            self.oligo_database_1.get_oligo_attribute_value(
+                attribute="start",
+                flatten=True,
+                region_id="ABAT",
+                oligo_id="ABAT::1",
+            )
+        )
+
+        assert "AARS1" in self.oligo_database_1.database.keys(), "error: region missing"
+
+        assert length_sequence == 30, "error: wrong sequence length"
+
+        assert sequence == "ATGGGCGCGTTCCATGGGAGGACCATGGGT", "error: wrong sequence"
+
+        assert num_start == 2
+
+        assert check_if_dna_sequence(
+            self.oligo_database_1.database["AARS1"]["AARS1::50"]["oligo"]
+        ), "error: the craeted sequence is not a DNA seuqnece"
+
+        # test sliding window with strides
+        file_fasta_exons_stride = self.oligo_sequence_generator.create_sequences_sliding_window(
+            files_fasta_in=FILE_NCBI_EXONS,
+            length_interval_sequences=(30, 31),
+            stride=2,
+            region_ids=[
+                "AARS1",
+                "DECR2",
+                "FAM234A",
+                "RHBDF1",
+                "WASIR2",
+            ],
+        )
+
+        self.oligo_database_2.load_database_from_fasta(
+            files_fasta=file_fasta_exons_stride,
             database_overwrite=True,
             sequence_type="oligo",
             region_ids="AARS1",
         )
 
-        assert "AARS1" in self.oligo_database.database.keys(), "error: region missing"
-        self.oligo_database = self.oligo_attributes.calculate_oligo_length(oligo_database=self.oligo_database)
-        assert (
-            self.oligo_database.get_oligo_attribute_value(
-                attribute="length",
-                flatten=True,
-                region_id="AARS1",
-                oligo_id="AARS1::1",
-            )
-            == 30
-        ), "error: wrong sequence length"
-        assert check_if_dna_sequence(
-            self.oligo_database.database["AARS1"]["AARS1::50"]["oligo"]
-        ), "error: the craeted sequence is not a DNA seuqnece"
+        # the first sequence is always the same no matter the stride,
+        # and with a stride of 1, the third sequence should be equal to the second sequence with a stride of 2
+        sequence_no_stride = self.oligo_database_1.get_oligo_attribute_value(
+            attribute="oligo",
+            flatten=True,
+            region_id="AARS1",
+            oligo_id="AARS1::3",
+        )
+        sequence_stride = self.oligo_database_2.get_oligo_attribute_value(
+            attribute="oligo",
+            flatten=True,
+            region_id="AARS1",
+            oligo_id="AARS1::2",
+        )
+
+        assert sequence_no_stride == sequence_stride, "error: sequences are not equal"

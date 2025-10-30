@@ -3,16 +3,13 @@
 ############################################
 
 import os
-import pandas as pd
 
 from joblib import Parallel, delayed
 from joblib_progress import joblib_progress
 
+from oligo_designer_toolsuite._constants import _TYPES_SEQ
 from oligo_designer_toolsuite.database import OligoDatabase
-from oligo_designer_toolsuite.oligo_specificity_filter import (
-    SpecificityFilterReference,
-)
-
+from oligo_designer_toolsuite.oligo_specificity_filter import ReferenceSpecificityFilter
 from oligo_designer_toolsuite.utils import get_intersection
 
 ############################################
@@ -20,12 +17,12 @@ from oligo_designer_toolsuite.utils import get_intersection
 ############################################
 
 
-class VariantsFilter(SpecificityFilterReference):
+class VariantsFilter(ReferenceSpecificityFilter):
     """
     A specificity filter that removes or flags oligos overlapping known variants (e.g., SNPs)
     by intersecting oligo positions with a reference database using BEDTools.
 
-    This class extends the `SpecificityFilterReference` and implements a BED-based
+    This class extends the `ReferenceSpecificityFilter` and implements a BED-based
     filtering pipeline. Depending on the `remove_hits` flag, oligos overlapping
     entries in the variant reference are either removed from the database or flagged
     with the associated hit information.
@@ -80,6 +77,7 @@ class VariantsFilter(SpecificityFilterReference):
     def apply(
         self,
         oligo_database: OligoDatabase,
+        sequence_type: _TYPES_SEQ = None,
         n_jobs: int = 1,
     ) -> OligoDatabase:
         """
@@ -90,6 +88,8 @@ class VariantsFilter(SpecificityFilterReference):
 
         :param oligo_database: The OligoDatabase containing the oligonucleotides and their associated attributes.
         :type oligo_database: OligoDatabase
+        :param sequence_type: The type of sequence to be used for the filter calculations (not utilized in this filter).
+        :type sequence_type: _TYPES_SEQ["oligo", "target"]
         :param n_jobs: The number of parallel jobs to use for processing.
         :type n_jobs: int
         :return: The filtered OligoDatabase.

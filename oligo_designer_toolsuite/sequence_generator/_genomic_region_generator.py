@@ -23,10 +23,7 @@ from oligo_designer_toolsuite._constants import (
 from oligo_designer_toolsuite.sequence_generator import FtpLoaderEnsembl, FtpLoaderNCBI
 from oligo_designer_toolsuite.utils import GffParser
 
-from ..utils._sequence_processor import (
-    get_complement_regions,
-    get_sequence_from_annotation,
-)
+from ..utils._sequence_processor import get_complement_regions, get_sequence_from_annotation
 
 ############################################
 # Genomic Region Generator Classes
@@ -291,13 +288,19 @@ class CustomGenomicRegionGenerator:
                 chromosome_length = pd.read_csv(
                     file_chromosome_length, sep="\t", comment="t", header=0, names=["seqid", "length"]
                 )
+                if strand == "+":
+                    region_id_name = "InterRegPlus"
+                elif strand == "-":
+                    region_id_name = "InterRegMinus"
+                else:
+                    raise ValueError(f"Invalid strand value: {strand}. Expected '+' or '-'.")
                 intergenic_annotation = pd.DataFrame(
                     {
                         "seqid": seqid,
                         "start_0base": 0,
                         "end": chromosome_length.length[chromosome_length.seqid == seqid],
                         "start_1base": 1,
-                        "region_id": "InterRegPlus" + str(seqid) + "_1",
+                        "region_id": region_id_name + str(seqid) + "_0",
                         "score": ".",
                         "strand": strand,
                     }

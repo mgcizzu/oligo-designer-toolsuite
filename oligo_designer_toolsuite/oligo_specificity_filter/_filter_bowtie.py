@@ -9,9 +9,8 @@ from typing import Tuple
 import pandas as pd
 from Bio import SeqIO
 
-from oligo_designer_toolsuite._constants import _TYPES_SEQ
 from oligo_designer_toolsuite.database import OligoDatabase
-from oligo_designer_toolsuite.oligo_specificity_filter import SpecificityFilterAlignment
+from oligo_designer_toolsuite.oligo_specificity_filter import AlignmentSpecificityFilter
 
 from ..utils._sequence_processor import get_sequence_from_annotation
 
@@ -20,7 +19,7 @@ from ..utils._sequence_processor import get_sequence_from_annotation
 ############################################
 
 
-class BowtieFilter(SpecificityFilterAlignment):
+class BowtieFilter(AlignmentSpecificityFilter):
     """
     A filter class that uses Bowtie for sequence alignment and filtering.
 
@@ -46,8 +45,6 @@ class BowtieFilter(SpecificityFilterAlignment):
     The hits returned by Bowtie can be further filtered using machine learning models. For more information regarding which filters are available
     refer to https://github.com/HelmholtzAI-Consultants-Munich/oligo-designer-toolsuite-AI-filters.
 
-    :param sequence_type: The type of sequence to be used for the filter calculations.
-    :type sequence_type: _TYPES_SEQ["oligo", "target"]
     :param remove_hits: If True, oligos overlapping variants are removed. If False, they are flagged.
     :type remove_hits: bool
     :param search_parameters: Parameters to configure the Bowtie search.
@@ -62,7 +59,6 @@ class BowtieFilter(SpecificityFilterAlignment):
 
     def __init__(
         self,
-        sequence_type: _TYPES_SEQ,
         remove_hits: bool = True,
         search_parameters: dict = {},
         names_search_output: list = [
@@ -79,7 +75,7 @@ class BowtieFilter(SpecificityFilterAlignment):
         dir_output: str = "output",
     ) -> None:
         """Constructor for the BowtieFilter class."""
-        super().__init__(sequence_type, remove_hits, filter_name, dir_output)
+        super().__init__(remove_hits, filter_name, dir_output)
 
         self.search_parameters = search_parameters
         self.names_search_output = names_search_output
@@ -149,18 +145,11 @@ class BowtieFilter(SpecificityFilterAlignment):
         for parameter, value in self.search_parameters.items():
             cmd_parameters += f" {parameter} {value}"
 
-        cmd = (
-            "bowtie"
-            + " -x "
-            + file_reference
-            + " -f"  # fasta file is input
-            + " -a"  # report all alignments -> TODO: does this make sense or set e.g. -k 100
-            + cmd_parameters
-            + " "
-            + file_oligo_database
-            + " "
-            + file_bowtie_results
-        )
+        cmd = "bowtie" + " -x " + file_reference + " -f"  # fasta file is input
+        # return all alignments only if the number of alignments is not specified
+        if "-k" not in self.search_parameters.keys():
+            cmd += " -a"
+        cmd += cmd_parameters + " " + file_oligo_database + " " + file_bowtie_results
         process = subprocess.Popen(cmd, shell=True, cwd=self.dir_output, stdout=subprocess.DEVNULL).wait()
 
         # read the reuslts of the bowtie search
@@ -291,7 +280,7 @@ class BowtieFilter(SpecificityFilterAlignment):
 ############################################
 
 
-class Bowtie2Filter(SpecificityFilterAlignment):
+class Bowtie2Filter(AlignmentSpecificityFilter):
     """
     A filter class that utilizes Bowtie2 for alignment-based specificity filtering.
 
@@ -316,8 +305,6 @@ class Bowtie2Filter(SpecificityFilterAlignment):
     The hits returned by Bowtie2 can be further filtered using machine learning models. For more information regarding which filters are available
     refer to https://github.com/HelmholtzAI-Consultants-Munich/oligo-designer-toolsuite-AI-filters.
 
-    :param sequence_type: The type of sequence to be used for the filter calculations.
-    :type sequence_type: _TYPES_SEQ["oligo", "target"]
     :param remove_hits: If True, oligos overlapping variants are removed. If False, they are flagged.
     :type remove_hits: bool
     :param search_parameters: Parameters to configure the Bowtie2 search.
@@ -332,7 +319,6 @@ class Bowtie2Filter(SpecificityFilterAlignment):
 
     def __init__(
         self,
-        sequence_type: _TYPES_SEQ,
         remove_hits: bool = True,
         search_parameters: dict = {},
         names_search_output: list = [
@@ -352,7 +338,7 @@ class Bowtie2Filter(SpecificityFilterAlignment):
         dir_output: str = "output",
     ) -> None:
         """Constructor for the Bowtie2Filter class."""
-        super().__init__(sequence_type, remove_hits, filter_name, dir_output)
+        super().__init__(remove_hits, filter_name, dir_output)
 
         self.search_parameters = search_parameters
         self.names_search_output = names_search_output
@@ -421,19 +407,11 @@ class Bowtie2Filter(SpecificityFilterAlignment):
         for parameter, value in self.search_parameters.items():
             cmd_parameters += f" {parameter} {value}"
 
-        cmd = (
-            "bowtie2 --quiet"
-            + " --no-hd --no-unal"
-            + " -x "
-            + file_reference
-            + " -f"  # fast file is input
-            + " -a"  # report all alignments -> TODO: does this make sense or set e.g. -k 100
-            + cmd_parameters
-            + " -U "
-            + file_oligo_database
-            + " -S "
-            + file_bowtie_results
-        )
+        cmd = "bowtie2 --quiet" + " --no-hd --no-unal" + " -x " + file_reference + " -f"  # fast file is input
+        # return all alignments only if the number of alignments is not specified
+        if "-k" not in self.search_parameters.keys():
+            cmd += " -a"
+        cmd += cmd_parameters + " -U " + file_oligo_database + " -S " + file_bowtie_results
         process = subprocess.Popen(cmd, shell=True, cwd=self.dir_output).wait()
 
         # read the reuslts of the bowtie seatch

@@ -4,7 +4,6 @@
 
 import logging
 import os
-import yaml
 import shutil
 import warnings
 from datetime import datetime
@@ -18,14 +17,12 @@ import yaml
 from Bio.SeqUtils import MeltingTemp as mt
 from Bio.SeqUtils import Seq
 
-from oligo_designer_toolsuite.database import (
-    OligoAttributes,
-    OligoDatabase,
-    ReferenceDatabase,
-)
+from oligo_designer_toolsuite.database import OligoAttributes, OligoDatabase, ReferenceDatabase
 from oligo_designer_toolsuite.oligo_efficiency_filter import (
+    DeviationFromOptimalGCContentScorer,
     LowestSetScoring,
-    WeightedGCUtrScoring,
+    OligoScoring,
+    OverlapUTRScorer,
 )
 from oligo_designer_toolsuite.oligo_property_filter import (
     ComplementFilter,
@@ -48,9 +45,9 @@ from oligo_designer_toolsuite.oligo_specificity_filter import (
     BlastNFilter,
     CrossHybridizationFilter,
     ExactMatchFilter,
-    RemoveAllPolicy,
-    RemoveByDegreePolicy,
-    RemoveByLargerRegionPolicy,
+    RemoveAllFilterPolicy,
+    RemoveByDegreeFilterPolicy,
+    RemoveByLargerRegionFilterPolicy,
     SpecificityFilter,
 )
 from oligo_designer_toolsuite.pipelines._utils import (
@@ -117,63 +114,63 @@ class SeqFishPlusProbeDesigner:
     def set_developer_parameters(
         self,
         target_probe_specificity_blastn_search_parameters: dict = {
-            "perc_identity": 100,
-            "strand": "minus",
-            "word_size": 7,
-            "dust": "no",
-            "soft_masking": "false",
-            "max_target_seqs": 10,
-            "max_hsps": 1000,
+            "-perc_identity": 100,
+            "-strand": "minus",
+            "-word_size": 7,
+            "-dust": "no",
+            "-soft_masking": "false",
+            "-max_target_seqs": 10,
+            "-max_hsps": 1000,
         },
         target_probe_specificity_blastn_hit_parameters: dict = {"min_alignment_length": 15},
         target_probe_cross_hybridization_blastn_search_parameters: dict = {
-            "perc_identity": 80,
-            "strand": "minus",
-            "word_size": 7,
-            "dust": "no",
-            "soft_masking": "false",
-            "max_target_seqs": 10,
+            "-perc_identity": 80,
+            "-strand": "minus",
+            "-word_size": 7,
+            "-dust": "no",
+            "-soft_masking": "false",
+            "-max_target_seqs": 10,
         },
         target_probe_cross_hybridization_blastn_hit_parameters: dict = {"min_alignment_length": 17},
         readout_probe_initial_num_sequences: int = 100000,
         readout_probe_specificity_blastn_search_parameters: dict = {
-            "perc_identity": 100,
-            "strand": "minus",
-            "word_size": 7,
-            "dust": "no",
-            "soft_masking": "false",
-            "max_target_seqs": 10,
-            "max_hsps": 1000,
+            "-perc_identity": 100,
+            "-strand": "minus",
+            "-word_size": 7,
+            "-dust": "no",
+            "-soft_masking": "false",
+            "-max_target_seqs": 10,
+            "-max_hsps": 1000,
         },
         readout_probe_specificity_blastn_hit_parameters: dict = {"min_alignment_length": 10},
         readout_probe_cross_hybridization_blastn_search_parameters: dict = {
-            "perc_identity": 100,
-            "strand": "minus",
-            "word_size": 7,
-            "dust": "no",
-            "soft_masking": "false",
-            "max_target_seqs": 10,
+            "-perc_identity": 100,
+            "-strand": "minus",
+            "-word_size": 7,
+            "-dust": "no",
+            "-soft_masking": "false",
+            "-max_target_seqs": 10,
         },
         readout_probe_cross_hybridization_blastn_hit_parameters: dict = {"min_alignment_length": 10},
         primer_initial_num_sequences: int = 1000000,
         primer_specificity_refrence_blastn_search_parameters: dict = {
-            "perc_identity": 100,
-            "strand": "minus",
-            "word_size": 7,
-            "dust": "no",
-            "soft_masking": "false",
-            "max_target_seqs": 10,
-            "max_hsps": 1000,
+            "-perc_identity": 100,
+            "-strand": "minus",
+            "-word_size": 7,
+            "-dust": "no",
+            "-soft_masking": "false",
+            "-max_target_seqs": 10,
+            "-max_hsps": 1000,
         },
         primer_specificity_refrence_blastn_hit_parameters: dict = {"min_alignment_length": 14},
         primer_specificity_encoding_probes_blastn_search_parameters: dict = {
-            "perc_identity": 100,
-            "strand": "minus",
-            "word_size": 7,
-            "dust": "no",
-            "soft_masking": "false",
-            "max_target_seqs": 10,
-            "max_hsps": 1000,
+            "-perc_identity": 100,
+            "-strand": "minus",
+            "-word_size": 7,
+            "-dust": "no",
+            "-soft_masking": "false",
+            "-max_target_seqs": 10,
+            "-max_hsps": 1000,
         },
         primer_specificity_encoding_probes_blastn_hit_parameters: dict = {"min_alignment_length": 11},
         primer_Tm_parameters: dict = {
@@ -1009,7 +1006,7 @@ class TargetProbeDesigner:
         oligo_database = OligoDatabase(
             min_oligos_per_region=min_oligos_per_gene,
             write_regions_with_insufficient_oligos=True,
-            lru_db_max_in_memory=self.n_jobs * 2 + 2,
+            max_entries_in_memory=self.n_jobs * 2 + 2,
             database_name=self.subdir_db_oligos,
             dir_output=self.dir_output,
             n_jobs=1,
@@ -1029,7 +1026,7 @@ class TargetProbeDesigner:
             oligo_database=oligo_database
         )
         oligo_database.filter_database_by_attribute_threshold(
-            attribute_name="target_probe_isoform_consensus",
+            attribute_name="isoform_consensus",
             attribute_thr=isoform_consensus,
             remove_if_smaller_threshold=True,
         )
@@ -1138,13 +1135,10 @@ class TargetProbeDesigner:
         )
 
         ##### exact match filter #####
-        exact_matches = ExactMatchFilter(
-            sequence_type="oligo", policy=RemoveAllPolicy(), filter_name="oligo_exact_match"
-        )
+        exact_matches = ExactMatchFilter(policy=RemoveAllFilterPolicy(), filter_name="oligo_exact_match")
 
         ##### specificity filters #####
         specificity = BlastNFilter(
-            sequence_type="oligo",
             remove_hits=True,
             search_parameters=specificity_blastn_search_parameters,
             hit_parameters=specificity_blastn_hit_parameters,
@@ -1154,7 +1148,6 @@ class TargetProbeDesigner:
         specificity.set_reference_database(reference_database=reference_database)
 
         cross_hybridization_aligner = BlastNFilter(
-            sequence_type="oligo",
             remove_hits=True,
             search_parameters=cross_hybridization_blastn_search_parameters,
             hit_parameters=cross_hybridization_blastn_hit_parameters,
@@ -1163,17 +1156,16 @@ class TargetProbeDesigner:
         )
         cross_hybridization_aligner.set_reference_database(reference_database=reference_database)
         cross_hybridization = CrossHybridizationFilter(
-            sequence_type="oligo",
-            policy=RemoveByLargerRegionPolicy(),
+            policy=RemoveByLargerRegionFilterPolicy(),
             alignment_method=cross_hybridization_aligner,
             filter_name="oligo_blastn_crosshybridization",
             dir_output=self.dir_output,
         )
 
-        filters = [exact_matches, specificity, cross_hybridization]
-        specificity_filter = SpecificityFilter(filters=filters)
+        specificity_filter = SpecificityFilter(filters=[exact_matches, specificity, cross_hybridization])
         oligo_database = specificity_filter.apply(
             oligo_database=oligo_database,
+            sequence_type="oligo",
             n_jobs=self.n_jobs,
         )
 
@@ -1234,12 +1226,20 @@ class TargetProbeDesigner:
         :return: The updated oligo database with the generated oligo sets.
         :rtype: OligoDatabase
         """
+        # Define all scorers
+        utr_scorer = OverlapUTRScorer(score_weight=UTR_weight)
+        GC_scorer = DeviationFromOptimalGCContentScorer(
+            GC_content_opt=GC_content_opt,
+            score_weight=GC_weight,
+        )
+        oligos_scoring = OligoScoring(scorers=[utr_scorer, GC_scorer])
+
         set_scoring = LowestSetScoring(ascending=True)
 
         # We change the processing dependent on the required number of probes in the probe sets
         # For small sets, we don't pre-filter and find the initial set by iterating
         # through all possible generated sets, which is faster than the max clique approximation.
-        if set_size_min < 15:
+        if set_size_opt < 10:
             pre_filter = False
             clique_init_approximation = False
             selection_policy = GraphBasedSelectionPolicy(
@@ -1260,7 +1260,7 @@ class TargetProbeDesigner:
 
         # For medium sized sets, we don't pre-filter but we apply the max clique approximation
         # to find an initial probe set faster.
-        if set_size_min > 15:
+        elif 10 < set_size_opt < 30:
             pre_filter = False
             clique_init_approximation = True
             selection_policy = GraphBasedSelectionPolicy(
@@ -1282,7 +1282,7 @@ class TargetProbeDesigner:
         # For large sets, we apply the pre-filter which removes all probes from the
         # graph that are only part of cliques which are smaller than the minimum set size
         # and we apply the Greedy Selection Policy istead of the graph-based selection policy.
-        if set_size_min > 30:
+        else:
             pre_filter = True
             selection_policy = GreedySelectionPolicy(
                 set_scoring=set_scoring,
@@ -1293,9 +1293,6 @@ class TargetProbeDesigner:
             )
             base_log_parameters({"pre_filter": pre_filter, "selection_policy": "Greedy"})
 
-        oligos_scoring = WeightedGCUtrScoring(
-            GC_content_opt=GC_content_opt, GC_weight=GC_weight, UTR_weight=UTR_weight
-        )
         probeset_generator = OligosetGeneratorIndependentSet(
             selection_policy=selection_policy,
             oligos_scoring=oligos_scoring,
@@ -1380,7 +1377,7 @@ class ReadoutProbeDesigner:
         oligo_database = OligoDatabase(
             min_oligos_per_region=0,
             write_regions_with_insufficient_oligos=False,
-            lru_db_max_in_memory=self.n_jobs * 2 + 2,
+            max_entries_in_memory=self.n_jobs * 2 + 2,
             database_name=self.subdir_db_oligos,
             dir_output=self.dir_output,
             n_jobs=1,
@@ -1482,12 +1479,11 @@ class ReadoutProbeDesigner:
         ##### specificity filters #####
         # removing duplicated oligos
         exact_matches = ExactMatchFilter(
-            sequence_type="oligo", policy=RemoveAllPolicy(), filter_name="readout_probes_exact_match"
+            policy=RemoveAllFilterPolicy(), filter_name="readout_probes_exact_match"
         )
 
         # BlastN Filter
         specificity = BlastNFilter(
-            sequence_type="oligo",
             search_parameters=specificity_blastn_search_parameters,
             hit_parameters=specificity_blastn_hit_parameters,
             filter_name="readout_probes_blastn_specificity",
@@ -1497,7 +1493,6 @@ class ReadoutProbeDesigner:
 
         # Cross-Hybridization Filter
         cross_hybridization_aligner = BlastNFilter(
-            sequence_type="oligo",
             search_parameters=cross_hybridization_blastn_search_parameters,
             hit_parameters=cross_hybridization_blastn_hit_parameters,
             filter_name="readout_probes_blastn_crosshybridization",
@@ -1506,17 +1501,16 @@ class ReadoutProbeDesigner:
         cross_hybridization_aligner.set_reference_database(reference_database=reference_database)
 
         cross_hybridization = CrossHybridizationFilter(
-            sequence_type="oligo",
-            policy=RemoveByDegreePolicy(),
+            policy=RemoveByDegreeFilterPolicy(),
             alignment_method=cross_hybridization_aligner,
             filter_name="readout_probes_blastn_crosshybridization",
             dir_output=self.dir_output,
         )
 
-        filters = [exact_matches, specificity, cross_hybridization]
-        specificity_filter = SpecificityFilter(filters=filters)
+        specificity_filter = SpecificityFilter(filters=[exact_matches, specificity, cross_hybridization])
         oligo_database = specificity_filter.apply(
             oligo_database=oligo_database,
+            sequence_type="oligo",
             n_jobs=self.n_jobs,
         )
 
@@ -1714,7 +1708,7 @@ class PrimerDesigner:
         oligo_database = OligoDatabase(
             min_oligos_per_region=0,
             write_regions_with_insufficient_oligos=False,
-            lru_db_max_in_memory=self.n_jobs * 2 + 2,
+            max_entries_in_memory=self.n_jobs * 2 + 2,
             database_name=self.subdir_db_oligos,
             dir_output=self.dir_output,
             n_jobs=1,
@@ -1874,7 +1868,6 @@ class PrimerDesigner:
         )
         # BlastN Filter
         specificity_refrence = BlastNFilter(
-            sequence_type="oligo",
             search_parameters=specificity_refrence_blastn_search_parameters,
             hit_parameters=specificity_refrence_blastn_hit_parameters,
             filter_name="primer_blastn_specificity_reference",
@@ -1891,7 +1884,6 @@ class PrimerDesigner:
         )
         # BlastN Filter
         specificity_encoding_probes = BlastNFilter(
-            sequence_type="oligo",
             search_parameters=specificity_encoding_probes_blastn_search_parameters,
             hit_parameters=specificity_encoding_probes_blastn_hit_parameters,
             filter_name="primer_blastn_specificity_encoding_probes",
@@ -1902,6 +1894,7 @@ class PrimerDesigner:
         specificity_filter = SpecificityFilter(filters=[specificity_refrence, specificity_encoding_probes])
         oligo_database = specificity_filter.apply(
             oligo_database=oligo_database,
+            sequence_type="oligo",
             n_jobs=self.n_jobs,
         )
 
@@ -2009,9 +2002,9 @@ def main():
 
     ##### design probes #####
     target_probe_database = pipeline.design_target_probes(
+        gene_ids=gene_ids,
         files_fasta_target_probe_database=config["files_fasta_target_probe_database"],
         files_fasta_reference_database_targe_probe=config["files_fasta_reference_database_targe_probe"],
-        gene_ids=gene_ids,
         target_probe_length_min=config["target_probe_length_min"],
         target_probe_length_max=config["target_probe_length_max"],
         target_probe_isoform_consensus=config["target_probe_isoform_consensus"],

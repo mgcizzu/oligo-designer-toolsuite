@@ -45,7 +45,7 @@ dependencies = [
   "Bio",
   "cyvcf2",
   "datetime",
-  "effidict",
+  "effidict>0.0.9",
   "ipywidgets",
   "iteration_utilities",
   "joblib",
@@ -60,7 +60,7 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-dev = ["pytest"]
+dev = ["pytest", "pre-commit"]
 
 [project.scripts]
 genomic_region_generator = "oligo_designer_toolsuite.pipelines._genomic_region_generator:main"
@@ -68,7 +68,19 @@ oligo_seq_probe_designer = "oligo_designer_toolsuite.pipelines._oligo_seq_probe_
 scrinshot_probe_designer = "oligo_designer_toolsuite.pipelines._scrinshot_probe_designer:main"
 seqfish_plus_probe_designer = "oligo_designer_toolsuite.pipelines._seqfish_plus_probe_designer:main"
 merfish_probe_designer = "oligo_designer_toolsuite.pipelines._merfish_probe_designer:main"
+cycle_hcr_probe_designer = "oligo_designer_toolsuite.pipelines._cycle_hcr_probe_designer:main"
 
 [project.urls]
 documentation = "https://oligo-designer-toolsuite.readthedocs.io/"
 repository = "https://github.com/HelmholtzAI-Consultants-Munich/oligo-designer-toolsuite"
+
+[tool.pytest.ini_options]
+filterwarnings = ["ignore::pytest.PytestUnraisableExceptionWarning"]
+
+[tool.black]
+line-length = 110
+target-version = ['py39', 'py310', 'py311', 'py312', 'py313']
+
+[tool.isort]
+profile = "black"
+line_length = 110

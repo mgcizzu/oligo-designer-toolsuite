@@ -14,7 +14,7 @@ using ```awk``` or
 seqkit grep -i -r -p '^16' GCF_000001405.40_GRCh38.p14_genomic.fna -o custom_GCF_000001405.40_GRCh38.p14_genomic_chr16.fna
 ```
 
-using ```seqkit``` tool or 
+using ```seqkit``` tool or
 
 ```
 bcftools view -r 16 --output-file custom_GCF_000001405.40.chr16.vcf --output-type v GCF_000001405.40.gz
@@ -35,3 +35,7 @@ This folder contains example lists of gene names that can be used to test run th
 ## Folder ```genomic_region```
 
 This folder contains different pre-generated genomic region files that were generated from the Fasta and GTF file in the `annotations` folder using the `_genomic_region_generator.py` pipeline.
+
+# Folder ```readout_probes```
+
+This folder contains sample files for readout probes.
