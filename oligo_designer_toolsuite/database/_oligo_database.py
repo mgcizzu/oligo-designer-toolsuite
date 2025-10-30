@@ -683,6 +683,7 @@ class OligoDatabase:
                     for attribute in attributes:
                         if attribute in self.database[region_id][oligo_id]:
                             oligo_attribute = self.database[region_id][oligo_id][attribute]
+                            # format oligo attributes: flatten lists of lists, join string lists with comma, keep strings as-is, None -> empty list
                             if oligo_attribute:
                                 if (
                                     sum(len(sublist) for sublist in check_if_list_of_lists(oligo_attribute))

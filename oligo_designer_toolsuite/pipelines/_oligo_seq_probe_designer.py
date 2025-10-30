@@ -818,6 +818,8 @@ class TargetProbeDesigner:
         )
 
         ##### define exact match filter #####
+        # remove sequences that could cause read length biases because the first
+        # <target_probe_read_length_bias> bases of both sequences match
         oligo_database = self.oligo_attributes_calculator.calculate_shortened_sequence(
             oligo_database=oligo_database,
             sequence_length=target_probe_read_length_bias,
