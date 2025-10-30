@@ -12,15 +12,15 @@ from pandas import Series
 from oligo_designer_toolsuite.database import OligoDatabase
 from oligo_designer_toolsuite.oligo_efficiency_filter import (
     AverageSetScoring,
-    LowestSetScoring,
-    OligoScoring,
-    IsoformConsensusScorer,
-    OverlapTargetedExonsScorer,
-    OverlapUTRScorer,
     DeviationFromOptimalGCContentScorer,
     DeviationFromOptimalTmScorer,
+    IsoformConsensusScorer,
+    LowestSetScoring,
     NormalizedDeviationFromOptimalGCContentScorer,
     NormalizedDeviationFromOptimalTmScorer,
+    OligoScoring,
+    OverlapTargetedExonsScorer,
+    OverlapUTRScorer,
 )
 
 ############################################

@@ -8,7 +8,7 @@ import unittest
 from pathlib import Path
 
 import pandas as pd
-from effidict import EffiDict, PickleBackend, LRUReplacement
+from effidict import EffiDict, LRUReplacement, PickleBackend
 
 from oligo_designer_toolsuite.database import OligoDatabase
 from oligo_designer_toolsuite.sequence_generator import OligoSequenceGenerator

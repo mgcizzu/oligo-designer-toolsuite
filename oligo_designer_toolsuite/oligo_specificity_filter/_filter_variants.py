@@ -3,17 +3,13 @@
 ############################################
 
 import os
-import pandas as pd
 
 from joblib import Parallel, delayed
 from joblib_progress import joblib_progress
 
 from oligo_designer_toolsuite._constants import _TYPES_SEQ
 from oligo_designer_toolsuite.database import OligoDatabase
-from oligo_designer_toolsuite.oligo_specificity_filter import (
-    ReferenceSpecificityFilter,
-)
-
+from oligo_designer_toolsuite.oligo_specificity_filter import ReferenceSpecificityFilter
 from oligo_designer_toolsuite.utils import get_intersection
 
 ############################################

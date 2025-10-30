@@ -3,19 +3,15 @@
 ############################################
 
 import os
-from typing import List
-
 
 from oligo_designer_toolsuite._constants import _TYPES_SEQ
 from oligo_designer_toolsuite.database import OligoDatabase, ReferenceDatabase
 from oligo_designer_toolsuite.oligo_specificity_filter import (
-    BaseSpecificityFilter,
     AlignmentSpecificityFilter,
+    BaseSpecificityFilter,
 )
 
 from ._policies import BaseFilterPolicy
-from oligo_designer_toolsuite.utils import FastaParser
-
 
 ############################################
 # Oligo Crosshybridization Filter Class

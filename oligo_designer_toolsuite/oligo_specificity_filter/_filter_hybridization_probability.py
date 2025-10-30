@@ -9,11 +9,11 @@ from oligo_designer_toolsuite_ai_filters.api import APIHybridizationProbability
 from oligo_designer_toolsuite._constants import _TYPES_SEQ
 from oligo_designer_toolsuite.database import OligoDatabase
 from oligo_designer_toolsuite.oligo_specificity_filter import (
-    ReferenceSpecificityFilter,
     AlignmentSpecificityFilter,
     BlastNFilter,
     BlastNSeedregionFilter,
     BlastNSeedregionSiteFilter,
+    ReferenceSpecificityFilter,
 )
 
 ############################################

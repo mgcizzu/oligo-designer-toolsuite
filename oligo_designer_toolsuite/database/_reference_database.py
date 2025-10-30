@@ -4,12 +4,11 @@
 
 import os
 import shutil
-
 from pathlib import Path
-from typing import Union, List, get_args
+from typing import List, Union, get_args
 
-from oligo_designer_toolsuite.utils import FastaParser, VCFParser, check_if_list
 from oligo_designer_toolsuite._constants import _TYPES_REF
+from oligo_designer_toolsuite.utils import FastaParser, VCFParser, check_if_list
 
 ############################################
 # Reference Database Class

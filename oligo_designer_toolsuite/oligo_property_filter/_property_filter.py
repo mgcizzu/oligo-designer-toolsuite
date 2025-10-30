@@ -2,7 +2,7 @@
 # imports
 ############################################
 
-from typing import get_args, List
+from typing import List, get_args
 
 from Bio.SeqUtils import Seq
 from joblib import Parallel, delayed

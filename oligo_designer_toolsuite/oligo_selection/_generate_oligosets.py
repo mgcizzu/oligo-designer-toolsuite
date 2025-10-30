@@ -15,10 +15,7 @@ from scipy.sparse import csr_matrix, lil_matrix
 
 from oligo_designer_toolsuite._constants import _TYPES_SEQ
 from oligo_designer_toolsuite.database import OligoDatabase
-from oligo_designer_toolsuite.oligo_efficiency_filter import (
-    OligoScoring,
-    SetScoringBase,
-)
+from oligo_designer_toolsuite.oligo_efficiency_filter import OligoScoring, SetScoringBase
 
 from ._selection_methods import OligoSelectionPolicy
 

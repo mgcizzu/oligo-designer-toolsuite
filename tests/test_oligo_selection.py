@@ -10,11 +10,11 @@ import pandas as pd
 from Bio.SeqUtils import MeltingTemp as mt
 from scipy.sparse import csr_matrix
 
-from oligo_designer_toolsuite.database import OligoDatabase, OligoAttributes
+from oligo_designer_toolsuite.database import OligoAttributes, OligoDatabase
 from oligo_designer_toolsuite.oligo_efficiency_filter import (
     LowestSetScoring,
-    NormalizedDeviationFromOptimalTmScorer,
     NormalizedDeviationFromOptimalGCContentScorer,
+    NormalizedDeviationFromOptimalTmScorer,
     OligoScoring,
 )
 from oligo_designer_toolsuite.oligo_selection import (
