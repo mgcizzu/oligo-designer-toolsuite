@@ -12,7 +12,12 @@ import numpy as np
 import pandas as pd
 from Bio import SeqIO
 
-from oligo_designer_toolsuite.database import OligoAttributes, OligoDatabase
+from oligo_designer_toolsuite.database import OligoDatabase
+from oligo_designer_toolsuite.oligo_property_calculator import (
+    PropertyCalculator,
+    SeedregionProperty,
+    SeedregionSiteProperty,
+)
 from oligo_designer_toolsuite.oligo_specificity_filter import AlignmentSpecificityFilter
 
 from ..utils._sequence_processor import get_sequence_from_annotation
@@ -705,12 +710,11 @@ class BlastNSeedregionFilter(BlastNSeedregionFilterBase):
         :return: The BLAST search results with added seed region information.
         :rtype: pd.DataFrame
         """
-        oligo_attributes_calculator = OligoAttributes()
-        oligo_database = oligo_attributes_calculator.calculate_seedregion(
-            oligo_database=oligo_database,
-            region_ids=region_id,
-            start=self.seedregion_start,
-            end=self.seedregion_end,
+        # Calculate seedregion using new PropertyCalculator pattern
+        properties = [SeedregionProperty(start=self.seedregion_start, end=self.seedregion_end)]
+        calculator = PropertyCalculator(properties=properties)
+        oligo_database = calculator.apply(
+            oligo_database=oligo_database, sequence_type=self.sequence_type, n_jobs=1
         )
 
         seedregion = oligo_database.get_oligo_attribute_table(
@@ -813,13 +817,16 @@ class BlastNSeedregionSiteFilter(BlastNSeedregionFilterBase):
         :return: The BLAST search results with added seed region information.
         :rtype: pd.DataFrame
         """
-        oligo_attributes_calculator = OligoAttributes()
-        oligo_database = oligo_attributes_calculator.calculate_seedregion_site(
-            oligo_database=oligo_database,
-            seedregion_size=self.seedregion_size,
-            seedregion_site_name=self.seedregion_site_name,
-            sequence_type=self.sequence_type,
-            region_ids=region_id,
+        # Calculate seedregion site using new PropertyCalculator pattern
+        properties = [
+            SeedregionSiteProperty(
+                seedregion_size=self.seedregion_size,
+                seedregion_site_name=self.seedregion_site_name,
+            )
+        ]
+        calculator = PropertyCalculator(properties=properties)
+        oligo_database = calculator.apply(
+            oligo_database=oligo_database, sequence_type=self.sequence_type, n_jobs=1
         )
 
         seedregion = oligo_database.get_oligo_attribute_table(

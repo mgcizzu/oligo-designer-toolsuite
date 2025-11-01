@@ -329,7 +329,7 @@ class HomogeneousPropertyOligoSetGenerator:
         for property in self.properties:
             if oligo_df[property].isnull().any():
                 raise ValueError(
-                    f"Property '{property}' is not present in oligo database please calculate it first using oligo_designer_toolsuite.OligoAttributes()."
+                    f"Property '{property}' is not present in oligo database please calculate it first using oligo_designer_toolsuite.oligo_property_calculator.PropertyCalculator()."
                 )
             else:
                 if not (
