@@ -59,7 +59,7 @@ class BaseSpecificityFilter(ABC):
         in the OligoDatabase specified by the sequence type. The implementation should return a filtered version of the
         OligoDatabase.
 
-        :param oligo_database: The OligoDatabase containing the oligonucleotides and their associated attributes.
+        :param oligo_database: The OligoDatabase containing the oligonucleotides and their associated properties.
         :type oligo_database: OligoDatabase
         :param sequence_type: The type of sequence to be used for filter calculations.
         :type sequence_type: _TYPES_SEQ["oligo", "target"]
@@ -81,7 +81,7 @@ class BaseSpecificityFilter(ABC):
         This method iterates over oligonucleotides in a specified region and removes any that have been identified
         as having hits (i.e., matches) based on the filtering criteria.
 
-        :param oligo_database: The OligoDatabase containing the oligonucleotides and their associated attributes.
+        :param oligo_database: The OligoDatabase containing the oligonucleotides and their associated properties.
         :type oligo_database: OligoDatabase
         :param region_ids: List of region IDs to retrieve. If None, all regions in the database are retrieved, defaults to None.
         :type region_ids: Union[str, List[str]], optional
@@ -101,23 +101,23 @@ class BaseSpecificityFilter(ABC):
         oligo_database: OligoDatabase,
         region_ids: str,
         oligos_with_hits: dict,
-        oligos_with_hits_attributes: dict,
+        oligos_with_hits_properties: dict,
     ) -> None:
         """
-        Flags oligos in the database based on whether they have hits, and assigns hit attributes.
+        Flags oligos in the database based on whether they have hits, and assigns hit properties.
 
         This method iterates over oligonucleotides in a specified region and flags each oligo based on
         whether it appears in the list of hits. If an oligo has a hit, the corresponding reference is assigned.
-        Otherwise, the attribute is set to None.
+        Otherwise, the property is set to None.
 
-        :param oligo_database: The OligoDatabase containing the oligonucleotides and their associated attributes.
+        :param oligo_database: The OligoDatabase containing the oligonucleotides and their associated properties.
         :type oligo_database: OligoDatabase
         :param region_ids: List of region IDs to retrieve. If None, all regions in the database are retrieved, defaults to None.
         :type region_ids: Union[str, List[str]], optional
         :param oligos_with_hits: A dictionary of regio_ids associated with oligo_ids that have been identified as hits and should be removed.
         :type oligos_with_hits: dict
-        :param oligos_with_hits_attributes: Dictionary mapping oligo IDs to attributes related to their hits.
-        :type oligos_with_hits_attributes: dict
+        :param oligos_with_hits_properties: Dictionary mapping oligo IDs to properties related to their hits.
+        :type oligos_with_hits_properties: dict
         """
         region_ids = check_if_list(region_ids) if region_ids else oligo_database.database.keys()
 
@@ -126,7 +126,7 @@ class BaseSpecificityFilter(ABC):
             for oligo_id in oligo_ids:
                 if oligo_id in oligos_with_hits[region_id]:
                     oligo_database.database[region_id][oligo_id][self.filter_name] = (
-                        oligos_with_hits_attributes[oligo_id]
+                        oligos_with_hits_properties[oligo_id]
                     )
                 else:
                     oligo_database.database[region_id][oligo_id][self.filter_name] = None
@@ -286,7 +286,7 @@ class AlignmentSpecificityFilter(ReferenceSpecificityFilter):
         This function creates a reference index, runs the alignment-based specificity filter in parallel
         across all regions in the oligo database, and removes or flags oligos with off-target hits.
 
-        :param oligo_database: The OligoDatabase containing the oligonucleotides and their associated attributes.
+        :param oligo_database: The OligoDatabase containing the oligonucleotides and their associated properties.
         :type oligo_database: OligoDatabase
         :param sequence_type: The type of sequence to be used for filter calculations.
         :type sequence_type: _TYPES_SEQ["oligo", "target"]
@@ -333,7 +333,7 @@ class AlignmentSpecificityFilter(ReferenceSpecificityFilter):
         This function creates a reference index, runs the alignment-based specificity filter in parallel
         across all regions in the oligo database, and returns a list of oligo pairs with hits.
 
-        :param oligo_database: The OligoDatabase containing the oligonucleotides and their associated attributes.
+        :param oligo_database: The OligoDatabase containing the oligonucleotides and their associated properties.
         :type oligo_database: OligoDatabase
         :param sequence_type: The type of sequence to be used for filter calculations.
         :type sequence_type: _TYPES_SEQ["oligo", "target"]
@@ -383,7 +383,7 @@ class AlignmentSpecificityFilter(ReferenceSpecificityFilter):
 
         :param region_id: Region ID to process.
         :type region_id: str
-        :param oligo_database: The OligoDatabase containing the oligonucleotides and their associated attributes.
+        :param oligo_database: The OligoDatabase containing the oligonucleotides and their associated properties.
         :type oligo_database: OligoDatabase
         :param file_reference: Path to the reference file used for alignment filtering.
         :type file_reference: str
@@ -408,14 +408,14 @@ class AlignmentSpecificityFilter(ReferenceSpecificityFilter):
 
         if mode == 0:
             oligos_with_hits_region = {region_id: table_hits["query"].unique()}
-            oligos_with_hits_region_attributes = (
+            oligos_with_hits_region_properties = (
                 table_hits.groupby("query")["reference"].apply(list).to_dict()
             )
             self._flag_hits_in_database(
                 oligo_database=oligo_database,
                 region_ids=region_id,
                 oligos_with_hits=oligos_with_hits_region,
-                oligos_with_hits_attributes=oligos_with_hits_region_attributes,
+                oligos_with_hits_properties=oligos_with_hits_region_properties,
             )
             return None
         elif mode == 1:
@@ -443,7 +443,7 @@ class AlignmentSpecificityFilter(ReferenceSpecificityFilter):
         """
         Abstract method to run a search against a ReferenceDatabase using a specified indexed reference file.
 
-        :param oligo_database: The OligoDatabase containing the oligonucleotides and their associated attributes.
+        :param oligo_database: The OligoDatabase containing the oligonucleotides and their associated properties.
         :type oligo_database: OligoDatabase
         :param file_reference: Path to the reference file used for alignment filtering.
         :type file_reference: str
@@ -464,7 +464,7 @@ class AlignmentSpecificityFilter(ReferenceSpecificityFilter):
         """
         Abstract method to identify significant hits from search results, potentially excluding hits within the same region.
 
-        :param oligo_database: The OligoDatabase containing the oligonucleotides and their associated attributes.
+        :param oligo_database: The OligoDatabase containing the oligonucleotides and their associated properties.
         :type oligo_database: OligoDatabase
         :param search_results: DataFrame containing the raw search results.
         :type search_results: pd.DataFrame
@@ -485,7 +485,7 @@ class AlignmentSpecificityFilter(ReferenceSpecificityFilter):
         """
         Retrieves the query sequences from the OligoDatabase based on the hit information.
 
-        :param oligo_database: The OligoDatabase containing the oligonucleotides and their associated attributes.
+        :param oligo_database: The OligoDatabase containing the oligonucleotides and their associated properties.
         :type oligo_database: OligoDatabase
         :param table_hits: DataFrame containing the hits with query IDs.
         :type table_hits: pd.DataFrame

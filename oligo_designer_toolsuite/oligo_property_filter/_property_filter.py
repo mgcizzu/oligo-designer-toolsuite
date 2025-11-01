@@ -43,7 +43,7 @@ class PropertyFilter:
         sequences in the OligoDatabase based on the specified property filters.
         Sequences that do not meet the criteria of all filters are removed.
 
-        :param oligo_database: The OligoDatabase containing the oligonucleotides and their associated attributes.
+        :param oligo_database: The OligoDatabase containing the oligonucleotides and their associated properties.
         :type oligo_database: OligoDatabase
         :param sequence_type: The type of sequence to be used for filter calculations.
         :type sequence_type: _TYPES_SEQ["oligo", "target"]
@@ -77,7 +77,7 @@ class PropertyFilter:
         applying a series of filters to determine whether each sequence meets specified criteria.
         If a sequence does not fulfill all filter conditions, it is removed from the database.
 
-        :param oligo_database: The OligoDatabase containing the oligonucleotides and their associated attributes.
+        :param oligo_database: The OligoDatabase containing the oligonucleotides and their associated properties.
         :type oligo_database: OligoDatabase
         :param region_id: Region ID to process.
         :type region_id: str

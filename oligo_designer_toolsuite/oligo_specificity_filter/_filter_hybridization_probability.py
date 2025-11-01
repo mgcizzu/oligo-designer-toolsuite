@@ -95,7 +95,7 @@ class HybridizationProbabilityFilter(ReferenceSpecificityFilter):
         uses an AI model that predicts hybridization probabilities. The filter removes oligonucleotides that are
         likely to hybridize with off-target sequences, based on a predefined threshold.
 
-        :param oligo_database: The OligoDatabase containing the oligonucleotides and their associated attributes.
+        :param oligo_database: The OligoDatabase containing the oligonucleotides and their associated properties.
         :type oligo_database: OligoDatabase
         :param sequence_type: The type of sequence to be used for the filter calculations.
         :type sequence_type: _TYPES_SEQ["oligo", "target"]
@@ -146,7 +146,7 @@ class HybridizationProbabilityFilter(ReferenceSpecificityFilter):
         likelihood to hybridize with off-target sequences in a reference database. The filtering process uses
         an alignment method and AI model to evaluate the sequences, removing those that meet the criteria for potential cross-hybridization.
 
-        :param oligo_database: The OligoDatabase containing the oligonucleotides and their associated attributes.
+        :param oligo_database: The OligoDatabase containing the oligonucleotides and their associated properties.
         :type oligo_database: OligoDatabase
         :param file_reference: Path to the reference file used for alignment filtering.
         :type file_reference: str
@@ -194,14 +194,14 @@ class HybridizationProbabilityFilter(ReferenceSpecificityFilter):
 
         if mode == 0:
             oligos_with_hits_region = {region_id: table_hits["query"].unique()}
-            oligos_with_hits_region_attributes = (
+            oligos_with_hits_region_properties = (
                 table_hits.groupby("query")["reference"].apply(list).to_dict()
             )
             self._flag_hits_in_database(
                 oligo_database=oligo_database,
                 region_ids=region_id,
                 oligos_with_hits=oligos_with_hits_region,
-                oligos_with_hits_attributes=oligos_with_hits_region_attributes,
+                oligos_with_hits_properties=oligos_with_hits_region_properties,
             )
         elif mode == 1:
             oligos_with_hits_region = {region_id: table_hits["query"].unique()}

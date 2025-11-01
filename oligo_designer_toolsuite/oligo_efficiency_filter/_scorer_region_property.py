@@ -36,7 +36,7 @@ class OverlapTargetedExonsScorer(BaseScorer):
         """
         Apply the targeted exon overlap scoring strategy to a given oligo.
 
-        :param oligo_database: The OligoDatabase containing the oligonucleotides and their associated attributes.
+        :param oligo_database: The OligoDatabase containing the oligonucleotides and their associated properties.
         :type oligo_database: OligoDatabase
         :param region_id: Region ID to process.
         :type region_id: str
@@ -47,7 +47,7 @@ class OverlapTargetedExonsScorer(BaseScorer):
         :return: Weighted score based on overlap with targeted exons.
         :rtype: float
         """
-        exon_numbers = oligo_database.get_oligo_attribute_value(
+        exon_numbers = oligo_database.get_oligo_property_value(
             "exon_number", flatten=True, region_id=region_id, oligo_id=oligo_id
         )
         exon_numbers = check_if_list(exon_numbers)
@@ -85,7 +85,7 @@ class OverlapUTRScorer(BaseScorer):
         """
         Apply the UTR overlap scoring strategy to a given oligo.
 
-        :param oligo_database: The OligoDatabase containing the oligonucleotides and their associated attributes.
+        :param oligo_database: The OligoDatabase containing the oligonucleotides and their associated properties.
         :type oligo_database: OligoDatabase
         :param region_id: Region ID to process.
         :type region_id: str
@@ -96,8 +96,8 @@ class OverlapUTRScorer(BaseScorer):
         :return: Weighted score based on UTR overlap.
         :rtype: float
         """
-        regiontype = oligo_database.get_oligo_attribute_value(
-            attribute="regiontype", region_id=region_id, oligo_id=oligo_id, flatten=True
+        regiontype = oligo_database.get_oligo_property_value(
+            property="regiontype", region_id=region_id, oligo_id=oligo_id, flatten=True
         )
         if regiontype:
             sequence_originates_from_UTR = "three_prime_UTR" in regiontype or "five_prime_UTR" in regiontype
@@ -132,7 +132,7 @@ class IsoformConsensusScorer(BaseScorer):
         """
         Apply the isoform consensus scoring strategy to a given oligo.
 
-        :param oligo_database: The OligoDatabase containing the oligonucleotides and their associated attributes.
+        :param oligo_database: The OligoDatabase containing the oligonucleotides and their associated properties.
         :type oligo_database: OligoDatabase
         :param region_id: Region ID to process.
         :type region_id: str
@@ -143,11 +143,11 @@ class IsoformConsensusScorer(BaseScorer):
         :return: Weighted score based on isoform consensus.
         :rtype: float
         """
-        transcript_id = oligo_database.get_oligo_attribute_value(
-            attribute="transcript_id", region_id=region_id, oligo_id=oligo_id, flatten=True
+        transcript_id = oligo_database.get_oligo_property_value(
+            property="transcript_id", region_id=region_id, oligo_id=oligo_id, flatten=True
         )
-        number_transcripts = oligo_database.get_oligo_attribute_value(
-            attribute="number_total_transcripts", region_id=region_id, oligo_id=oligo_id, flatten=True
+        number_transcripts = oligo_database.get_oligo_property_value(
+            property="number_total_transcripts", region_id=region_id, oligo_id=oligo_id, flatten=True
         )
         if transcript_id and number_transcripts:
             isoform_consensus = calc_isoform_consensus(

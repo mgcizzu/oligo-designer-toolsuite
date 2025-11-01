@@ -29,7 +29,7 @@ class NumTargetedTranscriptsProperty(BaseProperty):
         """
         Calculate the number of unique transcripts targeted by the oligonucleotide.
 
-        :param oligo_database: The OligoDatabase containing the oligonucleotides and their associated attributes.
+        :param oligo_database: The OligoDatabase containing the oligonucleotides and their associated properties.
         :type oligo_database: OligoDatabase
         :param region_id: Region ID to process.
         :type region_id: str
@@ -40,8 +40,8 @@ class NumTargetedTranscriptsProperty(BaseProperty):
         :return: A dictionary containing the calculated number of targeted transcripts property.
         :rtype: dict
         """
-        transcript_id = oligo_database.get_oligo_attribute_value(
-            attribute="transcript_id", region_id=region_id, oligo_id=oligo_id, flatten=True
+        transcript_id = oligo_database.get_oligo_property_value(
+            property="transcript_id", region_id=region_id, oligo_id=oligo_id, flatten=True
         )
         if transcript_id:
             num_targeted_transcripts = calc_num_targeted_transcripts(transcript_id=transcript_id)
@@ -68,7 +68,7 @@ class IsoformConsensusProperty(BaseProperty):
         """
         Calculate the isoform consensus for the oligonucleotide.
 
-        :param oligo_database: The OligoDatabase containing the oligonucleotides and their associated attributes.
+        :param oligo_database: The OligoDatabase containing the oligonucleotides and their associated properties.
         :type oligo_database: OligoDatabase
         :param region_id: Region ID to process.
         :type region_id: str
@@ -79,11 +79,11 @@ class IsoformConsensusProperty(BaseProperty):
         :return: A dictionary containing the calculated isoform consensus property.
         :rtype: dict
         """
-        number_total_transcripts = oligo_database.get_oligo_attribute_value(
-            attribute="number_total_transcripts", region_id=region_id, oligo_id=oligo_id, flatten=True
+        number_total_transcripts = oligo_database.get_oligo_property_value(
+            property="number_total_transcripts", region_id=region_id, oligo_id=oligo_id, flatten=True
         )
-        transcript_id = oligo_database.get_oligo_attribute_value(
-            attribute="transcript_id", region_id=region_id, oligo_id=oligo_id, flatten=True
+        transcript_id = oligo_database.get_oligo_property_value(
+            property="transcript_id", region_id=region_id, oligo_id=oligo_id, flatten=True
         )
 
         if transcript_id and number_total_transcripts:

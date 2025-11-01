@@ -164,32 +164,32 @@ class ReferenceDatabase:
                 "Can not filter. Database is empty! Call the method load_database_from_file() first."
             )
 
-    def filter_database_by_attribute_category(
+    def filter_database_by_property_category(
         self,
-        attribute_name: str,
-        attribute_category: Union[str, List[str]],
+        property_name: str,
+        property_category: Union[str, List[str]],
         keep_if_equals_category: bool,
     ) -> None:
         """
-        Filter the database to retain or remove specific attribute categories.
+        Filter the database to retain or remove specific property categories.
 
-        :param attribute_name: The attribute used for filtering.
-        :type attribute_name: str
-        :param attribute_category: List of attribute values to filter by.
-        :type attribute_category: Union[str, List[str]]
-        :param keep_if_equals_category: Whether to keep (True) or remove (False) records with the specified attribute values.
+        :param property_name: The property used for filtering.
+        :type property_name: str
+        :param property_category: List of property values to filter by.
+        :type property_category: Union[str, List[str]]
+        :param keep_if_equals_category: Whether to keep (True) or remove (False) records with the specified property values.
         :type keep_if_equals_category: bool
         :return: Path to the filtered database file.
         :rtype: str
         :raises ValueError: If the database is empty or filtering is attempted on a non-FASTA database.
         """
-        attribute_category = check_if_list(attribute_category)
+        property_category = check_if_list(property_category)
 
         if self.database_file:
             if self.database_type == "fasta":
-                file_database_filtered = self._filter_fasta_database_by_attribute_category(
-                    attribute_name=attribute_name,
-                    attribute_category=attribute_category,
+                file_database_filtered = self._filter_fasta_database_by_property_category(
+                    property_name=property_name,
+                    property_category=property_category,
                     keep_if_equals_category=keep_if_equals_category,
                 )
                 os.remove(self.database_file)
@@ -234,21 +234,21 @@ class ReferenceDatabase:
 
         return file_database_filtered
 
-    def _filter_fasta_database_by_attribute_category(
+    def _filter_fasta_database_by_property_category(
         self,
-        attribute_name: str,
-        attribute_category: Union[str, List[str]],
+        property_name: str,
+        property_category: Union[str, List[str]],
         keep_if_equals_category: bool,
     ):
         """
-        Filter a FASTA database based on attribute categories in sequence headers.
+        Filter a FASTA database based on property categories in sequence headers.
         Therefore, merge fasta files, load fasta content and process header for filtering.
 
-        :param attribute_name: The attribute in the FASTA header used for filtering.
-        :type attribute_name: str
-        :param attribute_category: List of attribute values used to filter sequences.
-        :type attribute_category: Union[str, List[str]]
-        :param keep_if_equals_category: Whether to keep (True) or remove (False) sequences matching the attribute category.
+        :param property_name: The property in the FASTA header used for filtering.
+        :type property_name: str
+        :param property_category: List of property categories used to filter sequences.
+        :type property_category: Union[str, List[str]]
+        :param keep_if_equals_category: Whether to keep (True) or remove (False) sequences matching the property category.
         :type keep_if_equals_category: bool
         """
         fasta_sequences = self.fasta_parser.read_fasta_sequences(file_fasta_in=self.database_file)
@@ -256,13 +256,13 @@ class ReferenceDatabase:
         fasta_sequences_filtered = []
 
         for entry in fasta_sequences:
-            _, attributes, _ = self.fasta_parser.parse_fasta_header(entry.id, parse_additional_info=True)
-            if attribute_name in attributes:
-                attribute_values = check_if_list(attributes[attribute_name])
-                if keep_if_equals_category and any(item in attribute_category for item in attribute_values):
+            _, properties, _ = self.fasta_parser.parse_fasta_header(entry.id, parse_additional_info=True)
+            if property_name in properties:
+                property_values = check_if_list(properties[property_name])
+                if keep_if_equals_category and any(item in property_category for item in property_values):
                     fasta_sequences_filtered.append(entry)
                 elif not keep_if_equals_category and all(
-                    item not in attribute_category for item in attribute_values
+                    item not in property_category for item in property_values
                 ):
                     fasta_sequences_filtered.append(entry)
 

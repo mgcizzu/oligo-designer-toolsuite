@@ -17,7 +17,7 @@ class BaseProperty(ABC):
     An abstract base class for creating oligo property calculators.
 
     The `BaseProperty` class serves as a template for developing property calculators that compute
-    specific attributes of oligonucleotides. Subclasses must implement the `apply` method to define
+    specific properties of oligonucleotides. Subclasses must implement the `apply` method to define
     the property calculation logic.
     """
 
@@ -34,7 +34,7 @@ class BaseProperty(ABC):
         This abstract method must be implemented by subclasses to define the specific property
         calculation logic for a given oligo.
 
-        :param oligo_database: The OligoDatabase containing the oligonucleotides and their associated attributes.
+        :param oligo_database: The OligoDatabase containing the oligonucleotides and their associated properties.
         :type oligo_database: OligoDatabase
         :param region_id: Region ID to process.
         :type region_id: str
@@ -42,6 +42,6 @@ class BaseProperty(ABC):
         :type oligo_id: str
         :param sequence_type: The type of sequence to be used for property calculation.
         :type sequence_type: _TYPES_SEQ["oligo", "target"]
-        :return: A dictionary containing the calculated property(ies). Keys are attribute names, values are the calculated values.
+        :return: A dictionary containing the calculated property(ies). Keys are property names, values are the calculated values.
         :rtype: dict
         """

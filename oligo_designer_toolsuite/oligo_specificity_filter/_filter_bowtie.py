@@ -124,7 +124,7 @@ class BowtieFilter(AlignmentSpecificityFilter):
         This function performs a Bowtie search to align oligonucleotide sequences from the specified
         oligo database to a reference genome index. The results are processed and returned as a DataFrame.
 
-        :param oligo_database: The OligoDatabase containing the oligonucleotides and their associated attributes.
+        :param oligo_database: The OligoDatabase containing the oligonucleotides and their associated properties.
         :type oligo_database: OligoDatabase
         :param file_reference: Path to the reference file used for alignment filtering.
         :type file_reference: str
@@ -179,7 +179,7 @@ class BowtieFilter(AlignmentSpecificityFilter):
         originate from the same region, if specified. This is useful for excluding self-hits or hits within the same region,
         depending on the configuration.
 
-        :param oligo_database: The Oligo Database containing the oligonucleotides and their associated attributes (not utilized in this filter).
+        :param oligo_database: The Oligo Database containing the oligonucleotides and their associated properties (not utilized in this filter).
         :type oligo_database: OligoDatabase
         :param search_results: DataFrame containing the results of the Bowtie search.
         :type search_results: pd.DataFrame
@@ -385,7 +385,7 @@ class Bowtie2Filter(AlignmentSpecificityFilter):
         This function performs a Bowtie2 search to align oligonucleotide sequences from the specified
         OligoDatabase to a reference genome index. The results are processed and returned as a DataFrame.
 
-        :param oligo_database: The OligoDatabase containing the oligonucleotides and their associated attributes.
+        :param oligo_database: The OligoDatabase containing the oligonucleotides and their associated properties.
         :type oligo_database: OligoDatabase
         :param file_reference: Path to the reference file used for alignment filtering.
         :type file_reference: str
@@ -442,7 +442,7 @@ class Bowtie2Filter(AlignmentSpecificityFilter):
         originate from the same region, if specified. This is useful for excluding self-hits or hits within the same region,
         depending on the configuration.
 
-        :param oligo_database: The OligoDatabase containing the oligonucleotides and their associated attributes (not utilized in this filter).
+        :param oligo_database: The OligoDatabase containing the oligonucleotides and their associated properties (not utilized in this filter).
         :type oligo_database: OligoDatabase
         :param search_results: DataFrame containing the results of the Bowtie2 search.
         :type search_results: pd.DataFrame

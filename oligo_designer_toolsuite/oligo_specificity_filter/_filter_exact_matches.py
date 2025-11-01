@@ -63,7 +63,7 @@ class ExactMatchFilter(BaseSpecificityFilter):
         It then uses the provided policy to determine how these exact matches should be handled.
         The filter operates in parallel across regions in the OligoDatabase to improve performance.
 
-        :param oligo_database: The OligoDatabase containing the oligonucleotides and their associated attributes.
+        :param oligo_database: The OligoDatabase containing the oligonucleotides and their associated properties.
         :type oligo_database: OligoDatabase
         :param sequence_type: The type of sequence to be used for the filter calculations.
         :type sequence_type: _TYPES_SEQ["oligo", "target"]
@@ -121,7 +121,7 @@ class ExactMatchFilter(BaseSpecificityFilter):
         This function compares oligo sequences within the OligoDatabase to identify pairs of oligos that have exact matches,
         including their reverse complements. It generates a list of these matching oligo pairs, which can be used for further filtering or analysis.
 
-        :param oligo_database: The OligoDatabase containing the oligonucleotides and their associated attributes.
+        :param oligo_database: The OligoDatabase containing the oligonucleotides and their associated properties.
         :type oligo_database: OligoDatabase
         :param sequence_type: The type of sequence to be used for the filter calculations.
         :type sequence_type: _TYPES_SEQ["oligo", "target"]r[]
@@ -210,7 +210,7 @@ class ExactMatchFilter(BaseSpecificityFilter):
         This function checks each sequence in a specified region of the oligo OligoDatabase against a list of search results.
         It then maps these sequences to their corresponding oligo IDs and records any hits that are either within or outside the input region, depending on the filter settings.
 
-        :param oligo_database: The OligoDatabase containing the oligonucleotides and their associated attributes.
+        :param oligo_database: The OligoDatabase containing the oligonucleotides and their associated properties.
         :type oligo_database: OligoDatabase
         :param search_results: A list of sequences that were identified as duplicates.
         :type search_results: List

@@ -21,7 +21,7 @@ class PropertyCalculator:
     A class for applying multiple property calculators to oligonucleotides in an OligoDatabase.
 
     The `PropertyCalculator` class allows you to apply a list of property calculators (subclasses of `BaseProperty`) to an OligoDatabase.
-    The properties are calculated in parallel across all regions of the database, and the calculated values are stored as attributes.
+    The properties are calculated in parallel across all regions of the database, and the calculated values are stored as properties in the database.
 
     :param properties: A list of property calculators to apply to oligonucleotides.
     :type properties: List[BaseProperty]
@@ -38,7 +38,7 @@ class PropertyCalculator:
         Apply the property calculators to all oligonucleotides in the OligoDatabase and update
         the database with the calculated property values.
 
-        :param oligo_database: The OligoDatabase containing the oligonucleotides and their associated attributes.
+        :param oligo_database: The OligoDatabase containing the oligonucleotides and their associated properties.
         :type oligo_database: OligoDatabase
         :param sequence_type: The type of sequence to be used for property calculation.
         :type sequence_type: _TYPES_SEQ["oligo", "target"]
@@ -70,14 +70,14 @@ class PropertyCalculator:
         This method iterates through the oligonucleotides in a given region of the database,
         applying all property calculators to each oligo and updating the database with the calculated values.
 
-        :param oligo_database: The OligoDatabase containing the oligonucleotides and their associated attributes.
+        :param oligo_database: The OligoDatabase containing the oligonucleotides and their associated properties.
         :type oligo_database: OligoDatabase
         :param region_id: Region ID to process.
         :type region_id: str
         :param sequence_type: The type of sequence to be used for the property calculations.
         :type sequence_type: _TYPES_SEQ["oligo", "target"]
         """
-        new_oligo_attribute = {}
+        new_oligo_property = {}
 
         for oligo_id in oligo_database.database[region_id].keys():
             # Calculate all properties for this oligo
@@ -88,10 +88,10 @@ class PropertyCalculator:
                     oligo_id=oligo_id,
                     sequence_type=sequence_type,
                 )
-                # Merge results into the attribute dictionary
-                if oligo_id not in new_oligo_attribute:
-                    new_oligo_attribute[oligo_id] = {}
-                new_oligo_attribute[oligo_id].update(property_result)
+                # Merge results into the property dictionary
+                if oligo_id not in new_oligo_property:
+                    new_oligo_property[oligo_id] = {}
+                new_oligo_property[oligo_id].update(property_result)
 
-        # Update all oligo attributes at once for this region
-        oligo_database.update_oligo_attributes(new_oligo_attribute)
+        # Update all oligo properties at once for this region
+        oligo_database.update_oligo_properties(new_oligo_property)
