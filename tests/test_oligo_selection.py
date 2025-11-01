@@ -10,12 +10,17 @@ import pandas as pd
 from Bio.SeqUtils import MeltingTemp as mt
 from scipy.sparse import csr_matrix
 
-from oligo_designer_toolsuite.database import OligoAttributes, OligoDatabase
+from oligo_designer_toolsuite.database import OligoDatabase
 from oligo_designer_toolsuite.oligo_efficiency_filter import (
     LowestSetScoring,
     NormalizedDeviationFromOptimalGCContentScorer,
     NormalizedDeviationFromOptimalTmScorer,
     OligoScoring,
+)
+from oligo_designer_toolsuite.oligo_property_calculator import (
+    GCContentProperty,
+    PropertyCalculator,
+    TmNNProperty,
 )
 from oligo_designer_toolsuite.oligo_selection import (
     GraphBasedSelectionPolicy,
@@ -255,9 +260,10 @@ class TestHomogeneousPropertyOligoSetGenerator(unittest.TestCase):
             FILE_DATABASE, database_overwrite=True, merge_databases_on_sequence_type="oligo"
         )
 
-        oligo_attributes = OligoAttributes()
-        oligo_database = oligo_attributes.calculate_GC_content(self.oligo_database)
-        oligo_database = oligo_attributes.calculate_TmNN(oligo_database, TM_PARAMETERS)
+        # Calculate GC content using new PropertyCalculator pattern
+        properties = [GCContentProperty(), TmNNProperty(Tm_parameters=TM_PARAMETERS)]
+        calculator = PropertyCalculator(properties=properties)
+        oligo_database = calculator.apply(oligo_database=self.oligo_database, sequence_type="oligo", n_jobs=1)
 
         self.oligoset_generator = HomogeneousPropertyOligoSetGenerator(
             set_size=5,

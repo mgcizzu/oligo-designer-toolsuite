@@ -8,7 +8,11 @@ import unittest
 from abc import abstractmethod
 from pathlib import Path
 
-from oligo_designer_toolsuite.database import OligoAttributes, OligoDatabase
+from oligo_designer_toolsuite.database import OligoDatabase
+from oligo_designer_toolsuite.oligo_property_calculator import (
+    LengthProperty,
+    PropertyCalculator,
+)
 from oligo_designer_toolsuite.sequence_generator import (
     CustomGenomicRegionGenerator,
     FtpLoaderEnsembl,
@@ -268,7 +272,6 @@ class TestOligoSequenceGenerator(unittest.TestCase):
 
         self.oligo_database_1 = OligoDatabase(dir_output=self.tmp_path, database_name="db1")
         self.oligo_database_2 = OligoDatabase(dir_output=self.tmp_path, database_name="db2")
-        self.oligo_attributes = OligoAttributes()
         self.oligo_sequence_generator = OligoSequenceGenerator(dir_output=self.tmp_path)
         self.fasta_parser = FastaParser()
 
@@ -295,8 +298,10 @@ class TestOligoSequenceGenerator(unittest.TestCase):
             sequence_type=self.sequence_type,
             region_ids=None,
         )
-        self.oligo_database_1 = self.oligo_attributes.calculate_oligo_length(
-            oligo_database=self.oligo_database_1, sequence_type=self.sequence_type
+        properties = [LengthProperty()]
+        calculator = PropertyCalculator(properties=properties)
+        self.oligo_database_1 = calculator.apply(
+            oligo_database=self.oligo_database_1, sequence_type=self.sequence_type, n_jobs=1
         )
 
         num_sequences = self.oligo_database_1.get_oligoid_list(region_ids="random_sequences1")
@@ -356,8 +361,10 @@ class TestOligoSequenceGenerator(unittest.TestCase):
             sequence_type="oligo",
             region_ids=["AARS1", "ABAT"],
         )
-        self.oligo_database_1 = self.oligo_attributes.calculate_oligo_length(
-            oligo_database=self.oligo_database_1, sequence_type=self.sequence_type
+        properties = [LengthProperty()]
+        calculator = PropertyCalculator(properties=properties)
+        self.oligo_database_1 = calculator.apply(
+            oligo_database=self.oligo_database_1, sequence_type=self.sequence_type, n_jobs=1
         )
 
         length_sequence = self.oligo_database_1.get_oligo_attribute_value(
