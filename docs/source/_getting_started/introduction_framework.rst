@@ -59,6 +59,16 @@ An initial pool of oligo sequences can be generated using the ``OligoSequenceGen
 It can be used to generate sequences form an input FASTA file, containing genomic sequences of interest (e.g. a defined set of genes), or at random with a pre-defined nucleotide distribution.
 The generated oligo sequences (or a FASTA file with custom oligo sequences) can be loaded into the ``OligoDatabase`` for further processing.
 
+Oligo Property Calculation
+----------------------------
+
+The *Oligo Property Calculation* block provides functionality to calculate various physical and chemical properties of oligonucleotide sequences.
+These properties include sequence characteristics (e.g., length, GC content), thermodynamic properties (e.g., melting temperature, secondary structure stability),
+and region-specific properties (e.g., isoform consensus, number of targeted transcripts).
+The ``PropertyCalculator`` class orchestrates the calculation of multiple properties in parallel across all regions in the database.
+Individual property classes, such as ``LengthProperty``, ``GCContentProperty``, and ``TmNNProperty``, encapsulate the calculation logic for specific properties.
+The calculated values are stored as attributes in the ``OligoDatabase`` and can be used by filtering and selection modules for downstream processing.
+
 Oligo Filtering
 ----------------
 
