@@ -13,9 +13,9 @@ from ._checkers_and_helpers import (
 )
 from ._database_processor import (
     check_if_region_in_database,
-    collapse_attributes_for_duplicated_sequences,
-    flatten_attribute_list,
-    format_oligo_attributes,
+    collapse_properties_for_duplicated_sequences,
+    flatten_property_list,
+    format_oligo_properties,
     merge_databases,
 )
 from ._sequence_parser import FastaParser, GffParser, VCFParser
@@ -38,10 +38,10 @@ __all__ = [
     "check_tsv_format",
     "check_if_region_in_database",
     "generate_unique_filename",
-    "collapse_attributes_for_duplicated_sequences",
-    "format_oligo_attributes",
+    "collapse_properties_for_duplicated_sequences",
+    "format_oligo_properties",
     "merge_databases",
-    "flatten_attribute_list",
+    "flatten_property_list",
     "get_complement_regions",
     "get_sequence_from_annotation",
     "get_intersection",

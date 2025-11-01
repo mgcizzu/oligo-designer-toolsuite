@@ -723,7 +723,7 @@ class MerfishProbeDesigner:
         """
         Design encoding probes by combining target probes with readout probe sequences based on the codebook.
 
-        :param target_probe_database: Database of target probes containing sequence and attribute information.
+        :param target_probe_database: Database of target probes containing sequence and property information.
         :type target_probe_database: OligoDatabase
         :param codebook: A DataFrame containing barcodes for each region. Each row corresponds to a region,
             with columns representing bits in the barcode.
@@ -731,7 +731,7 @@ class MerfishProbeDesigner:
         :param readout_probe_table: A DataFrame containing readout probe sequences and their associated bit
             identifiers.
         :type readout_probe_table: pd.DataFrame
-        :return: Updated target_probe_database with attributes for encoding probes, including sequences
+        :return: Updated target_probe_database with properties for encoding probes, including sequences
             for target probes, readout probes, and the full encoding probe sequence.
         :rtype: OligoDatabase
         """
@@ -750,35 +750,35 @@ class MerfishProbeDesigner:
             bits = barcode[barcode == 1].index
             readout_probe_sequences = readout_probe_table.loc[bits, "readout_probe_sequence"]
 
-            new_probe_attributes_encoding_probe = {}
+            new_probe_properties_encoding_probe = {}
 
             for probe_id in target_probe_database.database[region_id].keys():
 
                 sequence_readout_probe_1 = readout_probe_sequences.iloc[0]
                 sequence_readout_probe_2 = readout_probe_sequences.iloc[1]
 
-                new_probe_attributes_encoding_probe[probe_id] = {
+                new_probe_properties_encoding_probe[probe_id] = {
                     "barcode": barcode,
-                    "sequence_target": target_probe_database.get_oligo_attribute_value(
-                        attribute="target", region_id=region_id, oligo_id=probe_id, flatten=True
+                    "sequence_target": target_probe_database.get_oligo_property_value(
+                        property="target", region_id=region_id, oligo_id=probe_id, flatten=True
                     ),
-                    "sequence_target_probe": target_probe_database.get_oligo_attribute_value(
-                        attribute="oligo", region_id=region_id, oligo_id=probe_id, flatten=True
+                    "sequence_target_probe": target_probe_database.get_oligo_property_value(
+                        property="oligo", region_id=region_id, oligo_id=probe_id, flatten=True
                     ),
                     "sequence_readout_probe_1": sequence_readout_probe_1,
                     "sequence_readout_probe_2": sequence_readout_probe_2,
                     "sequence_encoding_probe": (
                         str(Seq(sequence_readout_probe_1).reverse_complement())
                         + "A"
-                        + target_probe_database.get_oligo_attribute_value(
-                            attribute="oligo", region_id=region_id, oligo_id=probe_id, flatten=True
+                        + target_probe_database.get_oligo_property_value(
+                            property="oligo", region_id=region_id, oligo_id=probe_id, flatten=True
                         )
                         + "A"
                         + str(Seq(sequence_readout_probe_2).reverse_complement())
                     ),
                 }
 
-            target_probe_database.update_oligo_attributes(new_probe_attributes_encoding_probe)
+            target_probe_database.update_oligo_properties(new_probe_properties_encoding_probe)
 
         return target_probe_database
 
@@ -912,9 +912,9 @@ class MerfishProbeDesigner:
 
         # iterate over all primers in the database to find the one with Tm closest to the reverse primer Tm
         for database_region in oligo_database.database.values():
-            for primer_attributes in database_region.values():
+            for primer_properties in database_region.values():
                 Tm_forward_primer = calc_tm_nn(
-                    sequence=primer_attributes["oligo"],
+                    sequence=primer_properties["oligo"],
                     Tm_parameters=self.primer_Tm_parameters,
                     Tm_chem_correction_parameters=self.primer_Tm_chem_correction_parameters,
                     Tm_salt_correction_parameters=self.primer_Tm_salt_correction_parameters,
@@ -922,7 +922,7 @@ class MerfishProbeDesigner:
                 dif_Tm = abs(Tm_forward_primer - Tm_reverse_primer)
                 if dif_Tm < min_dif_Tm:
                     min_dif_Tm = dif_Tm
-                    forward_primer_sequence = primer_attributes["oligo"]
+                    forward_primer_sequence = primer_properties["oligo"]
 
         os.remove(file_fasta_encoding_probes_database)
 
@@ -934,7 +934,7 @@ class MerfishProbeDesigner:
         reverse_primer_sequence: str,
         forward_primer_sequence: str,
         top_n_sets: int = 3,
-        attributes=[
+        properties: list = [
             "source",
             "species",
             "annotation_release",
@@ -970,28 +970,28 @@ class MerfishProbeDesigner:
         :type forward_primer_sequence: str
         :param top_n_sets: Number of top probe sets to include in the output, defaults to 3.
         :type top_n_sets: int
-        :param attributes: List of attributes to include in the output files, defaults to a comprehensive list of probe properties.
-        :type attributes: list
+        :param properties: List of properties to include in the output files, defaults to a comprehensive list of probe properties.
+        :type properties: list
 
         :return: None
         """
-        new_probe_attributes_primer = {}
+        new_probe_properties_primer = {}
 
         for region_id in encoding_probe_database.database.keys():
             for probe_id in encoding_probe_database.database[region_id].keys():
-                new_probe_attributes_primer[probe_id] = {
+                new_probe_properties_primer[probe_id] = {
                     "sequence_reverse_primer": reverse_primer_sequence,
                     "sequence_forward_primer": forward_primer_sequence,
                     "sequence_merfish_probe": forward_primer_sequence
-                    + encoding_probe_database.get_oligo_attribute_value(
-                        attribute="sequence_encoding_probe",
+                    + encoding_probe_database.get_oligo_property_value(
+                        property="sequence_encoding_probe",
                         region_id=region_id,
                         oligo_id=probe_id,
                         flatten=True,
                     )
                     + reverse_primer_sequence,
                 }
-        encoding_probe_database.update_oligo_attributes(new_probe_attributes_primer)
+        encoding_probe_database.update_oligo_properties(new_probe_properties_primer)
 
         # Calculate GC content and isoform consensus
         properties = [GCContentProperty(), IsoformConsensusProperty()]
@@ -1001,7 +1001,7 @@ class MerfishProbeDesigner:
         )
 
         encoding_probe_database.write_oligosets_to_yaml(
-            attributes=attributes,
+            properties=properties,
             top_n_sets=top_n_sets,
             ascending=True,
             filename="merfish_probes.yml",
@@ -1026,20 +1026,20 @@ class MerfishProbeDesigner:
                 yaml_dict_order[region_id][oligoset_id] = {}
                 for oligo_id in oligoset:
                     yaml_dict_order[region_id][oligoset_id][oligo_id] = {
-                        "sequence_merfish_probe": encoding_probe_database.get_oligo_attribute_value(
-                            attribute="sequence_merfish_probe",
+                        "sequence_merfish_probe": encoding_probe_database.get_oligo_property_value(
+                            property="sequence_merfish_probe",
                             region_id=region_id,
                             oligo_id=oligo_id,
                             flatten=True,
                         ),
-                        "sequence_readout_probe_1": encoding_probe_database.get_oligo_attribute_value(
-                            attribute="sequence_readout_probe_1",
+                        "sequence_readout_probe_1": encoding_probe_database.get_oligo_property_value(
+                            property="sequence_readout_probe_1",
                             region_id=region_id,
                             oligo_id=oligo_id,
                             flatten=True,
                         ),
-                        "sequence_readout_probe_2": encoding_probe_database.get_oligo_attribute_value(
-                            attribute="sequence_readout_probe_2",
+                        "sequence_readout_probe_2": encoding_probe_database.get_oligo_property_value(
+                            property="sequence_readout_probe_2",
                             region_id=region_id,
                             oligo_id=oligo_id,
                             flatten=True,
@@ -1145,9 +1145,9 @@ class TargetProbeDesigner:
 
         ##### pre-filter oligo database for certain properties #####
 
-        oligo_database.filter_database_by_attribute_threshold(
-            attribute_name="isoform_consensus",
-            attribute_thr=isoform_consensus,
+        oligo_database.filter_database_by_property_threshold(
+            property_name="isoform_consensus",
+            property_thr=isoform_consensus,
             remove_if_smaller_threshold=True,
         )
         oligo_database.remove_regions_with_insufficient_oligos(pipeline_step="Pre-Filters")

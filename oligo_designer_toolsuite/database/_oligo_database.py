@@ -25,9 +25,9 @@ from oligo_designer_toolsuite.utils import (
     check_if_list_of_lists,
     check_if_region_in_database,
     check_tsv_format,
-    collapse_attributes_for_duplicated_sequences,
-    flatten_attribute_list,
-    format_oligo_attributes,
+    collapse_properties_for_duplicated_sequences,
+    flatten_property_list,
+    format_oligo_properties,
     merge_databases,
 )
 
@@ -41,12 +41,12 @@ CustomYamlDumper.add_representer(dict, CustomYamlDumper.represent_dict)
 
 class OligoDatabase:
     """
-    The `OligoDatabase` class provides a comprehensive framework for managing oligonucleotide data along with their associated attributes
+    The `OligoDatabase` class provides a comprehensive framework for managing oligonucleotide data along with their associated properties
     across various genomic regions. It supports loading, saving, filtering, and updating oligo data, ensuring efficient handling of large
     datasets through the use of an LRU (Least Recently Used) cache system. It provides functionalities to
     load data from different sources (such as FASTA files and tables), save data in various formats, and apply
-    filtering based on specific criteria like regions, oligo IDs, or attribute thresholds. Additionally, the class
-    includes methods to update, retrieve, and analyze oligo attributes, facilitating the selection and evaluation
+    filtering based on specific criteria like regions, oligo IDs, or property thresholds. Additionally, the class
+    includes methods to update, retrieve, and analyze oligo properties, facilitating the selection and evaluation
     of oligonucleotides for research and practical applications.
 
     :param min_oligos_per_region: Minimum number of oligos required per region to retain the region in the database and oligosets.
@@ -121,7 +121,7 @@ class OligoDatabase:
         Loads oligonucleotide data from one or more FASTA files into the database, optionally overwriting the existing database.
 
         This function reads sequences from FASTA file(s) and adds them to the OligoDatabase, either as 'oligo' or
-        'target' sequence. It parses the headers of the FASTA entries to extract oligo attribute information,
+        'target' sequence. It parses the headers of the FASTA entries to extract oligo property information,
         and assigns unique IDs to the oligos within each region.
 
         The header of each sequence must start with '>' and contain the following information:
@@ -164,24 +164,24 @@ class OligoDatabase:
                 sequences = {}
                 for entry in fasta_sequences:
                     region, additional_info, coordinates = self.fasta_parser.parse_fasta_header(entry.id)
-                    oligo_attributes = coordinates | additional_info
-                    oligo_attributes = format_oligo_attributes(oligo_attributes)
+                    oligo_properties = coordinates | additional_info
+                    oligo_properties = format_oligo_properties(oligo_properties)
                     if region in sequences:
                         if entry.seq in sequences[region]:
-                            oligo_attributes = collapse_attributes_for_duplicated_sequences(
-                                oligo_attributes1=sequences[region][entry.seq],
-                                oligo_attributes2=oligo_attributes,
+                            oligo_properties = collapse_properties_for_duplicated_sequences(
+                                oligo_properties1=sequences[region][entry.seq],
+                                oligo_properties2=oligo_properties,
                             )
-                        sequences[region][str(entry.seq)] = oligo_attributes
+                        sequences[region][str(entry.seq)] = oligo_properties
                     else:
-                        sequences[region] = {str(entry.seq): oligo_attributes}
+                        sequences[region] = {str(entry.seq): oligo_properties}
 
                 database_region = {region: {} for region in sequences.keys()}
                 for region, sequences_region in sequences.items():
                     i = 1
-                    for oligo_sequence, oligo_attributes in sequences_region.items():
+                    for oligo_sequence, oligo_properties in sequences_region.items():
                         oligo_id = f"{region}{SEPARATOR_OLIGO_ID}{i}"
-                        oligo_seq_info = {sequence_type: oligo_sequence} | oligo_attributes
+                        oligo_seq_info = {sequence_type: oligo_sequence} | oligo_properties
                         database_region[region][oligo_id] = oligo_seq_info
                         i += 1
 
@@ -240,7 +240,7 @@ class OligoDatabase:
         Loads oligonucleotide data from a tab-delimited table (TSV) file into the database, optionally overwriting the existing database.
 
         This function loads the OligoDatabase from a tab-separated values (TSV) file. The file must contain
-        columns such as 'region_id', 'oligo_id' and optionally the oligo or target sequence as well as oligo attributes.
+        columns such as 'region_id', 'oligo_id' and optionally the oligo or target sequence as well as oligo properties.
         The database can be optionally filtered by specifying a list of region IDs.
 
         ⚠️ For big databases, it is not recommended to load the whole TSV file at once. Instead, the database should be
@@ -301,7 +301,7 @@ class OligoDatabase:
             if (not region_ids) or (region_ids and region_id in region_ids):
                 if region_id not in database_tmp2:
                     database_tmp2[region_id] = {}
-                database_tmp2[region_id][oligo_id] = format_oligo_attributes(entry)
+                database_tmp2[region_id][oligo_id] = format_oligo_properties(entry)
 
         if not database_overwrite and self.database:
             database_tmp2 = merge_databases(
@@ -333,7 +333,7 @@ class OligoDatabase:
         """
         Loads oligonucleotide data from a directory of pickled files into the database, optionally overwriting the existing database.
         Each file in the folder represents a region in the database and contains the region ID,
-        the oligo sequence and attribute information as well as the oligosets for this region.
+        the oligo sequence and property information as well as the oligosets for this region.
 
         :param dir_database: Path to the directory containing the pickled database files.
         :type dir_database: str
@@ -469,11 +469,11 @@ class OligoDatabase:
         region_ids: Union[str, List[str]] = None,
     ) -> str:
         """
-        Writes the current database to a FASTA file. Associated sequence attributes can optionally be included in the sequence header.
+        Writes the current database to a FASTA file. Associated sequence properties can optionally be included in the sequence header.
 
         :param sequence_type: The type of sequence being written, must be one of the predefined sequence types, i.e. "oligo" or "target".
         :type sequence_type: _TYPES_SEQ["oligo", "target"]
-        :param save_description: Whether to include the sequence attributes in the sequence header.
+        :param save_description: Whether to include the sequence properties in the sequence header.
         :type save_description: bool
         :param filename: The base name of the output FASTA file, defaults to "db_oligo".
         :type filename: str
@@ -500,10 +500,10 @@ class OligoDatabase:
         with open(file_fasta, "w") as handle_fasta:
             for region_id in region_ids:
                 database_region = self.database[region_id]
-                for oligo_id, oligo_attributes in database_region.items():
+                for oligo_id, oligo_properties in database_region.items():
                     description = sequence_type if save_description else ""
                     seq_record = SeqRecord(
-                        Seq(oligo_attributes[sequence_type]),
+                        Seq(oligo_properties[sequence_type]),
                         id=oligo_id,
                         name=oligo_id.split(SEPARATOR_OLIGO_ID)[0],
                         description=description,
@@ -543,25 +543,25 @@ class OligoDatabase:
         file_bed = os.path.join(dir_output, f"{filename}.bed")
 
         # retrieve relevant information from database
-        attribute_table = self.get_oligo_attribute_table(
-            attributes=["chromosome", "start", "end", "strand"], flatten=True, region_ids=region_ids
+        property_table = self.get_oligo_property_table(
+            properties=["chromosome", "start", "end", "strand"], flatten=True, region_ids=region_ids
         )
 
         # remove rows that contain None
-        mask = attribute_table.isnull().any(axis=1)
-        attribute_table = attribute_table[~mask]
+        mask = property_table.isnull().any(axis=1)
+        property_table = property_table[~mask]
 
         if mask.sum() > 0:
             warnings.warn(f"Removing {mask.sum()} row(s) containing None/NaN values.", UserWarning)
 
         # expand rows which contain lists for chr, start, end, strand columns into seperate rows
-        attribute_table_extended = attribute_table.explode(
+        property_table_extended = property_table.explode(
             ["chromosome", "start", "end", "strand"], ignore_index=True
         )
-        attribute_table_extended["score"] = "."
+        property_table_extended["score"] = "."
 
         # save tabel content as BED file
-        attribute_table_extended[["chromosome", "start", "end", "oligo_id", "score", "strand"]].to_csv(
+        property_table_extended[["chromosome", "start", "end", "oligo_id", "score", "strand"]].to_csv(
             file_bed, sep="\t", header=False, index=False
         )
 
@@ -569,21 +569,21 @@ class OligoDatabase:
 
     def write_database_to_table(
         self,
-        attributes: Union[str, List[str]],
-        flatten_attribute: bool,
+        properties: Union[str, List[str]],
+        flatten_property: bool,
         filename: str = "oligo_database_table",
         dir_output: str = None,
         region_ids: list[str] = None,
     ) -> str:
         """
-        Writes the current database and selected attributes to a TSV table file,
-        optionally flattening nested or list attributes to a unique set of values.
+        Writes the current database and selected properties to a TSV table file,
+        optionally flattening nested or list properties to a unique set of values.
 
 
-        :param attributes: A list of attributes to include in the table.
-        :type attributes: Union[str, List[str]]
-        :param flatten_attribute: Whether to flatten list attributes to a unique set of values in the table.
-        :type flatten_attribute: bool
+        :param properties: A list of properties to include in the table.
+        :type properties: Union[str, List[str]]
+        :param flatten_property: Whether to flatten list properties to a unique set of values in the table.
+        :type flatten_property: bool
         :param filename: The base name of the output TSV file, defaults to "oligo_database_table".
         :type filename: str
         :param dir_output: Directory for saving output files.
@@ -595,7 +595,7 @@ class OligoDatabase:
         """
         # Check formatting
         region_ids = check_if_list(region_ids) if region_ids else self.database.keys()
-        attributes = check_if_list(attributes)
+        properties = check_if_list(properties)
 
         dir_output = dir_output if dir_output else self.dir_output
         file_table = os.path.join(os.path.dirname(dir_output), f"{filename}.tsv")
@@ -605,18 +605,18 @@ class OligoDatabase:
             file_tsv_content = []
             for oligo_id in self.database[region_id].keys():
                 entry = {"region_id": region_id, "oligo_id": oligo_id}
-                for attribute in attributes:
-                    if attribute in self.database[region_id][oligo_id]:
-                        oligo_attribute = self.database[region_id][oligo_id][attribute]
-                        if flatten_attribute:
-                            oligo_attribute = flatten_attribute_list(oligo_attribute)
-                            if oligo_attribute:
-                                oligo_attribute = list(set(oligo_attribute))
-                            entry[attribute] = (
-                                str(oligo_attribute).replace("'", "").replace("[", "").replace("]", "")
+                for property in properties:
+                    if property in self.database[region_id][oligo_id]:
+                        oligo_property = self.database[region_id][oligo_id][property]
+                        if flatten_property:
+                            oligo_property = flatten_property_list(oligo_property)
+                            if oligo_property:
+                                oligo_property = list(set(oligo_property))
+                            entry[property] = (
+                                str(oligo_property).replace("'", "").replace("[", "").replace("]", "")
                             )
                         else:
-                            entry[attribute] = str(oligo_attribute).replace("[[", "[").replace("]]", "]")
+                            entry[property] = str(oligo_property).replace("[[", "[").replace("]]", "]")
                 file_tsv_content.append(entry)
             file_tsv_content = pd.DataFrame(data=file_tsv_content)
             file_tsv_content.to_csv(file_table, sep="\t", index=False, mode="a", header=first_entry)
@@ -626,7 +626,7 @@ class OligoDatabase:
 
     def write_oligosets_to_yaml(
         self,
-        attributes: Union[str, List[str]],
+        properties: Union[str, List[str]],
         top_n_sets: int,
         ascending: bool,
         filename: str = "oligosets",
@@ -634,11 +634,11 @@ class OligoDatabase:
         region_ids: list[str] = None,
     ) -> str:
         """
-        Writes the current top n oligosets and selected attributes to a YAML file.
+        Writes the current top n oligosets and selected properties to a YAML file.
         The oligosets are sorted based on their scores in ascending or descending order.
 
-        :param attributes: A list of attributes to include in the YAML file.
-        :type attributes: Union[str, List[str]]
+        :param properties: A list of properties to include in the YAML file.
+        :type properties: Union[str, List[str]]
         :param top_n_sets: Number of top oligosets to include based on their score.
         :type top_n_sets: int
         :param ascending: If True, sort oligosets by score in ascending order (the smaller the score the better the oligo set);
@@ -654,7 +654,7 @@ class OligoDatabase:
         :rtype: str
         """
         # Check formatting
-        attributes = check_if_list(attributes)
+        properties = check_if_list(properties)
         region_ids = check_if_list(region_ids) if region_ids else self.database.keys()
 
         yaml_dict = {region_id: {} for region_id in region_ids}
@@ -679,18 +679,18 @@ class OligoDatabase:
                 for oligo_idx, oligo_id in enumerate(oligoset):
                     yaml_dict_oligo_entry = {"oligo_id": oligo_id}
 
-                    # iterate through all attributes that should be written
-                    for attribute in attributes:
-                        if attribute in self.database[region_id][oligo_id]:
-                            oligo_attribute = self.database[region_id][oligo_id][attribute]
-                            # format oligo attributes: flatten lists of lists, join string lists with comma, keep strings as-is, None -> empty list
-                            if oligo_attribute:
+                    # iterate through all properties that should be written
+                    for property in properties:
+                        if property in self.database[region_id][oligo_id]:
+                            oligo_property = self.database[region_id][oligo_id][property]
+                            # format oligo properties: flatten lists of lists, join string lists with comma, keep strings as-is, None -> empty list
+                            if oligo_property:
                                 if (
-                                    sum(len(sublist) for sublist in check_if_list_of_lists(oligo_attribute))
+                                    sum(len(sublist) for sublist in check_if_list_of_lists(oligo_property))
                                     == 1
                                 ):
-                                    oligo_attribute = flatten_attribute_list(oligo_attribute)
-                            yaml_dict_oligo_entry[attribute] = oligo_attribute
+                                    oligo_property = flatten_property_list(oligo_property)
+                            yaml_dict_oligo_entry[property] = oligo_property
 
                     oligo_id_yaml = f"Oligo {oligo_idx + 1}"
                     yaml_dict[region_id][oligoset_id][oligo_id_yaml] = yaml_dict_oligo_entry
@@ -761,17 +761,17 @@ class OligoDatabase:
     # Getter Functions
     ############################################
 
-    def get_attribute_list(self) -> list[str]:
-        """Retrieves a list of attribute names stored in the database.
+    def get_property_list(self) -> list[str]:
+        """Retrieves a list of property names stored in the database.
 
-        :return: A list of attribute names stored in the database.
+        :return: A list of property names stored in the database.
         :rtype: list[str]
         """
         region_id = next(iter(self.database.values()))
         oligo_id = next(iter(region_id.values()))
-        attributes = list(oligo_id.keys())
+        properties = list(oligo_id.keys())
 
-        return attributes
+        return properties
 
     def get_regionid_list(self) -> list[str]:
         """
@@ -815,9 +815,9 @@ class OligoDatabase:
             sequence_type in options
         ), f"Sequence type not supported! '{sequence_type}' is not in {options}."
         sequences = [
-            str(oligo_attributes[sequence_type])
+            str(oligo_properties[sequence_type])
             for region_id, database_region in self.database.items()
-            for oligo_id, oligo_attributes in database_region.items()
+            for oligo_id, oligo_properties in database_region.items()
         ]
 
         return sequences
@@ -843,8 +843,8 @@ class OligoDatabase:
         oligoid_sequence_mapping = {}
 
         for region_id, database_region in self.database.items():
-            for oligo_id, oligo_attributes in database_region.items():
-                seq = oligo_attributes[sequence_type]
+            for oligo_id, oligo_properties in database_region.items():
+                seq = oligo_properties[sequence_type]
                 if sequence_to_upper:
                     seq = seq.upper()
                 oligoid_sequence_mapping[oligo_id] = seq
@@ -872,8 +872,8 @@ class OligoDatabase:
         sequence_oligoids_mapping = {}
 
         for region_id, database_region in self.database.items():
-            for oligo_id, oligo_attributes in database_region.items():
-                seq = oligo_attributes[sequence_type]
+            for oligo_id, oligo_properties in database_region.items():
+                seq = oligo_properties[sequence_type]
                 if sequence_to_upper:
                     seq = seq.upper()
                 if seq not in sequence_oligoids_mapping:
@@ -885,20 +885,20 @@ class OligoDatabase:
 
         return sequence_oligoids_mapping
 
-    def get_oligo_attribute_table(
-        self, attributes: str, flatten: bool, region_ids: Union[str, List[str]] = None
+    def get_oligo_property_table(
+        self, properties: str, flatten: bool, region_ids: Union[str, List[str]] = None
     ) -> pd.DataFrame:
         """
-        Generates a DataFrame containing oligo IDs and the specified attribute for each oligo,
-        optionally flattening nested or list attributes to a unique set of values.
+        Generates a DataFrame containing oligo IDs and the specified property for each oligo,
+        optionally flattening nested or list properties to a unique set of values.
 
-        :param attribute: The name of the attribute to retrieve.
-        :type attribute: str
-        :param flatten: Whether to flatten list attributes to a unique set of values in the table.
+        :param property: The name of the property to retrieve.
+        :type property: str
+        :param flatten: Whether to flatten list properties to a unique set of values in the table.
         :type flatten: bool
         :param region_ids: List of region IDs to retrieve. If None, all regions in the database are retrieved, defaults to None.
         :type region_ids: Union[str, List[str]], optional
-        :return: A DataFrame with oligo IDs and the corresponding attribute values.
+        :return: A DataFrame with oligo IDs and the corresponding property values.
         :rtype: pd.DataFrame
         """
 
@@ -916,58 +916,58 @@ class OligoDatabase:
 
         # Check formatting
         region_ids = check_if_list(region_ids) if region_ids else self.database.keys()
-        attributes = [attributes] if isinstance(attributes, str) else attributes
+        properties = [properties] if isinstance(properties, str) else properties
 
-        attributes_dict = {}
+        properties_dict = {}
 
         for region_id in region_ids:
             if region_id in self.database.keys():
                 region_db = self.database[region_id]
-                for oligo_id, oligo_attributes in region_db.items():
+                for oligo_id, oligo_properties in region_db.items():
                     key = (region_id, oligo_id)
-                    if key not in attributes_dict:
-                        attributes_dict[key] = {
+                    if key not in properties_dict:
+                        properties_dict[key] = {
                             "region_id": region_id,
                             "oligo_id": oligo_id,
                         }
 
-                    # Retrieve each requested attribute
-                    for attribute in attributes:
-                        if attribute not in oligo_attributes:
+                    # Retrieve each requested property
+                    for property in properties:
+                        if property not in oligo_properties:
                             val = None
                         elif flatten:
-                            val = flatten_attribute_list(oligo_attributes[attribute])
+                            val = flatten_property_list(oligo_properties[property])
                         else:
-                            val = oligo_attributes[attribute]
-                        attributes_dict[key][attribute] = val
+                            val = oligo_properties[property]
+                        properties_dict[key][property] = val
 
         # Convert the dict-of-dicts to a DataFrame
-        attributes_table = pd.DataFrame.from_dict(attributes_dict, orient="index")
-        attributes_table = attributes_table.reset_index(drop=True)
+        properties_table = pd.DataFrame.from_dict(properties_dict, orient="index")
+        properties_table = properties_table.reset_index(drop=True)
 
         # If all lists in the dataframe only contain one element, flatten all list entries
-        attributes_table = attributes_table.map(_flatten_if_one)
+        properties_table = properties_table.map(_flatten_if_one)
 
-        return attributes_table
+        return properties_table
 
-    def get_oligo_attribute_value(
-        self, attribute: str, flatten: bool, region_id: str, oligo_id: str
+    def get_oligo_property_value(
+        self, property: str, flatten: bool, region_id: str, oligo_id: str
     ) -> Union[str, List[str]]:
         """
-        Retrieve the value of a specified attribute for a given oligo and region ID,
-        optionally flattening nested or list attributes to a unique set of values.
+        Retrieve the value of a specified property for a given oligo and region ID,
+        optionally flattening nested or list properties to a unique set of values.
 
-        :param attribute: The name of the attribute to retrieve.
-        :type attribute: str
-        :param flatten: Whether to flatten list attributes to a unique set of values in the table.
+        :param property: The name of the property to retrieve.
+        :type property: str
+        :param flatten: Whether to flatten list properties to a unique set of values in the table.
         :type flatten: bool
         :param region_id: The ID of the region where the oligo is located.
         :type region_id: str
-        :param oligo_id: The ID of the oligo for which the attribute value is retrieved.
+        :param oligo_id: The ID of the oligo for which the property value is retrieved.
         :type oligo_id: str
-        :return: The value of the specified attribute, possibly flattened.
+        :return: The value of the specified property, possibly flattened.
         :rtype: Union[str, List[str]]
-        :raises ValueError: If the specified region or oligo does not exist.
+        :raises ValueError: If the specified region or oligo does not exist in the database.
         """
         if not region_id in self.database:
             raise ValueError(f"Region {region_id} does not exist.")
@@ -975,43 +975,43 @@ class OligoDatabase:
         if not oligo_id in self.database[region_id]:
             raise ValueError(f"Region {oligo_id} does not exist.")
 
-        oligo_attributes = self.database[region_id][oligo_id]
-        if attribute not in oligo_attributes:
-            attribute_value = None
+        oligo_properties = self.database[region_id][oligo_id]
+        if property not in oligo_properties:
+            property_value = None
         elif flatten:
-            attribute_value = flatten_attribute_list(self.database[region_id][oligo_id][attribute])
-            if attribute_value and len(attribute_value) == 1:
-                attribute_value = attribute_value[0]
+            property_value = flatten_property_list(self.database[region_id][oligo_id][property])
+            if property_value and len(property_value) == 1:
+                property_value = property_value[0]
         else:
-            attribute_value = self.database[region_id][oligo_id][attribute]
+            property_value = self.database[region_id][oligo_id][property]
 
-        return attribute_value
+        return property_value
 
     ############################################
     # Manipulation Functions
     ############################################
 
-    def update_oligo_attributes(self, new_oligo_attribute: dict) -> None:
+    def update_oligo_properties(self, new_oligo_property: dict) -> None:
         """
-        Updates the attributes of oligos in the database with the values provided in `new_oligo_attribute`.
-        This function iterates over the current database and updates each oligo's attributes if a corresponding
-        entry exists in the `new_oligo_attribute` dictionary. The update is done in place, modifying the existing
-        attributes of the oligonucleotides.
+        Updates the properties and properties of oligos in the database with the values provided in `new_oligo_property`.
+        This function iterates over the current database and updates each oligo's properties if a corresponding
+        entry exists in the `new_oligo_property` dictionary. The update is done in place, modifying the existing
+        properties of the oligonucleotides.
 
-        Input format of new attribute:
-        new_attribute = {<oligo_id>: {<attribute_name>: <attribute_value>}}
+        Input format of new property:
+        new_property = {<oligo_id>: {<property_name>: <property_value>}}
 
         Example:
-        new_attribute = {"AARS1::1": {"length": 110}}
+        new_property = {"AARS1::1": {"length": 110}}
 
-        :param new_oligo_attribute: A dictionary containing new attributes for oligos, where keys are oligo IDs
-                                    and values are the attributes to be updated.
-        :type new_oligo_attribute: dict
+        :param new_oligo_property: A dictionary containing new properties for oligos, where keys are oligo IDs
+                                    and values are the properties to be updated.
+        :type new_oligo_property: dict
         """
         for region_id, database_region in self.database.items():
-            for oligo_id, oligo_attributes in database_region.items():
-                if oligo_id in new_oligo_attribute:
-                    oligo_attributes.update(format_oligo_attributes(new_oligo_attribute[oligo_id]))
+            for oligo_id, oligo_properties in database_region.items():
+                if oligo_id in new_oligo_property:
+                    oligo_properties.update(format_oligo_properties(new_oligo_property[oligo_id]))
 
     def filter_database_by_region(self, remove_region: bool, region_ids: Union[str, List[str]]) -> None:
         """
@@ -1063,76 +1063,76 @@ class OligoDatabase:
                 "Can not filter. Database is empty! Call the method load_database() or load_database_from_fasta() first."
             )
 
-    def filter_database_by_attribute_threshold(
-        self, attribute_name: str, attribute_thr: float, remove_if_smaller_threshold: bool
+    def filter_database_by_property_threshold(
+        self, property_name: str, property_thr: float, remove_if_smaller_threshold: bool
     ) -> None:
         """
-        Filters the OligoDatabase based on the specified attribute threshold. The function iterates through all
+        Filters the OligoDatabase based on the specified property threshold. The function iterates through all
         oligos in the database and removes those that do not meet the given threshold criteria.
 
-        :param attribute_name: The name of the attribute to be evaluated.
-        :type attribute_name: str
-        :param attribute_thr: The threshold value for the attribute.
-        :type attribute_thr: float
-        :param remove_if_smaller_threshold: If True, removes oligos with attribute values smaller than the threshold;
-                                            if False, removes oligos with attribute values larger than the threshold.
+        :param property_name: The name of the property and its threshold to be evaluated.
+        :type property_name: str
+        :param property_thr: The threshold value for the property.
+        :type property_thr: float
+        :param remove_if_smaller_threshold: If True, removes oligos with property values smaller than the threshold;
+                                            if False, removes oligos with property values larger than the threshold.
         :type remove_if_smaller_threshold: bool
         """
         oligos_to_delete = []
         for region_id in self.database.keys():
             for oligo_id in self.database[region_id].keys():
-                attribute_values = check_if_list(
-                    self.get_oligo_attribute_value(
-                        attribute=attribute_name, region_id=region_id, oligo_id=oligo_id, flatten=True
+                property_values = check_if_list(
+                    self.get_oligo_property_value(
+                        property=property_name, region_id=region_id, oligo_id=oligo_id, flatten=True
                     )
                 )
-                if attribute_values:
+                if property_values:
                     if (
-                        remove_if_smaller_threshold and any(item < attribute_thr for item in attribute_values)
+                        remove_if_smaller_threshold and any(item < property_thr for item in property_values)
                     ) or (
                         not remove_if_smaller_threshold
-                        and all(item > attribute_thr for item in attribute_values)
+                        and all(item > property_thr for item in property_values)
                     ):
                         oligos_to_delete.append((region_id, oligo_id))
 
         for region_id, oligo_id in oligos_to_delete:
             del self.database[region_id][oligo_id]
 
-    def filter_database_by_attribute_category(
-        self, attribute_name: str, attribute_category: Union[str, List[str]], remove_if_equals_category: bool
+    def filter_database_by_property_category(
+        self, property_name: str, property_category: Union[str, List[str]], remove_if_equals_category: bool
     ) -> None:
         """
-        Filters the OligoDatabase by the specified attribute category. The function removes oligos based on whether
-        their attribute values match or do not match the given category/categories.
+        Filters the OligoDatabase by the specified property category. The function removes oligos based on whether
+        their property values match or do not match the given category/categories.
 
-        :param attribute_name: The name of the attribute to evaluate.
-        :type attribute_name: str
-        :param attribute_category: The category or categories to compare against the attribute values.
-        :type attribute_category: Union[str, List[str]]
-        :param remove_if_equals_category: If True, removes oligos with attribute values that match the specified category;
-                                        if False, removes oligos with attribute values that do not match the specified category.
+        :param property_name: The name of the property to evaluate.
+        :type property_name: str
+        :param property_category: The category or categories to compare against the property values.
+        :type property_category: Union[str, List[str]]
+        :param remove_if_equals_category: If True, removes oligos with property values that match the specified category;
+                                        if False, removes oligos with property values that do not match the specified category.
         :type remove_if_equals_category: bool
         """
         # Check formatting
-        attribute_category = check_if_list(attribute_category)
+        property_category = check_if_list(property_category)
         oligos_to_delete = []
 
         for region_id in self.database.keys():
             for oligo_id in self.database[region_id].keys():
-                attribute_values = check_if_list(
-                    self.get_oligo_attribute_value(
-                        attribute=attribute_name, region_id=region_id, oligo_id=oligo_id, flatten=True
+                property_values = check_if_list(
+                    self.get_oligo_property_value(
+                        property=property_name, region_id=region_id, oligo_id=oligo_id, flatten=True
                     )
                 )
-                if attribute_values:
+                if property_values:
                     # remove if any of the items match category
                     if remove_if_equals_category and any(
-                        item in attribute_category for item in attribute_values
+                        item in property_category for item in property_values
                     ):
                         oligos_to_delete.append((region_id, oligo_id))
                     # remove if all of the items don't match the category
                     elif not remove_if_equals_category and all(
-                        item not in attribute_category for item in attribute_values
+                        item not in property_category for item in property_values
                     ):
                         oligos_to_delete.append((region_id, oligo_id))
 

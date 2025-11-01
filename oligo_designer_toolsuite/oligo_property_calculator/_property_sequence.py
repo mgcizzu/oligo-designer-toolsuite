@@ -44,7 +44,7 @@ class LengthProperty(BaseProperty):
         """
         Calculate the length of the oligonucleotide sequence.
 
-        :param oligo_database: The OligoDatabase containing the oligonucleotides and their associated attributes.
+        :param oligo_database: The OligoDatabase containing the oligonucleotides and their associated properties.
         :type oligo_database: OligoDatabase
         :param region_id: Region ID to process.
         :type region_id: str
@@ -55,8 +55,8 @@ class LengthProperty(BaseProperty):
         :return: A dictionary containing the calculated length property.
         :rtype: dict
         """
-        sequence = oligo_database.get_oligo_attribute_value(
-            attribute=sequence_type, region_id=region_id, oligo_id=oligo_id, flatten=True
+        sequence = oligo_database.get_oligo_property_value(
+            property=sequence_type, region_id=region_id, oligo_id=oligo_id, flatten=True
         )
         length = calc_oligo_length(sequence=sequence)
         return {f"length_{sequence_type}": length}
@@ -77,7 +77,7 @@ class GCContentProperty(BaseProperty):
         """
         Calculate the GC content of the oligonucleotide sequence.
 
-        :param oligo_database: The OligoDatabase containing the oligonucleotides and their associated attributes.
+        :param oligo_database: The OligoDatabase containing the oligonucleotides and their associated properties.
         :type oligo_database: OligoDatabase
         :param region_id: Region ID to process.
         :type region_id: str
@@ -88,8 +88,8 @@ class GCContentProperty(BaseProperty):
         :return: A dictionary containing the calculated GC content property.
         :rtype: dict
         """
-        sequence = oligo_database.get_oligo_attribute_value(
-            attribute=sequence_type, region_id=region_id, oligo_id=oligo_id, flatten=True
+        sequence = oligo_database.get_oligo_property_value(
+            property=sequence_type, region_id=region_id, oligo_id=oligo_id, flatten=True
         )
         GC_content = calc_gc_content(sequence=sequence)
         return {f"GC_content_{sequence_type}": GC_content}
@@ -131,7 +131,7 @@ class TmNNProperty(BaseProperty):
         """
         Calculate the melting temperature (Tm) of the oligonucleotide sequence.
 
-        :param oligo_database: The OligoDatabase containing the oligonucleotides and their associated attributes.
+        :param oligo_database: The OligoDatabase containing the oligonucleotides and their associated properties.
         :type oligo_database: OligoDatabase
         :param region_id: Region ID to process.
         :type region_id: str
@@ -142,8 +142,8 @@ class TmNNProperty(BaseProperty):
         :return: A dictionary containing the calculated Tm property.
         :rtype: dict
         """
-        sequence = oligo_database.get_oligo_attribute_value(
-            attribute=sequence_type, region_id=region_id, oligo_id=oligo_id, flatten=True
+        sequence = oligo_database.get_oligo_property_value(
+            property=sequence_type, region_id=region_id, oligo_id=oligo_id, flatten=True
         )
         TmNN = calc_tm_nn(
             sequence=sequence,
@@ -173,7 +173,7 @@ class DGSecondaryStructureProperty(BaseProperty):
         """
         Calculate the Gibbs free energy (ΔG) of secondary structure formation.
 
-        :param oligo_database: The OligoDatabase containing the oligonucleotides and their associated attributes.
+        :param oligo_database: The OligoDatabase containing the oligonucleotides and their associated properties.
         :type oligo_database: OligoDatabase
         :param region_id: Region ID to process.
         :type region_id: str
@@ -184,8 +184,8 @@ class DGSecondaryStructureProperty(BaseProperty):
         :return: A dictionary containing the calculated ΔG property.
         :rtype: dict
         """
-        sequence = oligo_database.get_oligo_attribute_value(
-            attribute=sequence_type, region_id=region_id, oligo_id=oligo_id, flatten=True
+        sequence = oligo_database.get_oligo_property_value(
+            property=sequence_type, region_id=region_id, oligo_id=oligo_id, flatten=True
         )
         DG_secondary_structure = calc_dg_secondary_structure(sequence=sequence, T=self.T)
         return {f"DG_secondary_structure_{sequence_type}": DG_secondary_structure}
@@ -206,7 +206,7 @@ class LengthSelfComplementProperty(BaseProperty):
         """
         Calculate the length of the self-complementary region.
 
-        :param oligo_database: The OligoDatabase containing the oligonucleotides and their associated attributes.
+        :param oligo_database: The OligoDatabase containing the oligonucleotides and their associated properties.
         :type oligo_database: OligoDatabase
         :param region_id: Region ID to process.
         :type region_id: str
@@ -217,8 +217,8 @@ class LengthSelfComplementProperty(BaseProperty):
         :return: A dictionary containing the calculated self-complement length property.
         :rtype: dict
         """
-        sequence = oligo_database.get_oligo_attribute_value(
-            attribute=sequence_type, region_id=region_id, oligo_id=oligo_id, flatten=True
+        sequence = oligo_database.get_oligo_property_value(
+            property=sequence_type, region_id=region_id, oligo_id=oligo_id, flatten=True
         )
         len_overlap = calc_length_selfcomplement(sequence=sequence)
         return {f"length_selfcomplement_{sequence_type}": len_overlap}
@@ -243,7 +243,7 @@ class LengthComplementProperty(BaseProperty):
         """
         Calculate the length of complementary overlap with the comparison sequence.
 
-        :param oligo_database: The OligoDatabase containing the oligonucleotides and their associated attributes.
+        :param oligo_database: The OligoDatabase containing the oligonucleotides and their associated properties.
         :type oligo_database: OligoDatabase
         :param region_id: Region ID to process.
         :type region_id: str
@@ -254,8 +254,8 @@ class LengthComplementProperty(BaseProperty):
         :return: A dictionary containing the calculated complement length property.
         :rtype: dict
         """
-        sequence = oligo_database.get_oligo_attribute_value(
-            attribute=sequence_type, region_id=region_id, oligo_id=oligo_id, flatten=True
+        sequence = oligo_database.get_oligo_property_value(
+            property=sequence_type, region_id=region_id, oligo_id=oligo_id, flatten=True
         )
         len_overlap = calc_length_complement(sequence1=sequence, sequence2=self.comparison_sequence)
         return {f"length_complement_{sequence_type}_{self.comparison_sequence}": len_overlap}
@@ -283,7 +283,7 @@ class ShortenedSequenceProperty(BaseProperty):
         """
         Calculate the shortened sequence.
 
-        :param oligo_database: The OligoDatabase containing the oligonucleotides and their associated attributes.
+        :param oligo_database: The OligoDatabase containing the oligonucleotides and their associated properties.
         :type oligo_database: OligoDatabase
         :param region_id: Region ID to process.
         :type region_id: str
@@ -294,8 +294,8 @@ class ShortenedSequenceProperty(BaseProperty):
         :return: A dictionary containing the calculated shortened sequence property.
         :rtype: dict
         """
-        sequence = oligo_database.get_oligo_attribute_value(
-            attribute=sequence_type, region_id=region_id, oligo_id=oligo_id, flatten=True
+        sequence = oligo_database.get_oligo_property_value(
+            property=sequence_type, region_id=region_id, oligo_id=oligo_id, flatten=True
         )
         sequence_short = calculate_shortened_sequence(
             sequence=sequence, sequence_length=self.sequence_length, reverse=self.reverse
@@ -307,7 +307,7 @@ class ReverseComplementSequenceProperty(BaseProperty):
     """
     A property class for calculating the reverse complement of oligonucleotide sequences.
 
-    :param sequence_type_reverse_complement: The attribute name for storing the reverse complement sequence.
+    :param sequence_type_reverse_complement: The property name for storing the reverse complement sequence.
     :type sequence_type_reverse_complement: _TYPES_SEQ["oligo", "target"]
     """
 
@@ -322,7 +322,7 @@ class ReverseComplementSequenceProperty(BaseProperty):
         """
         Calculate the reverse complement sequence.
 
-        :param oligo_database: The OligoDatabase containing the oligonucleotides and their associated attributes.
+        :param oligo_database: The OligoDatabase containing the oligonucleotides and their associated properties.
         :type oligo_database: OligoDatabase
         :param region_id: Region ID to process.
         :type region_id: str
@@ -333,8 +333,8 @@ class ReverseComplementSequenceProperty(BaseProperty):
         :return: A dictionary containing the calculated reverse complement sequence property.
         :rtype: dict
         """
-        sequence = oligo_database.get_oligo_attribute_value(
-            attribute=sequence_type, region_id=region_id, oligo_id=oligo_id, flatten=True
+        sequence = oligo_database.get_oligo_property_value(
+            property=sequence_type, region_id=region_id, oligo_id=oligo_id, flatten=True
         )
         if sequence:
             sequence_rc = calculate_reverse_complement_sequence(sequence=sequence)
@@ -373,7 +373,7 @@ class SplitSequenceProperty(BaseProperty):
         """
         Calculate split sequences from the main sequence.
 
-        :param oligo_database: The OligoDatabase containing the oligonucleotides and their associated attributes.
+        :param oligo_database: The OligoDatabase containing the oligonucleotides and their associated properties.
         :type oligo_database: OligoDatabase
         :param region_id: Region ID to process.
         :type region_id: str
@@ -384,15 +384,15 @@ class SplitSequenceProperty(BaseProperty):
         :return: A dictionary containing the calculated split sequence properties.
         :rtype: dict
         """
-        sequence = oligo_database.get_oligo_attribute_value(
-            attribute=sequence_type, region_id=region_id, oligo_id=oligo_id, flatten=True
+        sequence = oligo_database.get_oligo_property_value(
+            property=sequence_type, region_id=region_id, oligo_id=oligo_id, flatten=True
         )
         if sequence:
             split_sequences = calc_split_sequence(sequence=sequence, split_start_end=self.split_start_end)
-            attributes = dict(zip(self.split_names, split_sequences))
+            properties = dict(zip(self.split_names, split_sequences))
         else:
-            attributes = dict.fromkeys(self.split_names, None)
-        return attributes
+            properties = dict.fromkeys(self.split_names, None)
+        return properties
 
 
 class SeedregionProperty(BaseProperty):
@@ -417,7 +417,7 @@ class SeedregionProperty(BaseProperty):
         """
         Calculate the seed region positions.
 
-        :param oligo_database: The OligoDatabase containing the oligonucleotides and their associated attributes.
+        :param oligo_database: The OligoDatabase containing the oligonucleotides and their associated properties.
         :type oligo_database: OligoDatabase
         :param region_id: Region ID to process.
         :type region_id: str
@@ -428,8 +428,8 @@ class SeedregionProperty(BaseProperty):
         :return: A dictionary containing the calculated seedregion start and end positions.
         :rtype: dict
         """
-        sequence = oligo_database.get_oligo_attribute_value(
-            attribute=sequence_type, region_id=region_id, oligo_id=oligo_id, flatten=True
+        sequence = oligo_database.get_oligo_property_value(
+            property=sequence_type, region_id=region_id, oligo_id=oligo_id, flatten=True
         )
         seedregion_start, seedregion_end = calc_seedregion(sequence=sequence, start=self.start, end=self.end)
         return {
@@ -444,7 +444,7 @@ class SeedregionSiteProperty(BaseProperty):
 
     :param seedregion_size: The size of the seed region to be calculated around the seed region site.
     :type seedregion_size: int
-    :param seedregion_site_name: The attribute name of the seed region site stored in the OligoDatabase.
+    :param seedregion_site_name: The property name of the seed region site stored in the OligoDatabase.
     :type seedregion_site_name: str
     """
 
@@ -464,7 +464,7 @@ class SeedregionSiteProperty(BaseProperty):
         """
         Calculate the seed region around the seed region site.
 
-        :param oligo_database: The OligoDatabase containing the oligonucleotides and their associated attributes.
+        :param oligo_database: The OligoDatabase containing the oligonucleotides and their associated properties.
         :type oligo_database: OligoDatabase
         :param region_id: Region ID to process.
         :type region_id: str
@@ -475,11 +475,11 @@ class SeedregionSiteProperty(BaseProperty):
         :return: A dictionary containing the calculated seedregion start and end positions.
         :rtype: dict
         """
-        sequence = oligo_database.get_oligo_attribute_value(
-            attribute=sequence_type, region_id=region_id, oligo_id=oligo_id, flatten=True
+        sequence = oligo_database.get_oligo_property_value(
+            property=sequence_type, region_id=region_id, oligo_id=oligo_id, flatten=True
         )
-        seedregion_site = oligo_database.get_oligo_attribute_value(
-            attribute=self.seedregion_site_name, region_id=region_id, oligo_id=oligo_id, flatten=True
+        seedregion_site = oligo_database.get_oligo_property_value(
+            property=self.seedregion_site_name, region_id=region_id, oligo_id=oligo_id, flatten=True
         )
         if seedregion_site:
             seedregion_start, seedregion_end = calculate_seedregion_site(
@@ -540,7 +540,7 @@ class PadlockArmsProperty(BaseProperty):
         """
         Calculate the padlock probe arms and ligation site.
 
-        :param oligo_database: The OligoDatabase containing the oligonucleotides and their associated attributes.
+        :param oligo_database: The OligoDatabase containing the oligonucleotides and their associated properties.
         :type oligo_database: OligoDatabase
         :param region_id: Region ID to process.
         :type region_id: str
@@ -551,8 +551,8 @@ class PadlockArmsProperty(BaseProperty):
         :return: A dictionary containing the calculated arm temperatures and ligation site.
         :rtype: dict
         """
-        sequence = oligo_database.get_oligo_attribute_value(
-            attribute=sequence_type, region_id=region_id, oligo_id=oligo_id, flatten=True
+        sequence = oligo_database.get_oligo_property_value(
+            property=sequence_type, region_id=region_id, oligo_id=oligo_id, flatten=True
         )
         arm1_Tm, arm2_Tm, ligation_site = calc_padlock_arms(
             sequence=sequence,
@@ -581,7 +581,7 @@ class DetectOligoProperty(BaseProperty):
     :type detect_oligo_length_max: int
     :param min_thymines: The minimum number of thymine bases required in the detection oligo.
     :type min_thymines: int
-    :param ligation_site_name: The attribute name of the ligation site stored in the OligoDatabase.
+    :param ligation_site_name: The property name of the ligation site stored in the OligoDatabase.
     :type ligation_site_name: str
     """
 
@@ -605,7 +605,7 @@ class DetectOligoProperty(BaseProperty):
         """
         Calculate the detection oligo sequences around the ligation site.
 
-        :param oligo_database: The OligoDatabase containing the oligonucleotides and their associated attributes.
+        :param oligo_database: The OligoDatabase containing the oligonucleotides and their associated properties.
         :type oligo_database: OligoDatabase
         :param region_id: Region ID to process.
         :type region_id: str
@@ -616,11 +616,11 @@ class DetectOligoProperty(BaseProperty):
         :return: A dictionary containing the calculated detection oligo sequences.
         :rtype: dict
         """
-        sequence = oligo_database.get_oligo_attribute_value(
-            attribute=sequence_type, region_id=region_id, oligo_id=oligo_id, flatten=True
+        sequence = oligo_database.get_oligo_property_value(
+            property=sequence_type, region_id=region_id, oligo_id=oligo_id, flatten=True
         )
-        ligation_site = oligo_database.get_oligo_attribute_value(
-            attribute=self.ligation_site_name, region_id=region_id, oligo_id=oligo_id, flatten=True
+        ligation_site = oligo_database.get_oligo_property_value(
+            property=self.ligation_site_name, region_id=region_id, oligo_id=oligo_id, flatten=True
         )
 
         if ligation_site:

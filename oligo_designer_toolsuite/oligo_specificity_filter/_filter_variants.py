@@ -86,7 +86,7 @@ class VariantsFilter(ReferenceSpecificityFilter):
         Intersects oligo positions with the variant reference file using BEDTools,
         and either removes or flags oligos depending on the filter mode.
 
-        :param oligo_database: The OligoDatabase containing the oligonucleotides and their associated attributes.
+        :param oligo_database: The OligoDatabase containing the oligonucleotides and their associated properties.
         :type oligo_database: OligoDatabase
         :param sequence_type: The type of sequence to be used for the filter calculations (not utilized in this filter).
         :type sequence_type: _TYPES_SEQ["oligo", "target"]
@@ -130,7 +130,7 @@ class VariantsFilter(ReferenceSpecificityFilter):
 
         :param region_id: Region ID to process.
         :type region_id: str
-        :param oligo_database: The OligoDatabase containing the oligonucleotides and their associated attributes.
+        :param oligo_database: The OligoDatabase containing the oligonucleotides and their associated properties.
         :type oligo_database: OligoDatabase
         :param file_reference: Path to the reference file used for BED intersection.
         :type file_reference: str
@@ -155,14 +155,14 @@ class VariantsFilter(ReferenceSpecificityFilter):
 
         if mode == 0:
             oligos_with_hits_region = {region_id: table_hits["query"].unique()}
-            oligos_with_hits_region_attributes = (
+            oligos_with_hits_region_properties = (
                 table_hits.groupby("query")["reference"].apply(list).to_dict()
             )
             self._flag_hits_in_database(
                 oligo_database=oligo_database,
                 region_ids=region_id,
                 oligos_with_hits=oligos_with_hits_region,
-                oligos_with_hits_attributes=oligos_with_hits_region_attributes,
+                oligos_with_hits_properties=oligos_with_hits_region_properties,
             )
         elif mode == 1:
             oligos_with_hits_region = {region_id: table_hits["query"].unique()}

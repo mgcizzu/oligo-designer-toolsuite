@@ -45,7 +45,7 @@ class SpecificityFilter:
         It evaluates the database against reference sequences, if provided, and ensures that only oligonucleotides
         meeting all specificity criteria are retained.
 
-        :param oligo_database: The OligoDatabase containing the oligonucleotides and their associated attributes.
+        :param oligo_database: The OligoDatabase containing the oligonucleotides and their associated properties.
         :type oligo_database: OligoDatabase
         :param sequence_type: The type of sequence to be used for filter calculations.
         :type sequence_type: _TYPES_SEQ["oligo", "target"]

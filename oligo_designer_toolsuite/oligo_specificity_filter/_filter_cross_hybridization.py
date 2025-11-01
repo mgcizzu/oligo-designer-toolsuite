@@ -58,7 +58,7 @@ class CrossHybridizationFilter(BaseSpecificityFilter):
         This function generates a FASTA file from the OligoDatabase, which is then loaded into a new ReferenceDatabase object.
         The ReferenceDatabase is used to identify potential cross-hybridization with the oligo sequences.
 
-        :param oligo_database: The OligoDatabase containing the oligonucleotides and their associated attributes.
+        :param oligo_database: The OligoDatabase containing the oligonucleotides and their associated properties.
         :type oligo_database: OligoDatabase
         :return: The generated ReferenceDatabase.
         :rtype: ReferenceDatabase
@@ -94,7 +94,7 @@ class CrossHybridizationFilter(BaseSpecificityFilter):
         This function compares oligonucleotides in the OligoDatabase with reference sequences consisting of all sequences in the OligoDatabase using the specified alignment method.
         Based on the results, it filters out oligonucleotides that meet the cross-hybridization criteria defined by the policy.
 
-        :param oligo_database: The OligoDatabase containing the oligonucleotides and their associated attributes.
+        :param oligo_database: The OligoDatabase containing the oligonucleotides and their associated properties.
         :type oligo_database: OligoDatabase
         :param sequence_type: The type of sequence to be used for filter calculations.
         :type sequence_type: _TYPES_SEQ["oligo", "target"]

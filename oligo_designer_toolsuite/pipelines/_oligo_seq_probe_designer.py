@@ -476,7 +476,7 @@ class OligoSeqProbeDesigner:
         self,
         oligo_database: OligoDatabase,
         top_n_sets: int = 3,
-        attributes=[
+        properties: list = [
             "source",
             "species",
             "annotation_release",
@@ -508,8 +508,8 @@ class OligoSeqProbeDesigner:
         :type oligo_database: OligoDatabase
         :param top_n_sets: Number of top probe sets to include in the output, defaults to 3.
         :type top_n_sets: int
-        :param attributes: List of attributes to include in the output files, defaults to a predefined list of probe properties.
-        :type attributes: list
+        :param properties: List of properties to include in the output files, defaults to a predefined list of probe properties.
+        :type properties: list
 
         :return: None
         """
@@ -532,10 +532,10 @@ class OligoSeqProbeDesigner:
         )
 
         oligo_database.write_oligosets_to_yaml(
-            attributes=attributes, top_n_sets=top_n_sets, ascending=True, filename="oligo_seq_probesets"
+            properties=properties, top_n_sets=top_n_sets, ascending=True, filename="oligo_seq_probesets"
         )
         oligo_database.write_database_to_table(
-            attributes=attributes, flatten_attribute=True, filename="oligo_seq_probes"
+            properties=properties, flatten_property=True, filename="oligo_seq_probes"
         )
 
         logging.info("--------------END PIPELINE--------------")
@@ -640,9 +640,9 @@ class TargetProbeDesigner:
         oligo_database = calculator.apply(
             oligo_database=oligo_database, sequence_type="target", n_jobs=self.n_jobs
         )
-        oligo_database.filter_database_by_attribute_threshold(
-            attribute_name="isoform_consensus",
-            attribute_thr=isoform_consensus,
+        oligo_database.filter_database_by_property_threshold(
+            property_name="isoform_consensus",
+            property_thr=isoform_consensus,
             remove_if_smaller_threshold=True,
         )
 

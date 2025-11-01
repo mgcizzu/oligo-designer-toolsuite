@@ -382,7 +382,7 @@ class ScrinshotProbeDesigner:
         :type distance_between_target_probes: int
         :param n_sets: Number of probe sets to generate, defaults to 100.
         :type n_sets: int
-        :return: The designed probe database containing the generated probes and their attributes.
+        :return: The designed probe database containing the generated probes and their properties.
         :rtype: OligoDatabase
         """
         target_probe_designer = TargetProbeDesigner(self.dir_output, self.n_jobs)
@@ -556,18 +556,18 @@ class ScrinshotProbeDesigner:
             oligo_sets_region = oligo_database.oligosets[region_id]
             oligo_sets_oligo_columns = [col for col in oligo_sets_region.columns if col.startswith("oligo_")]
 
-            new_oligo_attributes = {}
+            new_oligo_properties = {}
 
             for index in range(len(oligo_sets_region.index)):
                 for column in oligo_sets_oligo_columns:
                     oligo_id = str(oligo_sets_region.loc[index, column])
                     barcode = barcodes[region_idx]
 
-                    ligation_site = oligo_database.get_oligo_attribute_value(
-                        attribute="ligation_site", region_id=region_id, oligo_id=oligo_id, flatten=True
+                    ligation_site = oligo_database.get_oligo_property_value(
+                        property="ligation_site", region_id=region_id, oligo_id=oligo_id, flatten=True
                     )
-                    sequence_oligo = oligo_database.get_oligo_attribute_value(
-                        attribute="oligo", region_id=region_id, oligo_id=oligo_id, flatten=True
+                    sequence_oligo = oligo_database.get_oligo_property_value(
+                        property="oligo", region_id=region_id, oligo_id=oligo_id, flatten=True
                     )
                     sequence_padlock_arm1 = sequence_oligo[ligation_site:]
                     sequence_padlock_arm2 = sequence_oligo[:ligation_site]
@@ -596,13 +596,13 @@ class ScrinshotProbeDesigner:
                         Tm_salt_correction_parameters=self.target_probe_Tm_salt_correction_parameters,
                     )
 
-                    new_oligo_attributes[oligo_id] = {
+                    new_oligo_properties[oligo_id] = {
                         "barcode": barcode,
-                        "sequence_target": oligo_database.get_oligo_attribute_value(
-                            attribute="target", region_id=region_id, oligo_id=oligo_id, flatten=True
+                        "sequence_target": oligo_database.get_oligo_property_value(
+                            property="target", region_id=region_id, oligo_id=oligo_id, flatten=True
                         ),
-                        "sequence_target_probe": oligo_database.get_oligo_attribute_value(
-                            attribute="oligo", region_id=region_id, oligo_id=oligo_id, flatten=True
+                        "sequence_target_probe": oligo_database.get_oligo_property_value(
+                            property="oligo", region_id=region_id, oligo_id=oligo_id, flatten=True
                         ),
                         "sequence_padlock_arm1": sequence_padlock_arm1,
                         "sequence_padlock_arm2": sequence_padlock_arm2,
@@ -616,7 +616,7 @@ class ScrinshotProbeDesigner:
                         "Tm_diff_arms": round(abs(Tm_arm1 - Tm_arm2), 2),
                     }
 
-            oligo_database.update_oligo_attributes(new_oligo_attributes)
+            oligo_database.update_oligo_properties(new_oligo_properties)
 
         return oligo_database
 
@@ -624,7 +624,7 @@ class ScrinshotProbeDesigner:
         self,
         oligo_database: OligoDatabase,
         top_n_sets: int = 3,
-        attributes=[
+        properties: list = [
             "source",
             "species",
             "annotation_release",
@@ -660,12 +660,12 @@ class ScrinshotProbeDesigner:
         """
         Generate the final output files for the Scrinshot probe design pipeline.
 
-        :param oligo_database: The oligo database containing final designed probes and properties.
+        :param oligo_database: The oligo database containing final designed probes and attributies.
         :type oligo_database: OligoDatabase
         :param top_n_sets: Number of top probe sets to include in the output, defaults to 3.
         :type top_n_sets: int
-        :param attributes: List of attributes to include in the output files, defaults to a comprehensive list of probe properties.
-        :type attributes: list
+        :param properties: List of properties to include in the output files, defaults to a comprehensive list of probe properties.
+        :type properties: list
 
         :return: None
         """
@@ -687,7 +687,7 @@ class ScrinshotProbeDesigner:
         )
 
         oligo_database.write_oligosets_to_yaml(
-            attributes=attributes,
+            properties=properties,
             top_n_sets=top_n_sets,
             ascending=True,
             filename="padlock_probes.yml",
@@ -712,14 +712,14 @@ class ScrinshotProbeDesigner:
                 yaml_dict_order[region_id][oligoset_id] = {}
                 for oligo_id in oligoset:
                     yaml_dict_order[region_id][oligoset_id][oligo_id] = {
-                        "sequence_padlock_probe": oligo_database.get_oligo_attribute_value(
-                            attribute="sequence_padlock_probe",
+                        "sequence_padlock_probe": oligo_database.get_oligo_property_value(
+                            property="sequence_padlock_probe",
                             region_id=region_id,
                             oligo_id=oligo_id,
                             flatten=True,
                         ),
-                        "sequence_detection_oligo": oligo_database.get_oligo_attribute_value(
-                            attribute="sequence_detection_oligo",
+                        "sequence_detection_oligo": oligo_database.get_oligo_property_value(
+                            property="sequence_detection_oligo",
                             region_id=region_id,
                             oligo_id=oligo_id,
                             flatten=True,
@@ -821,9 +821,9 @@ class TargetProbeDesigner:
         )
 
         ##### pre-filter oligo database for certain properties #####
-        oligo_database.filter_database_by_attribute_threshold(
-            attribute_name="isoform_consensus",
-            attribute_thr=isoform_consensus,
+        oligo_database.filter_database_by_property_threshold(
+            property_name="isoform_consensus",
+            property_thr=isoform_consensus,
             remove_if_smaller_threshold=True,
         )
         oligo_database.remove_regions_with_insufficient_oligos(pipeline_step="Pre-Filters")
@@ -1257,7 +1257,7 @@ class TargetProbeDesigner:
 ############################################
 class DetectionOligoDesigner:
     """
-    A class for designing detection oligos with specific attributes and constraints.
+    A class for designing detection oligos with specific properties and constraints.
 
     :param n_jobs: The number of parallel jobs to use for processing.
     :type n_jobs: int
@@ -1370,17 +1370,17 @@ class DetectionOligoDesigner:
         oligosets_region = oligo_database.oligosets[region_id]
         oligosets_oligo_columns = [col for col in oligosets_region.columns if col.startswith("oligo_")]
 
-        new_oligo_attributes = {}
+        new_oligo_properties = {}
 
         for index in range(len(oligosets_region.index)):
             for column in oligosets_oligo_columns:
                 oligo_id = str(oligosets_region.loc[index, column])
 
-                ligation_site = oligo_database.get_oligo_attribute_value(
-                    attribute="ligation_site", region_id=region_id, oligo_id=oligo_id, flatten=True
+                ligation_site = oligo_database.get_oligo_property_value(
+                    property="ligation_site", region_id=region_id, oligo_id=oligo_id, flatten=True
                 )
-                sequence_oligo = oligo_database.get_oligo_attribute_value(
-                    attribute="oligo", region_id=region_id, oligo_id=oligo_id, flatten=True
+                sequence_oligo = oligo_database.get_oligo_property_value(
+                    property="oligo", region_id=region_id, oligo_id=oligo_id, flatten=True
                 )
 
                 (
@@ -1454,12 +1454,12 @@ class DetectionOligoDesigner:
                 # exchange T's with U (for enzymatic degradation of oligos)
                 detection_oligo = self._exchange_T_with_U(detection_oligo, min_thymines, U_distance)
 
-                new_oligo_attributes[oligo_id] = {
+                new_oligo_properties[oligo_id] = {
                     "Tm_detection_oligo": Tm_detection_oligo,
                     "sequence_detection_oligo": detection_oligo,
                 }
 
-        oligo_database.update_oligo_attributes(new_oligo_attributes)
+        oligo_database.update_oligo_properties(new_oligo_properties)
 
     def _get_Tm_dif(
         self,

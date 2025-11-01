@@ -8,7 +8,7 @@ from Bio.Seq import Seq
 from Bio.SeqUtils import MeltingTemp, gc_fraction
 from seqfold import dg
 
-from oligo_designer_toolsuite.utils import check_if_list, flatten_attribute_list
+from oligo_designer_toolsuite.utils import check_if_list, flatten_property_list
 
 ############################################
 # Property Calculation Functions
@@ -443,7 +443,7 @@ def calc_num_targeted_transcripts(transcript_id: list) -> int:
     :rtype: int
     """
     # make sure that transcript id one level list
-    return len(set(flatten_attribute_list(transcript_id)))
+    return len(set(flatten_property_list(transcript_id)))
 
 
 def calc_isoform_consensus(transcript_id: list, number_total_transcripts: list) -> float:
