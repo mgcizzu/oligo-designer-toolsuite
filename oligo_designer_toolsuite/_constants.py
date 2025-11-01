@@ -16,6 +16,7 @@ _TYPES_SEQ = Literal[
     "oligo_pair_L",
     "oligo_pair_R",
     "sequence_encoding_probe",
+    "sequence_target_probe",
 ]
 _TYPES_REF = Literal["fasta", "vcf"]
 _TYPES_FILE = Literal["gff", "gtf", "fasta"]
