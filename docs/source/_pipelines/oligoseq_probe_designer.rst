@@ -134,7 +134,7 @@ In the last step of the pipeline, the ready-to-order probe sequences are reporte
 The output is stored in two separate files:
 
 - ``oligo_seq_probes.tsv``: contains a table with all generated probes.
-- ``oligo_seq_probesets.yml``: contains a detailed description for each probe set, including the sequences of each part of the probe and probe specific attributes.
+- ``oligo_seq_probesets.yml``: contains a detailed description for each probe set, including the sequences of each part of the probe and probe specific properties.
 
 All default parameters can be found in the `oligo_seq_probe_designer.yaml <https://github.com/HelmholtzAI-Consultants-Munich/oligo-designer-toolsuite/blob/main/data/configs/oligo_seq_probe_designer.yaml>`__ config file provided along the repository.
 

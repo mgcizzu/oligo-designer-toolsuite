@@ -195,7 +195,7 @@ Furthermore, the forward primer sequence is checked for off-target binding (``Bl
 The output is stored in two separate files:
 
 - ``merfish_probes_order.yml``: contains for each probe the sequences of the merfish probe and the readout probes.
-- ``merfish_probes.yml``: contains a detailed description for each probe, including the sequences of each part of the probe and probe specific attributes.
+- ``merfish_probes.yml``: contains a detailed description for each probe, including the sequences of each part of the probe and probe specific properties.
 
 All default parameters can be found in the `merfish_probe_designer.yaml <https://github.com/HelmholtzAI-Consultants-Munich/oligo-designer-toolsuite/blob/main/data/configs/merfish_probe_designer.yaml>`__ config file provided along the repository.
 

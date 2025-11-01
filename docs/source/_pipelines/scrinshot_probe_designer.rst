@@ -166,7 +166,7 @@ For the SCRINSHOT protocol, the padlock backbone is added to each probe and for 
 The output is stored in two separate files:
 
 - ``padlock_probes_order.yml``: contains for each probe the sequences of the padlock probe and the detection oligo.
-- ``padlock_probes.yml``: contains a detailed description for each probe, including the sequences of each part of the probe and probe specific attributes.
+- ``padlock_probes.yml``: contains a detailed description for each probe, including the sequences of each part of the probe and probe specific properties.
 
 All default parameters can be found in the `scrinshot_probe_designer.yaml <https://github.com/HelmholtzAI-Consultants-Munich/oligo-designer-toolsuite/blob/main/data/configs/scrinshot_probe_designer.yaml>`__ config file provided along the repository.
 
