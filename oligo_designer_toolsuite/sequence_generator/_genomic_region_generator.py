@@ -651,7 +651,7 @@ class CustomGenomicRegionGenerator:
         )
         annotation = annotation[self.BED_HEADER]
 
-        file_fasta = os.path.join(self.dir_output,f"{self.FILE_INFO}__annotation_type__cds.fna")
+        file_fasta = os.path.join(self.dir_output, f"{self.FILE_INFO}__annotation_type__cds.fna")
         self._get_sequence_from_annotation(annotation, file_fasta, split=False)
 
         del annotation

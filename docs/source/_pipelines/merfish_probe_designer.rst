@@ -61,9 +61,7 @@ For a complete explanation of all function parameters, refer to the API document
     # The pipeline will generate multiple candidate sets (n_sets) and return them as part of the probe database.
     target_probe_database = pipeline.design_target_probes(
         gene_ids=...,                                           # List of gene symbols or identifiers
-        gene_ids=...,                                           # List of gene symbols or identifiers
         files_fasta_target_probe_database=...,                  # List of FASTA files with target gene sequences
-        files_fasta_reference_database_targe_probe=...,         # List of FASTA files for specificity reference
         files_fasta_reference_database_targe_probe=...,         # List of FASTA files for specificity reference
         target_probe_length_min=30,
         target_probe_length_max=30,
@@ -197,8 +195,7 @@ Furthermore, the forward primer sequence is checked for off-target binding (``Bl
 The output is stored in two separate files:
 
 - ``merfish_probes_order.yml``: contains for each probe the sequences of the merfish probe and the readout probes.
-- ``merfish_probes_order.yml``: contains for each probe the sequences of the merfish probe and the readout probes.
-- ``merfish_probes.yml``: contains a detailed description for each probe, including the sequences of each part of the probe and probe specific attributes.
+- ``merfish_probes.yml``: contains a detailed description for each probe, including the sequences of each part of the probe and probe specific properties.
 
 All default parameters can be found in the `merfish_probe_designer.yaml <https://github.com/HelmholtzAI-Consultants-Munich/oligo-designer-toolsuite/blob/main/data/configs/merfish_probe_designer.yaml>`__ config file provided along the repository.
 

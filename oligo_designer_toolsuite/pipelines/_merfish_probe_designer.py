@@ -2215,7 +2215,7 @@ def main():
     target_probe_database = pipeline.design_target_probes(
         gene_ids=gene_ids,
         files_fasta_target_probe_database=config["files_fasta_target_probe_database"],
-        files_fasta_reference_database_targe_probe=config["files_fasta_reference_database_targe_probe"],
+        files_fasta_reference_database_target_probe=config["files_fasta_reference_database_target_probe"],
         target_probe_length_min=config["target_probe_length_min"],
         target_probe_length_max=config["target_probe_length_max"],
         target_probe_isoform_consensus=config["target_probe_isoform_consensus"],
@@ -2240,7 +2240,6 @@ def main():
     )
 
     codebook, readout_probe_table = pipeline.design_readout_probes(
-        target_probe_database=target_probe_database,
         n_genes=len(target_probe_database.database),
         files_fasta_reference_database_readout_probe=config["files_fasta_reference_database_readout_probe"],
         readout_probe_length=config["readout_probe_length"],

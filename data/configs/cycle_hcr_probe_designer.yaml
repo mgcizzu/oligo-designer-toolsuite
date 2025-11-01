@@ -16,7 +16,7 @@ file_regions: data/genes/custom_3.txt # file with a list the genes used to gener
 files_fasta_target_probe_database: # fasta file with sequences form which the probes should be generated. Hint: use the genomic_region_generator pipeline to create fasta files of genomic regions of interest
   - data/genomic_regions/exon_annotation_source-NCBI_species-Homo_sapiens_annotation_release-110_genome_assemly-GRCh38.fna
   - data/genomic_regions/exon_exon_junction_annotation_source-NCBI_species-Homo_sapiens_annotation_release-110_genome_assemly-GRCh38.fna
-files_fasta_reference_database_targe_probe: # fasta file with sequences used as reference for the specificity filters. Hint: use the genomic_region_generator pipeline to create fasta files of genomic regions of interest
+files_fasta_reference_database_target_probe: # fasta file with sequences used as reference for the specificity filters. Hint: use the genomic_region_generator pipeline to create fasta files of genomic regions of interest
   - data/genomic_regions/gene_annotation_source-NCBI_species-Homo_sapiens_annotation_release-110_genome_assemly-GRCh38.fna
 target_probe_isoform_consensus: 0 # min isoform consesnsus for probes, i.e. how many transcripts of the total number of transcripts of a gene are covered by the probe, given in %
 target_probe_L_probe_sequence_length: 45 # L + spacer + R sequence should equal the total probe length, e.g. 45 + 2 + 45 = 92

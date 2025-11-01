@@ -222,7 +222,7 @@ class OligoAttributes:
         """
         if len(split_start_end) != len(split_names):
             raise ValueError(
-                f"{len(split_names)} names given for {len(split_lengths)} split sequences. Must give name for each split sequence."
+                f"{len(split_names)} names given for {len(split_start_end)} split sequences. Must give name for each split sequence."
             )
 
         region_ids = check_if_list(region_ids) if region_ids else oligo_database.database.keys()

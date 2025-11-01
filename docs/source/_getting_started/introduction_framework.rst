@@ -12,7 +12,7 @@ For explanations on how to customize and setup an oligo design pipeline, please 
 Data Structure
 ---------------
 
-The underlying data structure implemented in the ``OligoDatabase`` class is designed to efficiently manage, store, and retrieve oligonucleotide sequences and their associated attributes.
+The underlying data structure implemented in the ``OligoDatabase`` class is designed to efficiently manage, store, and retrieve oligonucleotide sequences and their associated properties.
 This data structure organizes oligo records in a dictionary-like format, allowing for structured storage of sequence information, annotations, and experimental parameters.
 Due to its structure, the OligoDatabase class enables seamless integration with other modules in the framework, supporting operations such as querying, filtering, and updating records.
 
@@ -58,6 +58,16 @@ The *Oligo Sequence Generation* block provides the user with different options t
 An initial pool of oligo sequences can be generated using the ``OligoSequenceGenerator`` class.
 It can be used to generate sequences form an input FASTA file, containing genomic sequences of interest (e.g. a defined set of genes), or at random with a pre-defined nucleotide distribution.
 The generated oligo sequences (or a FASTA file with custom oligo sequences) can be loaded into the ``OligoDatabase`` for further processing.
+
+Oligo Property Calculation
+----------------------------
+
+The *Oligo Property Calculation* block provides functionality to calculate various physical and chemical properties of oligonucleotide sequences.
+These properties include sequence characteristics (e.g., length, GC content), thermodynamic properties (e.g., melting temperature, secondary structure stability),
+and region-specific properties (e.g., isoform consensus, number of targeted transcripts).
+The ``PropertyCalculator`` class orchestrates the calculation of multiple properties in parallel across all regions in the database.
+Individual property classes, such as ``LengthProperty``, ``GCContentProperty``, and ``TmNNProperty``, encapsulate the calculation logic for specific properties.
+The calculated values are stored as attributes in the ``OligoDatabase`` and can be used by filtering and selection modules for downstream processing.
 
 Oligo Filtering
 ----------------

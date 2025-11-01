@@ -61,9 +61,7 @@ For a complete explanation of all function parameters, refer to the API document
     # The pipeline will generate multiple candidate sets (n_sets) and return them as part of the probe database.
     target_probe_database = pipeline.design_target_probes(
         gene_ids=...,                                           # List of gene symbols or identifiers
-        gene_ids=...,                                           # List of gene symbols or identifiers
         files_fasta_target_probe_database=...,                  # List of FASTA files with target gene sequences
-        files_fasta_reference_database_targe_probe=...,         # List of FASTA files for specificity reference
         files_fasta_reference_database_targe_probe=...,         # List of FASTA files for specificity reference
         target_probe_length_min=40,
         target_probe_length_max=45,
@@ -73,18 +71,11 @@ For a complete explanation of all function parameters, refer to the API document
         target_probe_GC_content_opt=50,
         target_probe_GC_content_max=60,
         target_probe_GC_weight=1,
-        target_probe_GC_weight=1,
         target_probe_Tm_min=65,
         target_probe_Tm_opt=70,
         target_probe_Tm_max=75,
         target_probe_Tm_weight=1,
-        target_probe_Tm_weight=1,
         target_probe_homopolymeric_base_n={"A": 5, "T": 5, "C": 5, "G": 5},
-        detection_oligo_min_thymines=2,
-        detection_oligo_length_min=15,
-        detection_oligo_length_max=40,
-        target_probe_padlock_arm_length_min=10,
-        target_probe_padlock_arm_Tm_dif_max=2,
         detection_oligo_min_thymines=2,
         detection_oligo_length_min=15,
         detection_oligo_length_max=40,
@@ -93,12 +84,6 @@ For a complete explanation of all function parameters, refer to the API document
         target_probe_padlock_arm_Tm_min=50,
         target_probe_padlock_arm_Tm_max=60,
         target_probe_ligation_region_size=5,
-        set_size_opt=5,
-        set_size_min=3,
-        distance_between_target_probes=0,
-        n_sets=100,
-        target_probe_GC_weight=1,
-        target_probe_Tm_weight=1,
         set_size_opt=5,
         set_size_min=3,
         distance_between_target_probes=0,
@@ -181,7 +166,7 @@ For the SCRINSHOT protocol, the padlock backbone is added to each probe and for 
 The output is stored in two separate files:
 
 - ``padlock_probes_order.yml``: contains for each probe the sequences of the padlock probe and the detection oligo.
-- ``padlock_probes.yml``: contains a detailed description for each probe, including the sequences of each part of the probe and probe specific attributes.
+- ``padlock_probes.yml``: contains a detailed description for each probe, including the sequences of each part of the probe and probe specific properties.
 
 All default parameters can be found in the `scrinshot_probe_designer.yaml <https://github.com/HelmholtzAI-Consultants-Munich/oligo-designer-toolsuite/blob/main/data/configs/scrinshot_probe_designer.yaml>`__ config file provided along the repository.
 
