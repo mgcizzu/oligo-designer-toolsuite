@@ -13,7 +13,7 @@ from typing import List
 import yaml
 from Bio.SeqUtils import MeltingTemp as mt
 
-from oligo_designer_toolsuite.database import OligoAttributes, OligoDatabase, ReferenceDatabase
+from oligo_designer_toolsuite.database import OligoDatabase, ReferenceDatabase
 from oligo_designer_toolsuite.oligo_efficiency_filter import (
     AverageSetScoring,
     IsoformConsensusScorer,
@@ -21,6 +21,17 @@ from oligo_designer_toolsuite.oligo_efficiency_filter import (
     NormalizedDeviationFromOptimalTmScorer,
     OligoScoring,
     OverlapTargetedExonsScorer,
+)
+from oligo_designer_toolsuite.oligo_property_calculator import (
+    GCContentProperty,
+    IsoformConsensusProperty,
+    LengthProperty,
+    LengthSelfComplementProperty,
+    NumTargetedTranscriptsProperty,
+    PropertyCalculator,
+    ReverseComplementSequenceProperty,
+    ShortenedSequenceProperty,
+    TmNNProperty,
 )
 from oligo_designer_toolsuite.oligo_property_filter import (
     GCContentFilter,
@@ -101,7 +112,6 @@ class OligoSeqProbeDesigner:
         ##### set class parameters #####
         self.write_intermediate_steps = write_intermediate_steps
         self.n_jobs = n_jobs
-        self.oligo_attributes_calculator = OligoAttributes()
         self.set_developer_parameters()
 
     def set_developer_parameters(
@@ -494,36 +504,31 @@ class OligoSeqProbeDesigner:
         """
         Generate the final output files for the Oligo-Seq probe design pipeline.
 
-        :param oligo_database: The oligo database containing final designed probes and attributes.
+        :param oligo_database: The oligo database containing final designed probes and properties.
         :type oligo_database: OligoDatabase
         :param top_n_sets: Number of top probe sets to include in the output, defaults to 3.
         :type top_n_sets: int
-        :param attributes: List of attributes to include in the output files, defaults to a predefined list of probe attributes.
+        :param attributes: List of attributes to include in the output files, defaults to a predefined list of probe properties.
         :type attributes: list
 
         :return: None
         """
-        oligo_database = self.oligo_attributes_calculator.calculate_oligo_length(
-            oligo_database=oligo_database
-        )
-        oligo_database = self.oligo_attributes_calculator.calculate_GC_content(
-            oligo_database=oligo_database, sequence_type="oligo"
-        )
-        oligo_database = self.oligo_attributes_calculator.calculate_TmNN(
-            oligo_database=oligo_database,
-            sequence_type="oligo",
-            Tm_parameters=self.target_probe_Tm_parameters,
-            Tm_chem_correction_parameters=self.target_probe_Tm_chem_correction_parameters,
-            Tm_salt_correction_parameters=self.target_probe_Tm_salt_correction_parameters,
-        )
-        oligo_database = self.oligo_attributes_calculator.calculate_num_targeted_transcripts(
-            oligo_database=oligo_database
-        )
-        oligo_database = self.oligo_attributes_calculator.calculate_isoform_consensus(
-            oligo_database=oligo_database
-        )
-        oligo_database = self.oligo_attributes_calculator.calculate_length_selfcomplement(
-            oligo_database=oligo_database, sequence_type="oligo"
+        # Calculate oligo length, GC content, Tm, num targeted transcripts, isoform consensus, and length self complement
+        properties = [
+            LengthProperty(),
+            GCContentProperty(),
+            TmNNProperty(
+                Tm_parameters=self.target_probe_Tm_parameters,
+                Tm_chem_correction_parameters=self.target_probe_Tm_chem_correction_parameters,
+                Tm_salt_correction_parameters=self.target_probe_Tm_salt_correction_parameters,
+            ),
+            NumTargetedTranscriptsProperty(),
+            IsoformConsensusProperty(),
+            LengthSelfComplementProperty(),
+        ]
+        calculator = PropertyCalculator(properties=properties)
+        oligo_database = calculator.apply(
+            oligo_database=oligo_database, sequence_type="oligo", n_jobs=self.n_jobs
         )
 
         oligo_database.write_oligosets_to_yaml(
@@ -562,7 +567,6 @@ class TargetProbeDesigner:
         self.subdir_db_reference = "db_reference"
 
         self.n_jobs = n_jobs
-        self.oligo_attributes_calculator = OligoAttributes()
 
     @pipeline_step_basic(step_name="Create Database")
     def create_oligo_database(
@@ -622,12 +626,19 @@ class TargetProbeDesigner:
             database_overwrite=True,
             region_ids=gene_ids,
         )
-        oligo_database = self.oligo_attributes_calculator.calculate_reverse_complement_sequence(
-            oligo_database=oligo_database, sequence_type="target", sequence_type_reverse_complement="oligo"
+        # Calculate reverse complement using new PropertyCalculator pattern
+        properties = [ReverseComplementSequenceProperty(sequence_type_reverse_complement="oligo")]
+        calculator = PropertyCalculator(properties=properties)
+        oligo_database = calculator.apply(
+            oligo_database=oligo_database, sequence_type="target", n_jobs=self.n_jobs
         )
-        ##### pre-filter oligo database for certain attributes #####
-        oligo_database = self.oligo_attributes_calculator.calculate_isoform_consensus(
-            oligo_database=oligo_database
+
+        ##### pre-filter oligo database for certain properties #####
+        # Calculate isoform consensus using new PropertyCalculator pattern
+        properties = [IsoformConsensusProperty()]
+        calculator = PropertyCalculator(properties=properties)
+        oligo_database = calculator.apply(
+            oligo_database=oligo_database, sequence_type="target", n_jobs=self.n_jobs
         )
         oligo_database.filter_database_by_attribute_threshold(
             attribute_name="isoform_consensus",
@@ -820,11 +831,11 @@ class TargetProbeDesigner:
         ##### define exact match filter #####
         # remove sequences that could cause read length biases because the first
         # <target_probe_read_length_bias> bases of both sequences match
-        oligo_database = self.oligo_attributes_calculator.calculate_shortened_sequence(
-            oligo_database=oligo_database,
-            sequence_length=target_probe_read_length_bias,
-            sequence_type="oligo",
-            reverse=False,
+        # Calculate shortened sequence using new PropertyCalculator pattern
+        properties = [ShortenedSequenceProperty(sequence_length=target_probe_read_length_bias, reverse=False)]
+        calculator = PropertyCalculator(properties=properties)
+        oligo_database = calculator.apply(
+            oligo_database=oligo_database, sequence_type="oligo", n_jobs=self.n_jobs
         )
 
         exact_matches_short = ExactMatchFilter(

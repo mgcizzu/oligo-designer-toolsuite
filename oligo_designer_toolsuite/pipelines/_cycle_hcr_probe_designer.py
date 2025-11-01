@@ -17,12 +17,19 @@ import yaml
 from Bio.SeqUtils import MeltingTemp as mt
 from Bio.SeqUtils import Seq
 
-from oligo_designer_toolsuite.database import OligoAttributes, OligoDatabase, ReferenceDatabase
+from oligo_designer_toolsuite.database import OligoDatabase, ReferenceDatabase
 from oligo_designer_toolsuite.oligo_efficiency_filter import (
     AverageSetScoring,
     DeviationFromOptimalTmScorer,
     IsoformConsensusScorer,
     OligoScoring,
+)
+from oligo_designer_toolsuite.oligo_property_calculator import (
+    IsoformConsensusProperty,
+    NumTargetedTranscriptsProperty,
+    PropertyCalculator,
+    SplitSequenceProperty,
+    TmNNProperty,
 )
 from oligo_designer_toolsuite.oligo_property_filter import (
     GCContentFilter,
@@ -102,7 +109,6 @@ class CycleHCRProbeDesigner:
         ##### set class parameters #####
         self.write_intermediate_steps = write_intermediate_steps
         self.n_jobs = n_jobs
-        self.oligo_attributes_calculator = OligoAttributes()
         self.set_developer_parameters()
 
     def set_developer_parameters(
@@ -584,7 +590,7 @@ class CycleHCRProbeDesigner:
         """
         Generate the final output files for the CycleHCR probe design pipeline.
 
-        :param encoding_probe_database: Database of encoding probes with associated attributes and sequences.
+        :param encoding_probe_database: Database of encoding probes with associated properties and sequences.
         :type encoding_probe_database: OligoDatabase
         :param reverse_primer_sequence: Sequence of the reverse primer.
         :type reverse_primer_sequence: str
@@ -592,7 +598,7 @@ class CycleHCRProbeDesigner:
         :type forward_primer_sequence: str
         :param top_n_sets: Number of top probe sets to include in the output, defaults to 3.
         :type top_n_sets: int
-        :param attributes: List of attributes to include in the output files, defaults to a comprehensive list of probe attributes.
+        :param attributes: List of attributes to include in the output files, defaults to a comprehensive list of probe properties.
         :type attributes: list
 
         :return: None
@@ -643,26 +649,29 @@ class CycleHCRProbeDesigner:
                 }
         encoding_probe_database.update_oligo_attributes(new_probe_attributes_primer)
 
-        encoding_probe_database = self.oligo_attributes_calculator.calculate_TmNN(
-            oligo_database=encoding_probe_database,
-            Tm_parameters=self.target_probe_Tm_parameters,
-            Tm_chem_correction_parameters=self.target_probe_Tm_chem_correction_parameters,
-            Tm_salt_correction_parameters=self.target_probe_Tm_salt_correction_parameters,
-            sequence_type="oligo_pair_L",
+        # Calculate Tm for oligo_pair_L
+        properties = [
+            TmNNProperty(
+                Tm_parameters=self.target_probe_Tm_parameters,
+                Tm_chem_correction_parameters=self.target_probe_Tm_chem_correction_parameters,
+                Tm_salt_correction_parameters=self.target_probe_Tm_salt_correction_parameters,
+            )
+        ]
+        calculator = PropertyCalculator(properties=properties)
+        encoding_probe_database = calculator.apply(
+            oligo_database=encoding_probe_database, sequence_type="oligo_pair_L", n_jobs=self.n_jobs
         )
-        encoding_probe_database = self.oligo_attributes_calculator.calculate_TmNN(
-            oligo_database=encoding_probe_database,
-            Tm_parameters=self.target_probe_Tm_parameters,
-            Tm_chem_correction_parameters=self.target_probe_Tm_chem_correction_parameters,
-            Tm_salt_correction_parameters=self.target_probe_Tm_salt_correction_parameters,
-            sequence_type="oligo_pair_R",
+        # Calculate Tm for oligo_pair_R
+        encoding_probe_database = calculator.apply(
+            oligo_database=encoding_probe_database, sequence_type="oligo_pair_R", n_jobs=self.n_jobs
         )
-        encoding_probe_database = self.oligo_attributes_calculator.calculate_num_targeted_transcripts(
-            oligo_database=encoding_probe_database
+        # Calculate num targeted transcripts and isoform consensus
+        properties = [NumTargetedTranscriptsProperty(), IsoformConsensusProperty()]
+        calculator = PropertyCalculator(properties=properties)
+        encoding_probe_database = calculator.apply(
+            oligo_database=encoding_probe_database, sequence_type="oligo", n_jobs=self.n_jobs
         )
-        encoding_probe_database = self.oligo_attributes_calculator.calculate_isoform_consensus(
-            oligo_database=encoding_probe_database
-        )
+        # Calculate isoform consensus using new PropertyCalculator pattern
 
         encoding_probe_database.write_oligosets_to_yaml(
             attributes=attributes,
@@ -748,7 +757,6 @@ class TargetProbeDesigner:
         self.subdir_db_reference = "db_reference"
 
         self.n_jobs = n_jobs
-        self.oligo_attributes_calculator = OligoAttributes()
 
     @pipeline_step_basic(step_name="Target Probe Generation - Create Database")
     def create_oligo_database(
@@ -826,16 +834,24 @@ class TargetProbeDesigner:
                 + target_probe_R_probe_sequence_length,
             ),
         ]
-        oligo_database = self.oligo_attributes_calculator.calculate_split_sequence(
-            oligo_database=oligo_database,
-            split_start_end=split_start_end,
-            split_names=["oligo_pair_L", "spacer", "oligo_pair_R"],
-            sequence_type="target",
+        # Calculate split sequence using new PropertyCalculator pattern
+        properties = [
+            SplitSequenceProperty(
+                split_start_end=split_start_end,
+                split_names=["oligo_pair_L", "spacer", "oligo_pair_R"],
+            )
+        ]
+        calculator = PropertyCalculator(properties=properties)
+        oligo_database = calculator.apply(
+            oligo_database=oligo_database, sequence_type="target", n_jobs=self.n_jobs
         )
 
-        ##### pre-filter oligo database for certain attributes #####
-        oligo_database = self.oligo_attributes_calculator.calculate_isoform_consensus(
-            oligo_database=oligo_database
+        ##### pre-filter oligo database for certain properties #####
+        # Calculate isoform consensus using new PropertyCalculator pattern
+        properties = [IsoformConsensusProperty()]
+        calculator = PropertyCalculator(properties=properties)
+        oligo_database = calculator.apply(
+            oligo_database=oligo_database, sequence_type="oligo", n_jobs=self.n_jobs
         )
         oligo_database.filter_database_by_attribute_threshold(
             attribute_name="isoform_consensus",
