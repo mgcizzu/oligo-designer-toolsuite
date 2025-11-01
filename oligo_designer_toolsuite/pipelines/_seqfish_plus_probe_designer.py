@@ -361,7 +361,7 @@ class SeqFishPlusProbeDesigner:
 
         :param files_fasta_target_probe_database: List of FASTA files containing sequences for designing target probes.
         :type files_fasta_target_probe_database: list[str]
-        :param files_fasta_reference_database_target_probe: List of FASTA files containing reference sequences for specificity filtering.
+        :param files_fasta_reference_database_targe_probe: List of FASTA files containing reference sequences for specificity filtering.
         :type files_fasta_reference_database_target_probe: List[str]
         :param gene_ids: List of gene IDs to target, or None to target all genes.
         :type gene_ids: list, optional
@@ -1016,6 +1016,9 @@ class TargetProbeDesigner:
             database_overwrite=True,
             sequence_type="target",
             region_ids=gene_ids,
+        )
+        oligo_database = self.oligo_attributes_calculator.calculate_reverse_complement_sequence(
+            oligo_database=oligo_database, sequence_type="target", sequence_type_reverse_complement="oligo"
         )
 
         ##### pre-filter oligo database for certain attributes #####
@@ -2001,7 +2004,7 @@ def main():
     target_probe_database = pipeline.design_target_probes(
         gene_ids=gene_ids,
         files_fasta_target_probe_database=config["files_fasta_target_probe_database"],
-        files_fasta_reference_database_targe_probe=config["files_fasta_reference_database_targe_probe"],
+        files_fasta_reference_database_target_probe=config["files_fasta_reference_database_target_probe"],
         target_probe_length_min=config["target_probe_length_min"],
         target_probe_length_max=config["target_probe_length_max"],
         target_probe_isoform_consensus=config["target_probe_isoform_consensus"],

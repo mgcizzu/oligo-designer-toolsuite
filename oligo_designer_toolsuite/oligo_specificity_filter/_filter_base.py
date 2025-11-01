@@ -191,7 +191,7 @@ class ReferenceSpecificityFilter(BaseSpecificityFilter):
         :type file_reference: str
         """
         file_reference_basename = os.path.basename(file_reference)
-        regex = re.compile(file_reference_basename + "\..*")
+        regex = re.compile(file_reference_basename + "\\..*")
         for root, _, files in os.walk(self.dir_output):
             for file in files:
                 if regex.match(file):

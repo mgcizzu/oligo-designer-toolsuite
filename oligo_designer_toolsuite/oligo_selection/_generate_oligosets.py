@@ -287,7 +287,7 @@ class HomogeneousPropertyOligoSetGenerator:
         :type oligo_database: OligoDatabase
         :param n_sets: The number of oligo sets to generate.
         :type n_sets: int
-        :param n_combinations: The number of random oligo combinations to generate per region (generating all combinations would be ideal but too costly), defaults to 1000.
+        :param n_combinations: The number of random oligo combinations to generate per region, defaults to 1000.
         :type n_combinations: int, optional
         :param n_jobs: The number of parallel jobs to run, defaults to 1.
         :type n_jobs: int, optional
@@ -318,7 +318,7 @@ class HomogeneousPropertyOligoSetGenerator:
         :type region_id: str
         :param n_sets: The number of oligo sets to generate.
         :type n_sets: int
-        :param n_combinations: The number of random oligo combinations to generate per region (generating all combinations would be ideal but too costly), defaults to 1000.
+        :param n_combinations: The number of random oligo combinations to generate per region, defaults to 1000.
         :type n_combinations: int, optional
         """
         oligo_df = oligo_database.get_oligo_attribute_table(
@@ -329,7 +329,7 @@ class HomogeneousPropertyOligoSetGenerator:
         for property in self.properties:
             if oligo_df[property].isnull().any():
                 raise ValueError(
-                    f"Property '{property_name}' is not present in oligo database please calculate it first using oligo_designer_toolsuite.OligoAttributes()."
+                    f"Property '{property}' is not present in oligo database please calculate it first using oligo_designer_toolsuite.OligoAttributes()."
                 )
             else:
                 if not (
@@ -337,12 +337,10 @@ class HomogeneousPropertyOligoSetGenerator:
                     or pd.api.types.is_float_dtype(oligo_df[property])
                 ):
                     raise ValueError(
-                        f"Property '{property_name}' is not numeric. Cannot use for variance computation."
+                        f"Property '{property}' is not numeric. Cannot use for variance computation."
                     )
 
-        combinations = self._generate_random_combinations(
-            oligo_df.index.to_list(), self.set_size, n_combinations
-        )
+        combinations = self._generate_random_combinations(oligo_df.index, self.set_size, n_combinations)
 
         scored_combinations = [
             self._score_combination(oligo_df, list(combination)) for combination in combinations
@@ -379,7 +377,7 @@ class HomogeneousPropertyOligoSetGenerator:
         :type arr: list
         :param combination_size: The size of each combination.
         :type combination_size: int
-        :param number_of_combinations: The number of random combinations to generate (generating all combinations would be ideal but too costly).
+        :param number_of_combinations: The number of random combinations to generate.
         :type number_of_combinations: int
         :return: A list of random combinations.
         :rtype: list

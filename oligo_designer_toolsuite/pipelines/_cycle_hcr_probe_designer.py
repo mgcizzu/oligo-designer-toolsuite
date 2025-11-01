@@ -228,7 +228,7 @@ class CycleHCRProbeDesigner:
     def design_target_probes(
         self,
         files_fasta_target_probe_database: list[str],
-        files_fasta_reference_database_targe_probe: List[str],
+        files_fasta_reference_database_target_probe: List[str],
         gene_ids: list = None,
         target_probe_isoform_consensus: float = 0,
         target_probe_L_probe_sequence_length: int = 45,
@@ -255,8 +255,8 @@ class CycleHCRProbeDesigner:
 
         :param files_fasta_target_probe_database: List of input FASTA files for the target probe database.
         :type files_fasta_target_probe_database: list[str]
-        :param files_fasta_reference_database_targe_probe: List of input FASTA files for the reference database.
-        :type files_fasta_reference_database_targe_probe: List[str]
+        :param files_fasta_reference_database_target_probe: List of input FASTA files for the reference database.
+        :type files_fasta_reference_database_target_probe: List[str]
         :param gene_ids: List of gene IDs to target, or None to target all genes.
         :type gene_ids: list, optional
         :param target_probe_isoform_consensus: Isoform consensus threshold for filtering. Default is 50.
@@ -337,7 +337,7 @@ class CycleHCRProbeDesigner:
 
         oligo_database = target_probe_designer.filter_by_specificity(
             oligo_database=oligo_database,
-            files_fasta_reference_database=files_fasta_reference_database_targe_probe,
+            files_fasta_reference_database=files_fasta_reference_database_target_probe,
             junction_region_size=target_probe_junction_region_size,
             junction_site=target_probe_L_probe_sequence_length + target_probe_gap_sequence_length // 2,
             specificity_blastn_search_parameters=self.target_probe_specificity_blastn_search_parameters,
@@ -1436,7 +1436,7 @@ def main():
     target_probe_database = pipeline.design_target_probes(
         gene_ids=gene_ids,
         files_fasta_target_probe_database=config["files_fasta_target_probe_database"],
-        files_fasta_reference_database_targe_probe=config["files_fasta_reference_database_targe_probe"],
+        files_fasta_reference_database_target_probe=config["files_fasta_reference_database_target_probe"],
         target_probe_isoform_consensus=config["target_probe_isoform_consensus"],
         target_probe_L_probe_sequence_length=config["target_probe_L_probe_sequence_length"],
         target_probe_gap_sequence_length=config["target_probe_gap_sequence_length"],

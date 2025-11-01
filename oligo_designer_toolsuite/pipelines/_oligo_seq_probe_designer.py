@@ -275,7 +275,7 @@ class OligoSeqProbeDesigner:
     def design_target_probes(
         self,
         files_fasta_target_probe_database: list,
-        files_fasta_reference_database_targe_probe: list,
+        files_fasta_reference_database_target_probe: list,
         files_vcf_reference_database_target_probe: list,
         gene_ids: list = None,
         target_probe_length_min: int = 26,
@@ -296,6 +296,7 @@ class OligoSeqProbeDesigner:
         target_probe_homopolymeric_base_n: dict = {"A": 6, "T": 6, "C": 6, "G": 6},
         target_probe_max_len_selfcomplement: int = 10,
         target_probe_hybridization_probability_threshold: float = 0.001,
+        target_probe_read_length_bias: int = 20,
         target_probe_GC_weight: float = 1,
         target_probe_Tm_weight: float = 1,
         set_size_min: int = 3,
@@ -309,8 +310,8 @@ class OligoSeqProbeDesigner:
 
         :param files_fasta_target_probe_database: FASTA files containing the target probe database.
         :type files_fasta_target_probe_database: list
-        :param files_fasta_reference_database_targe_probe: FASTA files containing the reference database.
-        :type files_fasta_reference_database_targe_probe: list
+        :param files_fasta_reference_database_target_probe: FASTA files containing the reference database.
+        :type files_fasta_reference_database_target_probe: list
         :param files_vcf_reference_database_target_probe: VCF files containing the reference database.
         :type files_vcf_reference_database_target_probe: list
         :param gene_ids: List of gene IDs to target, or None to target all genes.
@@ -351,6 +352,9 @@ class OligoSeqProbeDesigner:
         :type target_probe_max_len_selfcomplement: int, optional
         :param target_probe_hybridization_probability_threshold: Threshold for hybridization probability, defaults to 0.001.
         :type target_probe_hybridization_probability_threshold: float, optional
+        :param target_probe_read_length_bias: Minimum length of sequencing reads to account for shorter sequencing reads,
+            i.e. first <target_probe_read_length_bias> bases of an oligo should not match the <target_probe_read_length_bias> bases of another oligo
+        :type target_probe_read_length_bias: int
         :param target_probe_GC_weight: Weight for GC content in set scoring, defaults to 1.
         :type target_probe_GC_weight: float, optional
         :param target_probe_Tm_weight: Weight for melting temperature in set scoring, defaults to 1.
@@ -405,7 +409,7 @@ class OligoSeqProbeDesigner:
 
         oligo_database = target_probe_designer.filter_by_specificity(
             oligo_database=oligo_database,
-            files_fasta_reference_database=files_fasta_reference_database_targe_probe,
+            files_fasta_reference_database=files_fasta_reference_database_target_probe,
             files_vcf_reference_database=files_vcf_reference_database_target_probe,
             cross_hybridization_alignment_method=self.target_probe_cross_hybridization_alignment_method,
             cross_hybridization_search_parameters=self.target_probe_cross_hybridization_search_parameters,
@@ -414,6 +418,7 @@ class OligoSeqProbeDesigner:
             hybridization_probability_search_parameters=self.target_probe_hybridization_probability_search_parameters,
             hybridization_probability_hit_parameters=self.target_probe_hybridization_probability_hit_parameters,
             hybridization_probability_threshold=target_probe_hybridization_probability_threshold,
+            target_probe_read_length_bias=target_probe_read_length_bias,
         )
         check_content_oligo_database(oligo_database)
 
@@ -741,6 +746,7 @@ class TargetProbeDesigner:
         hybridization_probability_search_parameters: dict,
         hybridization_probability_hit_parameters: dict,
         hybridization_probability_threshold: float,
+        target_probe_read_length_bias: int,
     ) -> OligoDatabase:
         """
         Filter the oligo database based on sequence specificity to remove sequences that
@@ -766,6 +772,9 @@ class TargetProbeDesigner:
         :type hybridization_probability_hit_parameters: dict
         :param hybridization_probability_threshold: Threshold for hybridization probability filtering.
         :type hybridization_probability_threshold: float
+        :param target_probe_read_length_bias: Minimum length of sequencing reads to account for shorter sequencing reads,
+            i.e. first <target_probe_read_length_bias> bases of an oligo should not match the <target_probe_read_length_bias> bases of another oligo
+        :type target_probe_read_length_bias: int
         :return: The filtered oligo database.
         :rtype: OligoDatabase
         """
@@ -1161,7 +1170,7 @@ def main():
     oligo_database = pipeline.design_target_probes(
         gene_ids=gene_ids,
         files_fasta_target_probe_database=config["files_fasta_target_probe_database"],
-        files_fasta_reference_database_targe_probe=config["files_fasta_reference_database_targe_probe"],
+        files_fasta_reference_database_target_probe=config["files_fasta_reference_database_target_probe"],
         files_vcf_reference_database_target_probe=config["files_vcf_reference_database_target_probe"],
         target_probe_length_min=config["target_probe_length_min"],
         target_probe_length_max=config["target_probe_length_max"],
