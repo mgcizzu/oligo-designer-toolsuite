@@ -3,8 +3,9 @@
 ############################################
 
 from oligo_designer_toolsuite._constants import _TYPES_SEQ
-from oligo_designer_toolsuite.database import OligoAttributes, OligoDatabase
+from oligo_designer_toolsuite.database import OligoDatabase
 from oligo_designer_toolsuite.oligo_efficiency_filter import BaseScorer
+from oligo_designer_toolsuite.oligo_property_calculator._property_functions import calc_isoform_consensus
 from oligo_designer_toolsuite.utils import check_if_list
 
 ############################################
@@ -149,7 +150,9 @@ class IsoformConsensusScorer(BaseScorer):
             attribute="number_total_transcripts", region_id=region_id, oligo_id=oligo_id, flatten=True
         )
         if transcript_id and number_transcripts:
-            isoform_consensus = OligoAttributes._calc_isoform_consensus(transcript_id, number_transcripts)
+            isoform_consensus = calc_isoform_consensus(
+                transcript_id=transcript_id, number_total_transcripts=number_transcripts
+            )
             if self.normalize:
                 # isoform consensus is given in % (0-100), hence we devide by 100
                 # we use 1 - isoform consensus as normalized score

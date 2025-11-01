@@ -10,7 +10,11 @@ from joblib import Parallel, delayed
 from joblib_progress import joblib_progress
 
 from oligo_designer_toolsuite._constants import _TYPES_SEQ
-from oligo_designer_toolsuite.database import OligoAttributes, OligoDatabase
+from oligo_designer_toolsuite.database import OligoDatabase
+from oligo_designer_toolsuite.oligo_property_calculator import (
+    PropertyCalculator,
+    ReverseComplementSequenceProperty,
+)
 from oligo_designer_toolsuite.oligo_specificity_filter import BaseSpecificityFilter
 
 from ._policies import BaseFilterPolicy, RemoveAllFilterPolicy
@@ -129,10 +133,15 @@ class ExactMatchFilter(BaseSpecificityFilter):
         self.sequence_type = sequence_type
 
         sequence_type_reverse_complement = f"{self.sequence_type}_rc"
-        oligo_database = OligoAttributes().calculate_reverse_complement_sequence(
-            oligo_database=oligo_database,
-            sequence_type=self.sequence_type,
-            sequence_type_reverse_complement=sequence_type_reverse_complement,
+        # Calculate reverse complement
+        properties = [
+            ReverseComplementSequenceProperty(
+                sequence_type_reverse_complement=sequence_type_reverse_complement
+            )
+        ]
+        calculator = PropertyCalculator(properties=properties)
+        oligo_database = calculator.apply(
+            oligo_database=oligo_database, sequence_type=self.sequence_type, n_jobs=1
         )
 
         # extract all the sequences

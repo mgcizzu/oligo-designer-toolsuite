@@ -6,7 +6,12 @@ from typing import List, Union
 
 from Bio.SeqUtils import Seq
 
-from oligo_designer_toolsuite.database import OligoAttributes
+from oligo_designer_toolsuite.oligo_property_calculator import (
+    calc_dg_secondary_structure,
+    calc_gc_content,
+    calc_length_complement,
+    calc_tm_nn,
+)
 from oligo_designer_toolsuite.oligo_property_filter import BasePropertyFilter
 
 from ..utils._checkers_and_helpers import check_if_dna_sequence
@@ -273,7 +278,7 @@ class GCContentFilter(BasePropertyFilter):
         :return: `True` if the GC content of the sequence is within the specified range, `False` otherwise.
         :rtype: bool
         """
-        GC_content = OligoAttributes._calc_GC_content(sequence)
+        GC_content = calc_gc_content(sequence)
         if self.GC_content_min < GC_content < self.GC_content_max:
             return True
         return False
@@ -372,7 +377,7 @@ class MeltingTemperatureNNFilter(BasePropertyFilter):
         :rtype: bool
         """
 
-        Tm = OligoAttributes._calc_TmNN(
+        Tm = calc_tm_nn(
             sequence,
             self.Tm_parameters,
             self.Tm_salt_correction_parameters,
@@ -410,7 +415,7 @@ class SelfComplementFilter(BasePropertyFilter):
         :return: `True` if the sequence's self-complementary length is within the specified limit, `False` otherwise.
         :rtype: bool
         """
-        len_selfcomp = OligoAttributes._calc_length_complement(sequence, sequence[::-1])
+        len_selfcomp = calc_length_complement(sequence1=sequence, sequence2=sequence[::-1])
         if len_selfcomp <= self.max_len_selfcomplement:
             return True
         return False
@@ -446,7 +451,7 @@ class ComplementFilter(BasePropertyFilter):
         :return: True if the overlap length is less than or equal to the maximum allowed length, False otherwise.
         :rtype: bool
         """
-        len_complement = OligoAttributes._calc_length_complement(sequence, self.comparison_sequence)
+        len_complement = calc_length_complement(sequence1=sequence, sequence2=self.comparison_sequence)
         if len_complement <= self.max_len_complement:
             return True
         return False
@@ -482,7 +487,7 @@ class SecondaryStructureFilter(BasePropertyFilter):
         :return: True if the sequence's secondary structure ΔG is greater than the threshold, indicating that the sequence is acceptable. False otherwise.
         :rtype: bool
         """
-        DG_secondary_structure = OligoAttributes._calc_DG_secondary_structure(sequence, self.T)
+        DG_secondary_structure = calc_dg_secondary_structure(sequence, self.T)
         if DG_secondary_structure > self.thr_DG:
             return True
         return False

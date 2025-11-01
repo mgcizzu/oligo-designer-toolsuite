@@ -4,7 +4,7 @@
 
 from Bio.SeqUtils import Seq
 
-from oligo_designer_toolsuite.database import OligoAttributes
+from oligo_designer_toolsuite.oligo_property_calculator import calc_detect_oligo, calc_padlock_arms
 from oligo_designer_toolsuite.oligo_property_filter import BasePropertyFilter
 
 ############################################
@@ -73,7 +73,7 @@ class PadlockArmsFilter(BasePropertyFilter):
         :return: `True` if the sequence meets the criteria for padlock probe arms, `False` otherwise.
         :rtype: bool
         """
-        _, _, ligation_site = OligoAttributes()._calc_padlock_arms(
+        _, _, ligation_site = calc_padlock_arms(
             sequence,
             self.arm_length_min,
             self.arm_Tm_dif_max,
@@ -163,7 +163,7 @@ class DetectionOligoFilter(BasePropertyFilter):
         :return: `True` if the sequence meets the criteria for detection oligonucleotides, `False` otherwise.
         :rtype: bool
         """
-        _, _, ligation_site = OligoAttributes()._calc_padlock_arms(
+        _, _, ligation_site = calc_padlock_arms(
             sequence=sequence,
             arm_length_min=self.arm_length_min,
             arm_Tm_dif_max=self.arm_Tm_dif_max,
@@ -176,7 +176,7 @@ class DetectionOligoFilter(BasePropertyFilter):
         if not ligation_site:
             return False
 
-        detect_oligo_even, _, _ = OligoAttributes()._calc_detect_oligo(
+        detect_oligo_even, _, _ = calc_detect_oligo(
             sequence=sequence,
             ligation_site=ligation_site,
             detect_oligo_length_min=self.detect_oligo_length_min,
