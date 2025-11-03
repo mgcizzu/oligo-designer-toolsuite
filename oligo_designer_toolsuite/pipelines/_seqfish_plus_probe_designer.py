@@ -891,14 +891,13 @@ class SeqFishPlusProbeDesigner:
         for region_id in encoding_probe_database.database.keys():
             yaml_dict_order[region_id] = {}
             oligosets_region = encoding_probe_database.oligosets[region_id]
-            oligosets_property_columns = [
-                col for col in oligosets_region.columns if col.startswith("property_")
-            ]
+            oligosets_oligo_columns = [col for col in oligosets_region.columns if col.startswith("oligo_")]
             oligosets_score_columns = [col for col in oligosets_region.columns if col.startswith("score_")]
 
-            oligosets_region.sort_values(by=oligosets_score_columns, ascending=True)
-            oligosets_region = oligosets_region.head(top_n_sets)[oligosets_property_columns]
-            oligosets_region.reset_index(inplace=True, drop=True)
+            oligosets_region = oligosets_region.sort_values(by=oligosets_score_columns, ascending=True)
+            oligosets_region = oligosets_region.head(top_n_sets)[oligosets_oligo_columns].reset_index(
+                inplace=True, drop=True
+            )
 
             # iterate through all oligo sets
             for oligoset_idx, oligoset in oligosets_region.iterrows():
