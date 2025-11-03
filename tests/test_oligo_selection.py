@@ -263,7 +263,9 @@ class TestHomogeneousPropertyOligoSetGenerator(unittest.TestCase):
         # Calculate GC content using new PropertyCalculator pattern
         properties = [GCContentProperty(), TmNNProperty(Tm_parameters=TM_PARAMETERS)]
         calculator = PropertyCalculator(properties=properties)
-        oligo_database = calculator.apply(oligo_database=self.oligo_database, sequence_type="oligo", n_jobs=1)
+        self.oligo_database = calculator.apply(
+            oligo_database=self.oligo_database, sequence_type="oligo", n_jobs=1
+        )
 
         self.oligoset_generator = HomogeneousPropertyOligoSetGenerator(
             set_size=5,
