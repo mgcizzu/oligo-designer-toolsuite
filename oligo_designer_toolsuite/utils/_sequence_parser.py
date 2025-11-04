@@ -18,6 +18,7 @@ from oligo_designer_toolsuite._constants import (
     SEPARATOR_FASTA_HEADER_FIELDS,
     SEPARATOR_FASTA_HEADER_FIELDS_LIST,
 )
+from oligo_designer_toolsuite._exceptions import FileFormatError
 
 from ._checkers_and_helpers import check_if_list
 
@@ -67,9 +68,9 @@ class GffParser:
 
         if os.path.exists(file):
             if not _check_gff_content(file):
-                raise ValueError("GFF file has incorrect format!")
+                raise FileFormatError(f"GFF file '{file}' has incorrect format. Expected valid GFF format.")
         else:
-            raise ValueError("GFF file does not exist!")
+            raise FileFormatError(f"GFF file '{file}' does not exist.")
 
     def parse_annotation_from_gff(
         self,
@@ -295,11 +296,13 @@ class FastaParser:
 
         if os.path.exists(file):
             if not _check_fasta_content(file):
-                raise ValueError("Fasta file has incorrect format!")
+                raise FileFormatError(
+                    f"FASTA file '{file}' has incorrect format. Expected valid FASTA format."
+                )
             else:
                 return True
         else:
-            raise ValueError("Fasta file does not exist!")
+            raise FileFormatError(f"FASTA file '{file}' does not exist.")
 
     def is_coordinate(self, entry: str) -> bool:
         """
@@ -533,11 +536,11 @@ class VCFParser:
 
         if os.path.exists(file):
             if not _check_vcf_content(file):
-                raise ValueError("VCF file has incorrect format!")
+                raise FileFormatError(f"VCF file '{file}' has incorrect format. Expected valid VCF format.")
             else:
                 return True
         else:
-            raise ValueError("VCF file does not exist!")
+            raise FileFormatError(f"VCF file '{file}' does not exist.")
 
     def read_vcf_variants(self, file: str) -> list:
         """

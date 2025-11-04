@@ -8,6 +8,7 @@ from Bio.Seq import Seq
 from Bio.SeqUtils import MeltingTemp, gc_fraction
 from seqfold import dg
 
+from oligo_designer_toolsuite._exceptions import ConfigurationError
 from oligo_designer_toolsuite.utils import check_if_list, flatten_property_list
 
 ############################################
@@ -232,11 +233,17 @@ def calc_seedregion(sequence: str, start: Union[int, float], end: Union[int, flo
         seedregion_end = min(length, end)
     elif isinstance(start, float) and isinstance(end, float):
         if (not 0 <= start <= 1) or (not 0 <= end <= 1):
-            raise ValueError("Start and end positions must be in the interval [0,1] for float type.")
+            raise ConfigurationError(
+                f"Start and end positions must be in the interval [0,1] for float type. "
+                f"Received: start={start}, end={end}."
+            )
         seedregion_start = int(round(start * length))
         seedregion_end = int(round(end * length))
     else:
-        raise ValueError("Start and end parameters must be both integers or both floats.")
+        raise ConfigurationError(
+            f"Start and end parameters must be both integers or both floats. "
+            f"Received: start={type(start).__name__}, end={type(end).__name__}."
+        )
 
     return seedregion_start, seedregion_end
 

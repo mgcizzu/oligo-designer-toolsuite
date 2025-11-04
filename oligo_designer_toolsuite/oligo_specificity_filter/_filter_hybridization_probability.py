@@ -7,6 +7,7 @@ from joblib_progress import joblib_progress
 from oligo_designer_toolsuite_ai_filters.api import APIHybridizationProbability
 
 from oligo_designer_toolsuite._constants import _TYPES_SEQ
+from oligo_designer_toolsuite._exceptions import ConfigurationError
 from oligo_designer_toolsuite.database import OligoDatabase
 from oligo_designer_toolsuite.oligo_specificity_filter import (
     AlignmentSpecificityFilter,
@@ -211,8 +212,9 @@ class HybridizationProbabilityFilter(ReferenceSpecificityFilter):
                 oligos_with_hits=oligos_with_hits_region,
             )
         else:
-            raise ValueError(
-                f"Mode {mode} not available. Choose mode=0 for removing hits from the database, mode=1 for flagging the hits in the database."
+            raise ConfigurationError(
+                f"Mode '{mode}' is not available. Choose mode=0 for removing hits from the database, "
+                f"or mode=1 for flagging the hits in the database."
             )
 
     def overwrite_output_format(self) -> None:

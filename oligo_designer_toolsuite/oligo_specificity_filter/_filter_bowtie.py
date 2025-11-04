@@ -9,6 +9,7 @@ from typing import Tuple
 import pandas as pd
 from Bio import SeqIO
 
+from oligo_designer_toolsuite._exceptions import FileFormatError
 from oligo_designer_toolsuite.database import OligoDatabase
 from oligo_designer_toolsuite.oligo_specificity_filter import AlignmentSpecificityFilter
 
@@ -222,8 +223,10 @@ class BowtieFilter(AlignmentSpecificityFilter):
             "query_sequence",
         ]
         if not all(field in self.names_search_output for field in required_fields):
-            raise ValueError(
-                f"Some of the required fields {required_fields} are missing in the search results."
+            missing_fields = [field for field in required_fields if field not in self.names_search_output]
+            raise FileFormatError(
+                f"Required fields are missing in the search results: {missing_fields}. "
+                f"All of the following fields are required: {required_fields}."
             )
         table_hits["reference_end"] = table_hits.apply(
             lambda x: x["reference_start"] + len(x["query_sequence"]), axis=1

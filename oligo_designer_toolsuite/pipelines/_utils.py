@@ -4,15 +4,64 @@
 
 import inspect
 import logging
+import os
 import sys
 import warnings
 from argparse import ArgumentParser, RawDescriptionHelpFormatter
+from datetime import datetime
 
 from oligo_designer_toolsuite.database import OligoDatabase
 
 ############################################
 # Utils functions
 ############################################
+
+
+def setup_logging(
+    dir_output: str,
+    pipeline_name: str,
+    log_level: int = logging.NOTSET,
+    include_console: bool = False,
+    log_start_message: bool = False,
+) -> None:
+    """
+    Set up logging configuration for a pipeline.
+
+    This function creates a consistent logging setup across all pipelines, creating a log file
+    in the output directory and optionally writing to the console.
+
+    :param dir_output: Directory where the log file will be created.
+    :type dir_output: str
+    :param pipeline_name: Name of the pipeline (used in log file name).
+    :type pipeline_name: str
+    :param log_level: Logging level (default: logging.NOTSET).
+    :type log_level: int
+    :param include_console: Whether to also log to console (default: False).
+    :type include_console: bool
+    :param log_start_message: Whether to log a "START PIPELINE" message (default: False).
+    :type log_start_message: bool
+    """
+    timestamp = datetime.now()
+    file_logger = os.path.join(
+        dir_output,
+        f"log_{pipeline_name}_{timestamp.year}-{timestamp.month}-{timestamp.day}-{timestamp.hour}-{timestamp.minute}.txt",
+    )
+
+    handlers = [logging.FileHandler(file_logger)]
+    if include_console:
+        handlers.append(logging.StreamHandler())
+
+    logging.getLogger("log_name")
+    logging.basicConfig(
+        format="%(asctime)s [%(levelname)s] %(message)s",
+        level=log_level,
+        handlers=handlers,
+        force=True,  # Force reconfiguration if logging was already configured
+    )
+    logging.captureWarnings(True)
+
+    if log_start_message:
+        logging.info("--------------START PIPELINE--------------")
 
 
 def base_parser():

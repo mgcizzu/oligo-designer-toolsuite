@@ -6,13 +6,13 @@ import logging
 import os
 import shutil
 import warnings
-from datetime import datetime
 from pathlib import Path
 from typing import List
 
 import yaml
 from Bio.SeqUtils import MeltingTemp as mt
 
+from oligo_designer_toolsuite._exceptions import ConfigurationError
 from oligo_designer_toolsuite.database import OligoDatabase, ReferenceDatabase
 from oligo_designer_toolsuite.oligo_efficiency_filter import (
     AverageSetScoring,
@@ -64,6 +64,7 @@ from oligo_designer_toolsuite.pipelines._utils import (
     base_parser,
     check_content_oligo_database,
     pipeline_step_basic,
+    setup_logging,
 )
 from oligo_designer_toolsuite.sequence_generator import OligoSequenceGenerator
 
@@ -90,24 +91,16 @@ class OligoSeqProbeDesigner:
     def __init__(self, write_intermediate_steps: bool, dir_output: str, n_jobs: int) -> None:
         """Constructor for the OligoSeqProbeDesigner class."""
 
-        ##### create the output folder #####
+        # create the output folder
         self.dir_output = os.path.abspath(dir_output)
         Path(self.dir_output).mkdir(parents=True, exist_ok=True)
 
-        ##### setup logger #####
-        timestamp = datetime.now()
-        file_logger = os.path.join(
-            self.dir_output,
-            f"log_oligoseq_probe_designer_{timestamp.year}-{timestamp.month}-{timestamp.day}-{timestamp.hour}-{timestamp.minute}.txt",
+        # setup logger
+        setup_logging(
+            dir_output=self.dir_output,
+            pipeline_name="oligoseq_probe_designer",
+            log_start_message=True,
         )
-        logging.getLogger("log_name")
-        logging.basicConfig(
-            format="%(asctime)s [%(levelname)s] %(message)s",
-            level=logging.NOTSET,
-            handlers=[logging.FileHandler(file_logger)],
-        )
-        logging.captureWarnings(True)
-        logging.info("--------------START PIPELINE--------------")
 
         ##### set class parameters #####
         self.write_intermediate_steps = write_intermediate_steps
@@ -810,7 +803,10 @@ class TargetProbeDesigner:
                     dir_output=dir_output,
                 )
             else:
-                raise ValueError(f"The alignment method {alignment_method} is not supported.")
+                raise ConfigurationError(
+                    f"Alignment method '{alignment_method}' is not supported. "
+                    f"Supported methods are: 'blastn' or 'bowtie'."
+                )
 
         ##### define reference database #####
         reference_database_alignment = ReferenceDatabase(

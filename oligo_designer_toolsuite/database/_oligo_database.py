@@ -18,6 +18,7 @@ from joblib import Parallel, delayed
 from joblib_progress import joblib_progress
 
 from oligo_designer_toolsuite._constants import _TYPES_SEQ, SEPARATOR_OLIGO_ID
+from oligo_designer_toolsuite._exceptions import DatabaseError, FileFormatError
 from oligo_designer_toolsuite.utils import (
     CustomYamlDumper,
     FastaParser,
@@ -262,9 +263,11 @@ class OligoDatabase:
         # Check if file exists and has correct format
         if os.path.exists(file_database):
             if not check_tsv_format(file_database):
-                raise ValueError("Database has incorrect format!")
+                raise FileFormatError(
+                    f"Database file '{file_database}' has incorrect format. Expected TSV format."
+                )
         else:
-            raise ValueError("Database file does not exist!")
+            raise FileFormatError(f"Database file '{file_database}' does not exist.")
 
         # Clear database if it should be overwritten
         if database_overwrite:
@@ -384,7 +387,7 @@ class OligoDatabase:
         region_ids = check_if_list(region_ids)
 
         if not os.path.isdir(dir_database):
-            raise ValueError("Database directory does not exist!")
+            raise DatabaseError(f"Database directory '{dir_database}' does not exist.")
 
         if database_overwrite:
             backend = PickleBackend(storage_path=self._dir_cache_files)
@@ -970,10 +973,10 @@ class OligoDatabase:
         :raises ValueError: If the specified region or oligo does not exist in the database.
         """
         if not region_id in self.database:
-            raise ValueError(f"Region {region_id} does not exist.")
+            raise DatabaseError(f"Region '{region_id}' does not exist in the database.")
 
         if not oligo_id in self.database[region_id]:
-            raise ValueError(f"Region {oligo_id} does not exist.")
+            raise DatabaseError(f"Oligo '{oligo_id}' does not exist in region '{region_id}'.")
 
         oligo_properties = self.database[region_id][oligo_id]
         if property not in oligo_properties:
@@ -1033,8 +1036,8 @@ class OligoDatabase:
                 elif not remove_region and (region_id not in region_ids):
                     del self.database[region_id]
         else:
-            raise ValueError(
-                "Can not filter. Database is empty! Call the method load_database() or load_database_from_fasta() first."
+            raise DatabaseError(
+                "Cannot filter database: database is empty. Call load_database() or load_database_from_fasta() first."
             )
 
     def filter_database_by_oligo(self, remove_region: bool, oligo_ids: Union[str, List[str]]) -> None:
@@ -1059,8 +1062,8 @@ class OligoDatabase:
                     elif not remove_region and (oligo_id not in oligo_ids):
                         del self.database[region_id][oligo_id]
         else:
-            raise ValueError(
-                "Can not filter. Database is empty! Call the method load_database() or load_database_from_fasta() first."
+            raise DatabaseError(
+                "Cannot filter database: database is empty. Call load_database() or load_database_from_fasta() first."
             )
 
     def filter_database_by_property_threshold(

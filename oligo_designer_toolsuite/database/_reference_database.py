@@ -8,6 +8,7 @@ from pathlib import Path
 from typing import List, Union, get_args
 
 from oligo_designer_toolsuite._constants import _TYPES_REF
+from oligo_designer_toolsuite._exceptions import DatabaseError
 from oligo_designer_toolsuite.utils import FastaParser, VCFParser, check_if_list
 
 ############################################
@@ -94,7 +95,10 @@ class ReferenceDatabase:
         elif self.database_file is not None and self.database_type == file_type:
             files_in = files.extend(self.database_file)
         else:
-            raise ValueError(f"Cannot mix {file_type} and {self.database_type} databases!")
+            raise DatabaseError(
+                f"Cannot mix {file_type} and {self.database_type} databases. "
+                f"Use database_overwrite=True to replace the existing database."
+            )
 
         if self.database_type == "fasta":
             for file in files_in:
@@ -133,7 +137,7 @@ class ReferenceDatabase:
             shutil.copy2(self.database_file, file_database)
             return file_database
         else:
-            raise ValueError("Database is empty! Nothing to be written to file.")
+            raise DatabaseError("Database is empty. Nothing to be written to file.")
 
     def filter_database_by_region(self, region_ids: Union[str, List[str]], keep_region: bool) -> None:
         """
@@ -158,10 +162,10 @@ class ReferenceDatabase:
                 os.remove(self.database_file)
                 self.database_file = file_database_filtered
             else:
-                raise ValueError("Filter only available for database in fasta format.")
+                raise DatabaseError("Filter only available for database in fasta format.")
         else:
-            raise ValueError(
-                "Can not filter. Database is empty! Call the method load_database_from_file() first."
+            raise DatabaseError(
+                "Cannot filter database: database is empty. Call load_database_from_file() first."
             )
 
     def filter_database_by_property_category(
@@ -195,10 +199,10 @@ class ReferenceDatabase:
                 os.remove(self.database_file)
                 self.database_file = file_database_filtered
             else:
-                raise ValueError("Filter only available for database in fasta format.")
+                raise DatabaseError("Filter only available for database in fasta format.")
         else:
-            raise ValueError(
-                "Can not filter. Database is empty! Call the method load_database_from_file() first."
+            raise DatabaseError(
+                "Cannot filter database: database is empty. Call load_database_from_file() first."
             )
 
         return file_database_filtered

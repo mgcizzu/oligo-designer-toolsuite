@@ -6,7 +6,6 @@ import logging
 import os
 import shutil
 import warnings
-from datetime import datetime
 from itertools import combinations
 from pathlib import Path
 from typing import List, Tuple
@@ -18,6 +17,7 @@ from Bio.SeqUtils import MeltingTemp as mt
 from Bio.SeqUtils import Seq
 from scipy.spatial.distance import hamming
 
+from oligo_designer_toolsuite._exceptions import ConfigurationError
 from oligo_designer_toolsuite.database import OligoDatabase, ReferenceDatabase
 from oligo_designer_toolsuite.oligo_efficiency_filter import (
     IsoformConsensusScorer,
@@ -66,6 +66,7 @@ from oligo_designer_toolsuite.pipelines._utils import (
     base_parser,
     check_content_oligo_database,
     pipeline_step_basic,
+    setup_logging,
 )
 from oligo_designer_toolsuite.sequence_generator import OligoSequenceGenerator
 from oligo_designer_toolsuite.utils import append_nucleotide_to_sequences
@@ -96,24 +97,16 @@ class MerfishProbeDesigner:
     def __init__(self, write_intermediate_steps: bool, dir_output: str, n_jobs: int) -> None:
         """Constructor for the MerfishProbeDesigner class."""
 
-        ##### create the output folder #####
+        # create the output folder
         self.dir_output = os.path.abspath(dir_output)
         Path(self.dir_output).mkdir(parents=True, exist_ok=True)
 
-        ##### setup logger #####
-        timestamp = datetime.now()
-        file_logger = os.path.join(
-            self.dir_output,
-            f"log_Merfish_probe_designer_{timestamp.year}-{timestamp.month}-{timestamp.day}-{timestamp.hour}-{timestamp.minute}.txt",
+        # setup logger
+        setup_logging(
+            dir_output=self.dir_output,
+            pipeline_name="Merfish_probe_designer",
+            log_start_message=True,
         )
-        logging.getLogger("log_name")
-        logging.basicConfig(
-            format="%(asctime)s [%(levelname)s] %(message)s",
-            level=logging.NOTSET,
-            handlers=[logging.FileHandler(file_logger)],
-        )
-        logging.captureWarnings(True)
-        logging.info("--------------START PIPELINE--------------")
 
         ##### set class parameters #####
         self.write_intermediate_steps = write_intermediate_steps
@@ -1813,8 +1806,9 @@ class ReadoutProbeDesigner:
             if add_new_barcode:
                 codebook.append(new_barcode)
         if len(codebook) < n_regions:
-            raise ValueError(
-                f"The number of valid barcodes ({len(codebook)}) is lower than the number of regions({n_regions}). Consider increasing the number of bits."
+            raise ConfigurationError(
+                f"The number of valid barcodes ({len(codebook)}) is lower than the number of regions ({n_regions}). "
+                f"Consider increasing the number of bits or reducing the number of regions."
             )
 
         codebook = pd.DataFrame(codebook, columns=[f"bit_{i+1}" for i in range(n_bits)])

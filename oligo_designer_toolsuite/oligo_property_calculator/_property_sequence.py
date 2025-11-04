@@ -5,6 +5,7 @@
 from typing import List, Union
 
 from oligo_designer_toolsuite._constants import _TYPES_SEQ
+from oligo_designer_toolsuite._exceptions import ConfigurationError
 from oligo_designer_toolsuite.database import OligoDatabase
 from oligo_designer_toolsuite.oligo_property_calculator import BaseProperty
 
@@ -361,8 +362,9 @@ class SplitSequenceProperty(BaseProperty):
         """Constructor for the SplitSequenceProperty class."""
         super().__init__()
         if len(split_start_end) != len(split_names):
-            raise ValueError(
-                f"{len(split_names)} names given for {len(split_start_end)} split sequences. Must give name for each split sequence."
+            raise ConfigurationError(
+                f"Mismatch between split sequence names and positions: {len(split_names)} names given for {len(split_start_end)} split sequences. "
+                f"Must provide one name for each split sequence."
             )
         self.split_start_end = split_start_end
         self.split_names = split_names

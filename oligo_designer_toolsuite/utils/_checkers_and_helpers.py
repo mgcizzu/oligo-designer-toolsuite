@@ -10,6 +10,8 @@ import warnings
 
 import yaml
 
+from oligo_designer_toolsuite._exceptions import ConfigurationError
+
 ############################################
 # Collection of utility functions
 ############################################
@@ -55,7 +57,7 @@ def check_if_dna_sequence(seq: str, valid_characters: list = ["A", "C", "T", "G"
     :rtype: bool
     """
     if any(len(char) > 1 for char in valid_characters):
-        raise ValueError("Valid characters must be single characters.")
+        raise ConfigurationError(f"Valid characters must be single characters. Received: {valid_characters}.")
 
     valid_characters_upper = [char.upper() for char in valid_characters]
     if not all(char.upper() in ["A", "C", "T", "G", "U"] for char in valid_characters_upper):

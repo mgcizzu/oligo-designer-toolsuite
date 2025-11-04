@@ -20,6 +20,7 @@ from oligo_designer_toolsuite._constants import (
     SEPARATOR_FASTA_HEADER_FIELDS,
     SEPARATOR_FASTA_HEADER_FIELDS_LIST,
 )
+from oligo_designer_toolsuite._exceptions import ConfigurationError
 from oligo_designer_toolsuite.sequence_generator import FtpLoaderEnsembl, FtpLoaderNCBI
 from oligo_designer_toolsuite.utils import GffParser
 
@@ -293,7 +294,7 @@ class CustomGenomicRegionGenerator:
                 elif strand == "-":
                     region_id_name = "InterRegMinus"
                 else:
-                    raise ValueError(f"Invalid strand value: {strand}. Expected '+' or '-'.")
+                    raise ConfigurationError(f"Invalid strand value: '{strand}'. Expected '+' or '-'.")
                 intergenic_annotation = pd.DataFrame(
                     {
                         "seqid": seqid,

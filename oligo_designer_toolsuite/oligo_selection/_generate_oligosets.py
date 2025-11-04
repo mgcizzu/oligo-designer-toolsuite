@@ -14,6 +14,7 @@ from joblib_progress import joblib_progress
 from scipy.sparse import csr_matrix, lil_matrix
 
 from oligo_designer_toolsuite._constants import _TYPES_SEQ
+from oligo_designer_toolsuite._exceptions import DatabaseError
 from oligo_designer_toolsuite.database import OligoDatabase
 from oligo_designer_toolsuite.oligo_efficiency_filter import OligoScoring, SetScoringBase
 
@@ -326,16 +327,18 @@ class HomogeneousPropertyOligoSetGenerator:
         # # check if all properties in self.properties are in oligo_df columns
         for property in self.properties:
             if oligo_df[property].isnull().any():
-                raise ValueError(
-                    f"Property '{property}' is not present in oligo database please calculate it first using oligo_designer_toolsuite.oligo_property_calculator.PropertyCalculator()."
+                raise DatabaseError(
+                    f"Property '{property}' is not present in oligo database. "
+                    f"Please calculate it first using oligo_designer_toolsuite.oligo_property_calculator.PropertyCalculator()."
                 )
             else:
                 if not (
                     pd.api.types.is_integer_dtype(oligo_df[property])
                     or pd.api.types.is_float_dtype(oligo_df[property])
                 ):
-                    raise ValueError(
-                        f"Property '{property}' is not numeric. Cannot use for variance computation."
+                    raise DatabaseError(
+                        f"Property '{property}' is not numeric. Cannot use for variance computation. "
+                        f"Properties used for variance computation must be numeric (integer or float)."
                     )
 
         combinations = self._generate_random_combinations(oligo_df.index, self.set_size, n_combinations)

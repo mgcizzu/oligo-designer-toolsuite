@@ -12,6 +12,7 @@ import numpy as np
 import pandas as pd
 from Bio import SeqIO
 
+from oligo_designer_toolsuite._exceptions import FileFormatError
 from oligo_designer_toolsuite.database import OligoDatabase
 from oligo_designer_toolsuite.oligo_property_calculator import (
     PropertyCalculator,
@@ -263,8 +264,10 @@ class BlastNFilter(AlignmentSpecificityFilter):
             "reference_strand",
         ]
         if not all(field in self.names_search_output for field in required_fields):
-            raise ValueError(
-                f"Some of the required fields {required_fields} are missing in the search results."
+            missing_fields = [field for field in required_fields if field not in self.names_search_output]
+            raise FileFormatError(
+                f"Required fields are missing in the search results: {missing_fields}. "
+                f"All of the following fields are required: {required_fields}."
             )
         # set the positions to a 0-based index
         table_hits = self._0_index_coordinates(table_hits)
@@ -718,7 +721,9 @@ class BlastNSeedregionFilter(BlastNSeedregionFilterBase):
         )
 
         seedregion = oligo_database.get_oligo_property_table(
-            properties=["seedregion_start", "seedregion_end"], flatten=True, region_ids=region_id, 
+            properties=["seedregion_start", "seedregion_end"],
+            flatten=True,
+            region_ids=region_id,
         )
         search_results = pd.merge(
             left=search_results,

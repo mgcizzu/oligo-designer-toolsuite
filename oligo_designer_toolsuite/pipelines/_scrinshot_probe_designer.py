@@ -8,7 +8,6 @@ import os
 import random
 import shutil
 import warnings
-from datetime import datetime
 from pathlib import Path
 from typing import List, Tuple
 
@@ -66,6 +65,7 @@ from oligo_designer_toolsuite.pipelines._utils import (
     base_parser,
     check_content_oligo_database,
     pipeline_step_basic,
+    setup_logging,
 )
 from oligo_designer_toolsuite.sequence_generator import OligoSequenceGenerator
 
@@ -94,24 +94,16 @@ class ScrinshotProbeDesigner:
     def __init__(self, write_intermediate_steps: bool, dir_output: str, n_jobs: int) -> None:
         """Constructor for the ScrinshotProbeDesigner class."""
 
-        ##### create the output folder #####
+        # create the output folder
         self.dir_output = os.path.abspath(dir_output)
         Path(self.dir_output).mkdir(parents=True, exist_ok=True)
 
-        ##### setup logger #####
-        timestamp = datetime.now()
-        file_logger = os.path.join(
-            self.dir_output,
-            f"log_scrinshot_probe_designer_{timestamp.year}-{timestamp.month}-{timestamp.day}-{timestamp.hour}-{timestamp.minute}.txt",
+        # setup logger
+        setup_logging(
+            dir_output=self.dir_output,
+            pipeline_name="scrinshot_probe_designer",
+            log_start_message=True,
         )
-        logging.getLogger("log_name")
-        logging.basicConfig(
-            format="%(asctime)s [%(levelname)s] %(message)s",
-            level=logging.NOTSET,
-            handlers=[logging.FileHandler(file_logger)],
-        )
-        logging.captureWarnings(True)
-        logging.info("--------------START PIPELINE--------------")
 
         ##### set class parameters #####
         self.write_intermediate_steps = write_intermediate_steps

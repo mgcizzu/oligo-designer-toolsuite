@@ -6,6 +6,7 @@ from typing import List, Union
 
 from Bio.SeqUtils import Seq
 
+from oligo_designer_toolsuite._exceptions import ConfigurationError
 from oligo_designer_toolsuite.oligo_property_calculator import (
     calc_dg_secondary_structure,
     calc_gc_content,
@@ -104,7 +105,10 @@ class ProhibitedSequenceFilter(BasePropertyFilter):
         # Check that the prohibited sequences are valid DNA sequences.
         for s in self.prohibited_sequence:
             if not check_if_dna_sequence(s):
-                raise ValueError("Prohibited sequence ({prohibited_sequences}) is not a DNA sequence.")
+                raise ConfigurationError(
+                    f"Prohibited sequence '{s}' is not a valid DNA sequence. "
+                    f"DNA sequences must contain only A, C, T, G (and optionally U) characters."
+                )
 
     def apply(self, sequence: Seq) -> bool:
         """
@@ -141,7 +145,10 @@ class HomopolymericRunsFilter(BasePropertyFilter):
         # check that the nucleotides provided are valid
         for b in base_n.keys():
             if not check_if_dna_sequence(b):
-                raise ValueError("Prohibited sequence ({base}) is not a DNA sequence.")
+                raise ConfigurationError(
+                    f"Base '{b}' is not a valid DNA sequence. "
+                    f"DNA sequences must contain only A, C, T, G (and optionally U) characters."
+                )
         # create all homopolymeric runs
         self.homopolymeric_runs = [base.upper() * n for base, n in base_n.items()]
 
@@ -264,7 +271,9 @@ class GCContentFilter(BasePropertyFilter):
         """Constructor for the GCContentFilter class."""
         super().__init__()
         if GC_content_max <= GC_content_min:
-            raise ValueError("GC_content_max is lower that GC_content_min!")
+            raise ConfigurationError(
+                f"GC_content_max ({GC_content_max}) must be greater than GC_content_min ({GC_content_min})."
+            )
         self.GC_content_min = GC_content_min
         self.GC_content_max = GC_content_max
 
@@ -359,7 +368,7 @@ class MeltingTemperatureNNFilter(BasePropertyFilter):
         """Constructor for the MeltingTemperatureNNFilter class."""
         super().__init__()
         if Tm_max <= Tm_min:
-            raise ValueError("Tm_max is lower that Tm_min!")
+            raise ConfigurationError(f"Tm_max ({Tm_max}) must be greater than Tm_min ({Tm_min}).")
         self.Tm_min = Tm_min
         self.Tm_max = Tm_max
         self.Tm_parameters = Tm_parameters

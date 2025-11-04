@@ -7,7 +7,6 @@ import logging
 import os
 import shutil
 import warnings
-from datetime import datetime
 from pathlib import Path
 from typing import List, Tuple
 
@@ -17,6 +16,7 @@ import yaml
 from Bio.SeqUtils import MeltingTemp as mt
 from Bio.SeqUtils import Seq
 
+from oligo_designer_toolsuite._exceptions import ConfigurationError, FileFormatError, NotImplementedError
 from oligo_designer_toolsuite.database import OligoDatabase, ReferenceDatabase
 from oligo_designer_toolsuite.oligo_efficiency_filter import (
     AverageSetScoring,
@@ -58,6 +58,7 @@ from oligo_designer_toolsuite.pipelines._utils import (
     base_parser,
     check_content_oligo_database,
     pipeline_step_basic,
+    setup_logging,
 )
 from oligo_designer_toolsuite.sequence_generator import OligoSequenceGenerator
 
@@ -87,24 +88,16 @@ class CycleHCRProbeDesigner:
     def __init__(self, write_intermediate_steps: bool, dir_output: str, n_jobs: int) -> None:
         """Constructor for the CycleHCRProbeDesigner class."""
 
-        ##### create the output folder #####
+        # create the output folder
         self.dir_output = os.path.abspath(dir_output)
         Path(self.dir_output).mkdir(parents=True, exist_ok=True)
 
-        ##### setup logger #####
-        timestamp = datetime.now()
-        file_logger = os.path.join(
-            self.dir_output,
-            f"log_cyclehcr_probe_designer_{timestamp.year}-{timestamp.month}-{timestamp.day}-{timestamp.hour}-{timestamp.minute}.txt",
+        # setup logger
+        setup_logging(
+            dir_output=self.dir_output,
+            pipeline_name="cyclehcr_probe_designer",
+            log_start_message=True,
         )
-        logging.getLogger("log_name")
-        logging.basicConfig(
-            format="%(asctime)s [%(levelname)s] %(message)s",
-            level=logging.NOTSET,
-            handlers=[logging.FileHandler(file_logger)],
-        )
-        logging.captureWarnings(True)
-        logging.info("--------------START PIPELINE--------------")
 
         ##### set class parameters #####
         self.write_intermediate_steps = write_intermediate_steps
@@ -415,10 +408,16 @@ class CycleHCRProbeDesigner:
                 f"Loaded readout probes table from file and retrieved {n_channels} channels and {n_readout_probes_LR} L and R readout probes."
             )
         else:
-            raise ValueError("Generation of readout probe table not implemented!")
+            raise NotImplementedError(
+                "Generation of readout probe table is not yet implemented. "
+                "Please provide a file_readout_probe_table parameter."
+            )
 
         if file_codebook:
-            raise ValueError("Loading of codeboook not implemented!")
+            raise NotImplementedError(
+                "Loading of codebook from file is not yet implemented. "
+                "Leave file_codebook empty to generate a codebook automatically."
+            )
         else:
             codebook = readout_probe_designer.generate_codebook(
                 n_regions=n_regions,
@@ -539,13 +538,19 @@ class CycleHCRProbeDesigner:
             forward_primer_sequence = forward_primer_sequence
         else:
             # generate forward primers
-            raise ValueError("Forward primer generation not implemented!")
+            raise NotImplementedError(
+                "Forward primer generation is not yet implemented. "
+                "Please provide a forward_primer_sequence parameter."
+            )
 
         if reverse_primer_sequence:
             reverse_primer_sequence = reverse_primer_sequence
         else:
             # generate reverse primers
-            raise ValueError("Reverse primer generation not implemented!")
+            raise NotImplementedError(
+                "Reverse primer generation is not yet implemented. "
+                "Please provide a reverse_primer_sequence parameter."
+            )
 
         return reverse_primer_sequence, forward_primer_sequence
 
@@ -1304,8 +1309,9 @@ class ReadoutProbeDesigner:
         codebook_size_max = len(combinations)
 
         if codebook_size_max < (2 * n_regions):
-            raise ValueError(
-                f"The number of valid barcodes ({codebook_size_max}) is lower than the required number of readout probes ({2 * n_regions}) for {n_regions} regions. Consider increasing the number of L/R readout probes."
+            raise ConfigurationError(
+                f"The number of valid barcodes ({codebook_size_max}) is lower than the required number of readout probes ({2 * n_regions}) for {n_regions} regions. "
+                f"Consider increasing the number of L/R readout probes or reducing the number of regions."
             )
 
         for combination in combinations[:n_regions]:
@@ -1340,7 +1346,10 @@ class ReadoutProbeDesigner:
         cols = set(readout_probe_table.columns)
         if not set(required_cols).issubset(cols):
             missing = set(required_cols) - cols
-            raise ValueError(f"Missing columns: {missing}")
+            raise FileFormatError(
+                f"Readout probe table is missing required columns: {missing}. "
+                f"Required columns are: {required_cols}."
+            )
 
         if "bit" not in readout_probe_table.columns:
             readout_probe_table = readout_probe_table.sort_values(by=["readout_probe_id", "channel"])

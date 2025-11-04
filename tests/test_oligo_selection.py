@@ -179,8 +179,10 @@ class TestOligosetGeneratorIndependentSet(unittest.TestCase):
             n_sets=100,
             n_jobs=1,
         )
+        oligos_database.remove_regions_with_insufficient_oligos(pipeline_step="oligoset generation")
         for gene in oligos_database.oligosets.keys():
             computed_sets = oligos_database.oligosets[gene]
+            print(computed_sets)
             computed_sets.drop(columns=["oligoset_id"], inplace=True)
             true_sets = pd.read_csv(
                 filepath_or_buffer=f"tests/data/oligo_selection/ranked_oligosets_{gene}.txt",

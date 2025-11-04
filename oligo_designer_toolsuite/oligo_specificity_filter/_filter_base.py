@@ -13,6 +13,7 @@ from joblib import Parallel, delayed
 from joblib_progress import joblib_progress
 
 from oligo_designer_toolsuite._constants import _TYPES_SEQ, SEPARATOR_FASTA_HEADER_FIELDS, SEPARATOR_OLIGO_ID
+from oligo_designer_toolsuite._exceptions import ConfigurationError
 from oligo_designer_toolsuite.database import OligoDatabase, ReferenceDatabase
 from oligo_designer_toolsuite.utils import check_if_list
 
@@ -429,8 +430,9 @@ class AlignmentSpecificityFilter(ReferenceSpecificityFilter):
         elif mode == 2:
             return table_hits
         else:
-            raise ValueError(
-                f"Mode {mode} not available. Choose mode=0 for removing hits from the database, mode=1 for flagging the hits in the database or mode=2 for returning the hits table."
+            raise ConfigurationError(
+                f"Mode '{mode}' is not available. Choose mode=0 for removing hits from the database, "
+                f"mode=1 for flagging the hits in the database, or mode=2 for returning the hits table."
             )
 
     @abstractmethod
