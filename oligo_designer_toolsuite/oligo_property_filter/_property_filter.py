@@ -64,7 +64,6 @@ class PropertyFilter:
                 for region_id in region_ids
             )
 
-        oligo_database.remove_regions_with_insufficient_oligos(pipeline_step="Property Filters")
         return oligo_database
 
     def _filter_region(

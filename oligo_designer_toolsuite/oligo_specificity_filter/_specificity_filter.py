@@ -65,6 +65,5 @@ class SpecificityFilter:
                 sequence_type=sequence_type,
                 n_jobs=n_jobs,
             )
-            oligo_database.remove_regions_with_insufficient_oligos("Specificity Filters")
 
         return oligo_database

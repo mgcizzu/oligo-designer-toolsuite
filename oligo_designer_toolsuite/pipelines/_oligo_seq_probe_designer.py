@@ -391,7 +391,6 @@ class OligoSeqProbeDesigner:
             min_oligos_per_gene=set_size_min,
             isoform_consensus=target_probe_isoform_consensus,
         )
-        check_content_oligo_database(oligo_database)
 
         if self.write_intermediate_steps:
             dir_database = oligo_database.save_database(name_database="1_db_probes_initial")
@@ -411,7 +410,6 @@ class OligoSeqProbeDesigner:
             Tm_chem_correction_parameters=self.target_probe_Tm_chem_correction_parameters,
             Tm_salt_correction_parameters=self.target_probe_Tm_salt_correction_parameters,
         )
-        check_content_oligo_database(oligo_database)
 
         if self.write_intermediate_steps:
             dir_database = oligo_database.save_database(name_database="2_db_probes_property_filter")
@@ -430,7 +428,6 @@ class OligoSeqProbeDesigner:
             hybridization_probability_threshold=target_probe_hybridization_probability_threshold,
             target_probe_read_length_bias=target_probe_read_length_bias,
         )
-        check_content_oligo_database(oligo_database)
 
         if self.write_intermediate_steps:
             dir_database = oligo_database.save_database(name_database="3_db_probes_specificity_filter")
@@ -461,7 +458,6 @@ class OligoSeqProbeDesigner:
             heuristic=self.heuristic,
             heuristic_n_attempts=self.heuristic_n_attempts,
         )
-        check_content_oligo_database(oligo_database)
 
         if self.write_intermediate_steps:
             dir_database = oligo_database.save_database(name_database="4_db_probes_probesets")
@@ -646,10 +642,11 @@ class TargetProbeDesigner:
             remove_if_smaller_threshold=True,
         )
 
-        oligo_database.remove_regions_with_insufficient_oligos(pipeline_step="Pre-Filters")
-
         dir = oligo_sequences.dir_output
         shutil.rmtree(dir) if os.path.exists(dir) else None
+
+        oligo_database.remove_regions_with_insufficient_oligos(pipeline_step="Pre-Filters")
+        check_content_oligo_database(oligo_database)
 
         return oligo_database
 
@@ -741,6 +738,8 @@ class TargetProbeDesigner:
             sequence_type="oligo",
             n_jobs=self.n_jobs,
         )
+        oligo_database.remove_regions_with_insufficient_oligos(pipeline_step="Property Filters")
+        check_content_oligo_database(oligo_database)
 
         return oligo_database
 
@@ -912,6 +911,9 @@ class TargetProbeDesigner:
             if os.path.exists(directory):
                 shutil.rmtree(directory)
 
+        oligo_database.remove_regions_with_insufficient_oligos("Specificity Filters")
+        check_content_oligo_database(oligo_database)
+
         return oligo_database
 
     @pipeline_step_basic(step_name="Oligo Selection")
@@ -1015,7 +1017,6 @@ class TargetProbeDesigner:
         )
 
         oligos_scoring = OligoScoring(scorers=[exon_scorer, isoform_scorer, Tm_scorer, GC_scorer])
-
         set_scoring = AverageSetScoring(ascending=True)
 
         # We change the processing dependent on the required number of probes in the probe sets
@@ -1090,6 +1091,8 @@ class TargetProbeDesigner:
             n_sets=n_sets,
             n_jobs=self.n_jobs,
         )
+        oligo_database.remove_regions_with_insufficient_oligos(pipeline_step="Oligo Selection")
+        check_content_oligo_database(oligo_database)
 
         return oligo_database
 

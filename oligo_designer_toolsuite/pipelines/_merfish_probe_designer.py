@@ -520,7 +520,6 @@ class MerfishProbeDesigner:
             min_oligos_per_gene=set_size_min,
             isoform_consensus=target_probe_isoform_consensus,
         )
-        check_content_oligo_database(oligo_database)
 
         if self.write_intermediate_steps:
             dir_database = oligo_database.save_database(name_database="1_db_target_probes_initial")
@@ -539,7 +538,6 @@ class MerfishProbeDesigner:
             Tm_chem_correction_parameters=self.target_probe_Tm_chem_correction_parameters,
             Tm_salt_correction_parameters=self.target_probe_Tm_salt_correction_parameters,
         )
-        check_content_oligo_database(oligo_database)
 
         if self.write_intermediate_steps:
             dir_database = oligo_database.save_database(name_database="2_db_target_probes_property_filter")
@@ -553,7 +551,6 @@ class MerfishProbeDesigner:
             cross_hybridization_blastn_search_parameters=self.target_probe_cross_hybridization_blastn_search_parameters,
             cross_hybridization_blastn_hit_parameters=self.target_probe_cross_hybridization_blastn_hit_parameters,
         )
-        check_content_oligo_database(oligo_database)
 
         if self.write_intermediate_steps:
             dir_database = oligo_database.save_database(name_database="3_db_target_probes_specificity_filter")
@@ -582,7 +579,6 @@ class MerfishProbeDesigner:
             heuristic=self.heuristic,
             heuristic_n_attempts=self.heuristic_n_attempts,
         )
-        check_content_oligo_database(oligo_database)
 
         if self.write_intermediate_steps:
             dir_database = oligo_database.save_database(name_database="4_db_target_probes_sets")
@@ -650,7 +646,6 @@ class MerfishProbeDesigner:
             oligo_base_probabilities=readout_probe_base_probabilities,
             initial_num_sequences=self.readout_probe_initial_num_sequences,
         )
-        check_content_oligo_database(oligo_database)
 
         if self.write_intermediate_steps:
             dir_database = oligo_database.save_database(name_database="1_db_readout_probes_initial")
@@ -662,7 +657,6 @@ class MerfishProbeDesigner:
             GC_content_max=readout_probe_GC_content_max,
             homopolymeric_base_n=readout_probe_homopolymeric_base_n,
         )
-        check_content_oligo_database(oligo_database)
 
         if self.write_intermediate_steps:
             dir_database = oligo_database.save_database(name_database="2_db_readout_probes_property_filter")
@@ -676,7 +670,6 @@ class MerfishProbeDesigner:
             cross_hybridization_blastn_search_parameters=self.readout_probe_cross_hybridization_blastn_search_parameters,
             cross_hybridization_blastn_hit_parameters=self.readout_probe_cross_hybridization_blastn_hit_parameters,
         )
-        check_content_oligo_database(oligo_database)
 
         if self.write_intermediate_steps:
             dir_database = oligo_database.save_database(name_database="3_db_readout_probes_specificty_filter")
@@ -693,7 +686,6 @@ class MerfishProbeDesigner:
             Tm_chem_correction_parameters=self.readout_probe_Tm_chem_correction_parameters,
             Tm_salt_correction_parameters=self.readout_probe_Tm_salt_correction_parameters,
         )
-        check_content_oligo_database(oligo_database)
 
         if self.write_intermediate_steps:
             dir_database = oligo_database.save_database(name_database="4_db_readout_probes_set_selection")
@@ -855,7 +847,6 @@ class MerfishProbeDesigner:
             oligo_base_probabilities=primer_base_probabilities,
             initial_num_sequences=self.primer_initial_num_sequences,
         )
-        check_content_oligo_database(oligo_database)
 
         if self.write_intermediate_steps:
             dir_database = oligo_database.save_database(name_database="1_db_primers_initial")
@@ -879,7 +870,6 @@ class MerfishProbeDesigner:
             T_secondary_structure=primer_T_secondary_structure,
             secondary_structures_threshold_deltaG=primer_secondary_structures_threshold_deltaG,
         )
-        check_content_oligo_database(oligo_database)
 
         if self.write_intermediate_steps:
             dir_database = oligo_database.save_database(name_database="2_db_primer_property_filter")
@@ -894,7 +884,6 @@ class MerfishProbeDesigner:
             specificity_encoding_probes_blastn_search_parameters=self.primer_specificity_encoding_probes_blastn_search_parameters,
             specificity_encoding_probes_blastn_hit_parameters=self.primer_specificity_encoding_probes_blastn_hit_parameters,
         )
-        check_content_oligo_database(oligo_database)
 
         if self.write_intermediate_steps:
             dir_database = oligo_database.save_database(name_database="3_db_primer_specificty_filter")
@@ -1150,10 +1139,12 @@ class TargetProbeDesigner:
             property_thr=isoform_consensus,
             remove_if_smaller_threshold=True,
         )
-        oligo_database.remove_regions_with_insufficient_oligos(pipeline_step="Pre-Filters")
 
         dir = oligo_sequences.dir_output
         shutil.rmtree(dir) if os.path.exists(dir) else None
+
+        oligo_database.remove_regions_with_insufficient_oligos(pipeline_step="Pre-Filters")
+        check_content_oligo_database(oligo_database)
 
         return oligo_database
 
@@ -1238,6 +1229,9 @@ class TargetProbeDesigner:
             n_jobs=self.n_jobs,
         )
 
+        oligo_database.remove_regions_with_insufficient_oligos(pipeline_step="Property Filters")
+        check_content_oligo_database(oligo_database)
+
         return oligo_database
 
     @pipeline_step_basic(step_name="Target Probe Generation - Specificity Filters")
@@ -1320,6 +1314,9 @@ class TargetProbeDesigner:
         ]:
             if os.path.exists(directory):
                 shutil.rmtree(directory)
+
+        oligo_database.remove_regions_with_insufficient_oligos(pipeline_step="Specificity Filters")
+        check_content_oligo_database(oligo_database)
 
         return oligo_database
 
@@ -1490,6 +1487,9 @@ class TargetProbeDesigner:
             n_jobs=self.n_jobs,
         )
 
+        oligo_database.remove_regions_with_insufficient_oligos(pipeline_step="Oligo Selection")
+        check_content_oligo_database(oligo_database)
+
         return oligo_database
 
 
@@ -1618,6 +1618,9 @@ class ReadoutProbeDesigner:
             n_jobs=self.n_jobs,
         )
 
+        oligo_database.remove_regions_with_insufficient_oligos(pipeline_step="Property Filters")
+        check_content_oligo_database(oligo_database)
+
         return oligo_database
 
     @pipeline_step_basic(step_name="Readout Probe Generation - Specificity Filters")
@@ -1704,6 +1707,9 @@ class ReadoutProbeDesigner:
             if os.path.exists(directory):
                 shutil.rmtree(directory)
 
+        oligo_database.remove_regions_with_insufficient_oligos(pipeline_step="Specificity Filters")
+        check_content_oligo_database(oligo_database)
+
         return oligo_database
 
     @pipeline_step_basic(step_name="Readout Probe Generation - Set Selection")
@@ -1757,6 +1763,9 @@ class ReadoutProbeDesigner:
         oligo_database = set_generator.apply(
             oligo_database, n_sets=1, n_combinations=n_combinations, n_jobs=self.n_jobs
         )
+
+        oligo_database.remove_regions_with_insufficient_oligos(pipeline_step="Oligo Selection")
+        check_content_oligo_database(oligo_database)
 
         return oligo_database
 
@@ -2044,6 +2053,9 @@ class PrimerDesigner:
             n_jobs=self.n_jobs,
         )
 
+        oligo_database.remove_regions_with_insufficient_oligos(pipeline_step="Property Filters")
+        check_content_oligo_database(oligo_database)
+
         return oligo_database
 
     @pipeline_step_basic(step_name="Primer Generation - Specificity Filters")
@@ -2124,6 +2136,9 @@ class PrimerDesigner:
         ]:
             if os.path.exists(directory):
                 shutil.rmtree(directory)
+
+        oligo_database.remove_regions_with_insufficient_oligos(pipeline_step="Specificity Filters")
+        check_content_oligo_database(oligo_database)
 
         return oligo_database
 
