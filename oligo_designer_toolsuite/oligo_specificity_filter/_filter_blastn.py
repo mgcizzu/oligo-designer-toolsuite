@@ -718,7 +718,7 @@ class BlastNSeedregionFilter(BlastNSeedregionFilterBase):
         )
 
         seedregion = oligo_database.get_oligo_property_table(
-            properties=["seedregion_start", "seedregion_end"], region_id=region_id
+            properties=["seedregion_start", "seedregion_end"], flatten=True, region_ids=region_id, 
         )
         search_results = pd.merge(
             left=search_results,
