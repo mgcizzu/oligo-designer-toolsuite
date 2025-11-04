@@ -107,7 +107,6 @@ class OligosetGeneratorIndependentSet:
                 for region_id in region_ids
             )
 
-        oligo_database.remove_regions_with_insufficient_oligos(pipeline_step="oligoset generation")
         return oligo_database
 
     def _get_oligo_set_for_region(
@@ -302,7 +301,6 @@ class HomogeneousPropertyOligoSetGenerator:
                 for region_id in region_ids
             )
 
-        oligo_database.remove_regions_with_insufficient_oligos(pipeline_step="oligoset generation")
         return oligo_database
 
     def _get_oligo_sets_for_region(
