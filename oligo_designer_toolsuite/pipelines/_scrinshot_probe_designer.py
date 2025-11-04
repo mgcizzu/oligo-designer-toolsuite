@@ -85,9 +85,9 @@ class ScrinshotProbeDesigner:
 
     :param write_intermediate_steps: Whether to save intermediate results during the probe design pipeline.
     :type write_intermediate_steps: bool
-    :param dir_output: Directory path where output files and logs will be saved.
+    :param dir_output: Directory path where output files will be saved.
     :type dir_output: str
-    :param n_jobs: Number of parallel jobs to use for computationally intensive tasks.
+    :param n_jobs: Number of parallel jobs to use for processing.
     :type n_jobs: int
     """
 
@@ -481,7 +481,7 @@ class ScrinshotProbeDesigner:
         """
         Design detection oligos for probes based on specified parameters.
 
-        :param oligo_database: The oligo database containing existing probes and associated data.
+        :param oligo_database: The OligoDatabase instance containing oligonucleotide sequences and their associated properties. This database stores oligo data organized by genomic regions and can be used for filtering, property calculations, set generation, and output operations.
         :type oligo_database: OligoDatabase
         :param detection_oligo_length_min: Minimum length for detection oligos, defaults to 15.
         :type detection_oligo_length_min: int
@@ -519,7 +519,7 @@ class ScrinshotProbeDesigner:
         Design padlock probe backbones, including padlock arms, accessory sequences, barcode and ISS anchor,
         for each probe in the oligo database.
 
-        :param oligo_database: The oligo database containing target probes and properties.
+        :param oligo_database: The OligoDatabase instance containing oligonucleotide sequences and their associated properties. This database stores oligo data organized by genomic regions and can be used for filtering, property calculations, set generation, and output operations.
         :type oligo_database: OligoDatabase
         :return: Updated oligo database with designed padlock probe backbones.
         :rtype: OligoDatabase
@@ -648,7 +648,7 @@ class ScrinshotProbeDesigner:
         """
         Generate the final output files for the Scrinshot probe design pipeline.
 
-        :param oligo_database: The oligo database containing final designed probes and attributies.
+        :param oligo_database: The OligoDatabase instance containing oligonucleotide sequences and their associated properties. This database stores oligo data organized by genomic regions and can be used for filtering, property calculations, set generation, and output operations.
         :type oligo_database: OligoDatabase
         :param top_n_sets: Number of top probe sets to include in the output, defaults to 3.
         :type top_n_sets: int
@@ -729,9 +729,9 @@ class TargetProbeDesigner:
     This class provides methods for creating, filtering, and scoring oligos based
     on specific properties and designing oligo sets for targeted probes.
 
-    :param dir_output: Directory path where output files and intermediate results will be saved.
+    :param dir_output: Directory path where output files will be saved.
     :type dir_output: str
-    :param n_jobs: Number of parallel jobs to use for computationally intensive tasks.
+    :param n_jobs: Number of parallel jobs to use for processing.
     :type n_jobs: int
     """
 
@@ -846,7 +846,7 @@ class TargetProbeDesigner:
         """
         Filter the oligo database based on various sequence properties.
 
-        :param oligo_database: The oligo database to filter.
+        :param oligo_database: The OligoDatabase instance containing oligonucleotide sequences and their associated properties. This database stores oligo data organized by genomic regions and can be used for filtering, property calculations, set generation, and output operations.
         :type oligo_database: OligoDatabase
         :param GC_content_min: Minimum GC content for oligos.
         :type GC_content_min: float
@@ -954,7 +954,7 @@ class TargetProbeDesigner:
         Filter the oligo database based on sequence specificity to remove sequences that
         cross-hybridize to other oligos or hybridization to other genomic regions.
 
-        :param oligo_database: The oligo database to filter.
+        :param oligo_database: The OligoDatabase instance containing oligonucleotide sequences and their associated properties. This database stores oligo data organized by genomic regions and can be used for filtering, property calculations, set generation, and output operations.
         :type oligo_database: OligoDatabase
         :param files_fasta_reference_database: List of FASTA files to be used as the reference database for filtering.
         :type files_fasta_reference_database: List[str]
@@ -1105,7 +1105,7 @@ class TargetProbeDesigner:
         """
         Create optimal oligo sets based on weighted scoring criteria, distance constraints and selection policies.
 
-        :param oligo_database: The oligo database to process.
+        :param oligo_database: The OligoDatabase instance containing oligonucleotide sequences and their associated properties. This database stores oligo data organized by genomic regions and can be used for filtering, property calculations, set generation, and output operations.
         :type oligo_database: OligoDatabase
         :param isoform_weight: Weight for isoform consensus in scoring.
         :type isoform_weight: float
@@ -1257,7 +1257,7 @@ class DetectionOligoDesigner:
     """
     A class for designing detection oligos with specific properties and constraints.
 
-    :param n_jobs: The number of parallel jobs to use for processing.
+    :param n_jobs: Number of parallel jobs to use for processing.
     :type n_jobs: int
     """
 
@@ -1282,7 +1282,7 @@ class DetectionOligoDesigner:
         """
         Creates detection oligos for each probe in the oligo database.
 
-        :param oligo_database: The oligo database containing probe data.
+        :param oligo_database: The OligoDatabase instance containing oligonucleotide sequences and their associated properties. This database stores oligo data organized by genomic regions and can be used for filtering, property calculations, set generation, and output operations.
         :type oligo_database: OligoDatabase
         :param oligo_length_min: Minimum length of the detection oligo.
         :type oligo_length_min: int
@@ -1342,7 +1342,7 @@ class DetectionOligoDesigner:
         """
         Generates detection oligos for a specific region in the oligo database.
 
-        :param oligo_database: The oligo database containing probe data.
+        :param oligo_database: The OligoDatabase instance containing oligonucleotide sequences and their associated properties. This database stores oligo data organized by genomic regions and can be used for filtering, property calculations, set generation, and output operations.
         :type oligo_database: OligoDatabase
         :param region_id: The ID of the region to process.
         :type region_id: str

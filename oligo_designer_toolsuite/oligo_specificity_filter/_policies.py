@@ -35,7 +35,7 @@ class BaseFilterPolicy(ABC):
 
         :param oligo_pair_hits: DataFrame containing pairs of oligonucleotides that have been identified as hits.
         :type oligo_pair_hits: pd.DataFrame
-        :param oligo_database: The OligoDatabase containing the oligonucleotides and their associated properties.
+        :param oligo_database: The OligoDatabase instance containing oligonucleotide sequences and their associated properties. This database stores oligo data organized by genomic regions and can be used for filtering, property calculations, set generation, and output operations.
         :type oligo_database: OligoDatabase
         :return: A dictionary mapping each region to a list of oligos that should be removed based on the policy.
         :rtype: dict
@@ -56,7 +56,7 @@ class BaseFilterPolicy(ABC):
         """
         Helper method to get the number of oligos in each region of the oligo database.
 
-        :param oligo_database: The OligoDatabase containing the oligonucleotides and their associated properties.
+        :param oligo_database: The OligoDatabase instance containing oligonucleotide sequences and their associated properties. This database stores oligo data organized by genomic regions and can be used for filtering, property calculations, set generation, and output operations.
         :type oligo_database: OligoDatabase
         :return: A dictionary mapping each region to the number of oligos it contains.
         :rtype: dict
@@ -84,7 +84,7 @@ class RemoveAllFilterPolicy(BaseFilterPolicy):
 
         :param oligo_pair_hits: DataFrame containing pairs of oligonucleotides that have been identified as hits.
         :type oligo_pair_hits: pd.DataFrame
-        :param oligo_database: The OligoDatabase containing the oligonucleotides and their associated properties.
+        :param oligo_database: The OligoDatabase instance containing oligonucleotide sequences and their associated properties. This database stores oligo data organized by genomic regions and can be used for filtering, property calculations, set generation, and output operations.
         :type oligo_database: OligoDatabase
         :return: A dictionary mapping each region to a list of oligos that should be removed based on the policy.
         :rtype: dict
@@ -127,7 +127,7 @@ class RemoveByLargerRegionFilterPolicy(BaseFilterPolicy):
 
         :param oligo_pair_hits: DataFrame containing pairs of oligonucleotides that have been identified as hits.
         :type oligo_pair_hits: pd.DataFrame
-        :param oligo_database: The OligoDatabase containing the oligonucleotides and their associated properties.
+        :param oligo_database: The OligoDatabase instance containing oligonucleotide sequences and their associated properties. This database stores oligo data organized by genomic regions and can be used for filtering, property calculations, set generation, and output operations.
         :type oligo_database: OligoDatabase
         :return: A dictionary mapping each region to a list of oligos that should be removed based on the policy.
         :rtype: dict
@@ -169,7 +169,7 @@ class RemoveByDegreeFilterPolicy(BaseFilterPolicy):
 
         :param oligo_pair_hits: DataFrame containing pairs of oligonucleotides that have been identified as hits.
         :type oligo_pair_hits: pd.DataFrame
-        :param oligo_database: The OligoDatabase containing the oligonucleotides and their associated properties.
+        :param oligo_database: The OligoDatabase instance containing oligonucleotide sequences and their associated properties. This database stores oligo data organized by genomic regions and can be used for filtering, property calculations, set generation, and output operations.
         :type oligo_database: OligoDatabase
         :return: A dictionary mapping each region to a list of oligos that should be removed based on the policy.
         :rtype: dict

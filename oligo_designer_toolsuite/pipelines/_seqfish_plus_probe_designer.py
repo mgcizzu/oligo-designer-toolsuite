@@ -87,9 +87,9 @@ class SeqFishPlusProbeDesigner:
 
     :param write_intermediate_steps: Whether to save intermediate results during the probe design pipeline.
     :type write_intermediate_steps: bool
-    :param dir_output: Directory path where output files and logs will be saved.
+    :param dir_output: Directory path where output files will be saved.
     :type dir_output: str
-    :param n_jobs: Number of parallel jobs to use for computationally intensive tasks.
+    :param n_jobs: Number of parallel jobs to use for processing.
     :type n_jobs: int
     """
 
@@ -936,9 +936,9 @@ class TargetProbeDesigner:
     This class provides methods for creating, filtering, and scoring oligos based
     on specific properties and designing oligo sets for targeted probes.
 
-    :param dir_output: Directory path where output files and intermediate results will be saved.
+    :param dir_output: Directory path where output files will be saved.
     :type dir_output: str
-    :param n_jobs: Number of parallel jobs to use for computationally intensive tasks.
+    :param n_jobs: Number of parallel jobs to use for processing.
     :type n_jobs: int
     """
 
@@ -1044,7 +1044,7 @@ class TargetProbeDesigner:
         """
         Filter the oligo database based on various sequence properties.
 
-        :param oligo_database: The oligo database to be filtered.
+        :param oligo_database: The OligoDatabase instance containing oligonucleotide sequences and their associated properties. This database stores oligo data organized by genomic regions and can be used for filtering, property calculations, set generation, and output operations.
         :type oligo_database: OligoDatabase
         :param GC_content_min: Minimum acceptable GC content for oligos.
         :type GC_content_min: float
@@ -1107,7 +1107,7 @@ class TargetProbeDesigner:
         Filter the oligo database based on sequence specificity to remove sequences that
         cross-hybridize to other oligos or hybridization to other genomic regions.
 
-        :param oligo_database: The oligo database to be filtered.
+        :param oligo_database: The OligoDatabase instance containing oligonucleotide sequences and their associated properties. This database stores oligo data organized by genomic regions and can be used for filtering, property calculations, set generation, and output operations.
         :type oligo_database: OligoDatabase
         :param files_fasta_reference_database: List of FASTA files containing reference sequences for specificity filtering.
         :type files_fasta_reference_database: list[str]
@@ -1198,7 +1198,7 @@ class TargetProbeDesigner:
         """
         Create optimal oligo sets based on weighted scoring criteria, distance constraints and selection policies.
 
-        :param oligo_database: The oligo database from which sets will be created.
+        :param oligo_database: The OligoDatabase instance containing oligonucleotide sequences and their associated properties. This database stores oligo data organized by genomic regions and can be used for filtering, property calculations, set generation, and output operations.
         :type oligo_database: OligoDatabase
         :param GC_weight: Weight assigned to GC content in the scoring function.
         :type GC_weight: float
@@ -1325,7 +1325,7 @@ class ReadoutProbeDesigner:
     This class provides methods for creating, filtering, and scoring oligos based
     on specific properties and designing oligo sets for readout probes.
 
-    :param dir_output: Path to the output directory where results will be stored.
+    :param dir_output: Directory path where output files will be saved.
     :type dir_output: str
     :param n_jobs: Number of parallel jobs to use for processing.
     :type n_jobs: int
@@ -1407,7 +1407,7 @@ class ReadoutProbeDesigner:
         """
         Filter the oligo database based on various sequence properties.
 
-        :param oligo_database: The oligo database to be filtered.
+        :param oligo_database: The OligoDatabase instance containing oligonucleotide sequences and their associated properties. This database stores oligo data organized by genomic regions and can be used for filtering, property calculations, set generation, and output operations.
         :type oligo_database: OligoDatabase
         :param GC_content_min: Minimum acceptable GC content for oligos.
         :type GC_content_min: float
@@ -1457,7 +1457,7 @@ class ReadoutProbeDesigner:
         Filter the oligo database based on sequence specificity to remove sequences that
         cross-hybridize to other oligos or hybridization to other genomic regions.
 
-        :param oligo_database: The oligo database to be filtered.
+        :param oligo_database: The OligoDatabase instance containing oligonucleotide sequences and their associated properties. This database stores oligo data organized by genomic regions and can be used for filtering, property calculations, set generation, and output operations.
         :type oligo_database: OligoDatabase
         :param files_fasta_reference_database: List of FASTA files containing reference sequences for
             specificity filtering.
@@ -1657,9 +1657,9 @@ class PrimerDesigner:
     This class provides methods for creating, filtering, and scoring oligos based
     on specific properties and designing oligo sets for primers.
 
-    :param dir_output: The output directory for storing generated files and intermediate results.
+    :param dir_output: Directory path where output files will be saved.
     :type dir_output: str
-    :param n_jobs: The number of parallel jobs to use for computations.
+    :param n_jobs: Number of parallel jobs to use for processing.
     :type n_jobs: int
     """
 
@@ -1754,7 +1754,7 @@ class PrimerDesigner:
         """
         Filter the oligo database based on various sequence properties.
 
-        :param oligo_database: The oligo database to be filtered.
+        :param oligo_database: The OligoDatabase instance containing oligonucleotide sequences and their associated properties. This database stores oligo data organized by genomic regions and can be used for filtering, property calculations, set generation, and output operations.
         :type oligo_database: OligoDatabase
         :param GC_content_min: Minimum acceptable GC content for oligos.
         :type GC_content_min: float
@@ -1850,7 +1850,7 @@ class PrimerDesigner:
         Filter the oligo database based on sequence specificity to remove sequences that
         hybridize to encoding probes or other genomic regions.
 
-        :param oligo_database: The oligo database to be filtered.
+        :param oligo_database: The OligoDatabase instance containing oligonucleotide sequences and their associated properties. This database stores oligo data organized by genomic regions and can be used for filtering, property calculations, set generation, and output operations.
         :type oligo_database: OligoDatabase
         :param files_fasta_reference_database: List of FASTA files containing reference sequences for specificity filtering.
         :type files_fasta_reference_database: list[str]

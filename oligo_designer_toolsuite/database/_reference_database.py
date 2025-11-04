@@ -23,7 +23,7 @@ class ReferenceDatabase:
 
     :param database_name: The name of the ReferenceDatabase, defaults to "db_reference".
     :type database_name: str
-    :param dir_output: The directory where the database will be stored, defaults to "output".
+    :param dir_output: Directory path where output files will be saved. Defaults to "output".
     :type dir_output: str
     """
 
@@ -120,7 +120,7 @@ class ReferenceDatabase:
 
         :param filename: Name of the output file (without extension).
         :type filename: str
-        :param dir_output: The directory where the database will be stored, if None, the directory defined in the init function will be used.
+        :param dir_output: Directory path where output files will be saved. If None, the directory defined in the init function will be used.
         :type dir_output: str
         :return: Path to the written database file.
         :rtype: str
@@ -143,7 +143,7 @@ class ReferenceDatabase:
         """
         Filter the database to retain or remove specific regions.
 
-        :param region_ids: List of region identifiers to keep or remove.
+        :param region_ids: Region identifier(s) to process. Can be a single region ID (str) or a list of region IDs (List[str]). If None, all regions in the database are processed.
         :type region_ids: Union[str, List[str]]
         :param keep_region: Whether to keep (True) or remove (False) the specified regions.
         :type keep_region: bool
@@ -216,7 +216,7 @@ class ReferenceDatabase:
         Filter a FASTA database to retain or exclude specific regions.
         Therefore, merge fasta files and load fasta content for filtering.
 
-        :param region_ids: List of region identifiers to retain or remove.
+        :param region_ids: Region identifier(s) to process. Can be a single region ID (str) or a list of region IDs (List[str]). If None, all regions in the database are processed.
         :type region_ids: Union[str, List[str]]
         :param keep_region: Whether to keep (True) or remove (False) the specified regions.
         :type keep_region: bool

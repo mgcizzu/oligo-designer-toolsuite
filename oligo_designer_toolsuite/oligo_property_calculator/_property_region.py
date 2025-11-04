@@ -29,14 +29,14 @@ class NumTargetedTranscriptsProperty(BaseProperty):
         """
         Calculate the number of unique transcripts targeted by the oligonucleotide.
 
-        :param oligo_database: The OligoDatabase containing the oligonucleotides and their associated properties.
+        :param oligo_database: The OligoDatabase instance containing oligonucleotide sequences and their associated properties. This database stores oligo data organized by genomic regions and can be used for filtering, property calculations, set generation, and output operations.
         :type oligo_database: OligoDatabase
         :param region_id: Region ID to process.
         :type region_id: str
         :param oligo_id: The ID of the oligo for which the property is calculated.
         :type oligo_id: str
-        :param sequence_type: The type of sequence to be used for property calculation (not used for this property).
-        :type sequence_type: _TYPES_SEQ["oligo", "target"]
+        :param sequence_type: Type of sequence being processed. Must be one of the sequence types specified in `_constants._TYPES_SEQ`. Note: This parameter is not used for this property.
+        :type sequence_type: _TYPES_SEQ
         :return: A dictionary containing the calculated number of targeted transcripts property.
         :rtype: dict
         """
@@ -68,14 +68,14 @@ class IsoformConsensusProperty(BaseProperty):
         """
         Calculate the isoform consensus for the oligonucleotide.
 
-        :param oligo_database: The OligoDatabase containing the oligonucleotides and their associated properties.
+        :param oligo_database: The OligoDatabase instance containing oligonucleotide sequences and their associated properties. This database stores oligo data organized by genomic regions and can be used for filtering, property calculations, set generation, and output operations.
         :type oligo_database: OligoDatabase
         :param region_id: Region ID to process.
         :type region_id: str
         :param oligo_id: The ID of the oligo for which the property is calculated.
         :type oligo_id: str
-        :param sequence_type: The type of sequence to be used for property calculation (not used for this property).
-        :type sequence_type: _TYPES_SEQ["oligo", "target"]
+        :param sequence_type: Type of sequence being processed. Must be one of the sequence types specified in `_constants._TYPES_SEQ`. Note: This parameter is not used for this property.
+        :type sequence_type: _TYPES_SEQ
         :return: A dictionary containing the calculated isoform consensus property.
         :rtype: dict
         """

@@ -45,11 +45,11 @@ class SpecificityFilter:
         It evaluates the database against reference sequences, if provided, and ensures that only oligonucleotides
         meeting all specificity criteria are retained.
 
-        :param oligo_database: The OligoDatabase containing the oligonucleotides and their associated properties.
+        :param oligo_database: The OligoDatabase instance containing oligonucleotide sequences and their associated properties. This database stores oligo data organized by genomic regions and can be used for filtering, property calculations, set generation, and output operations.
         :type oligo_database: OligoDatabase
-        :param sequence_type: The type of sequence to be used for filter calculations.
-        :type sequence_type: _TYPES_SEQ["oligo", "target"]
-        :param n_jobs: The number of parallel jobs to use for processing.
+        :param sequence_type: Type of sequence being processed. Must be one of the sequence types specified in `_constants._TYPES_SEQ`.
+        :type sequence_type: _TYPES_SEQ
+        :param n_jobs: Number of parallel jobs to use for processing.
         :type n_jobs: int
         :return: The filtered OligoDatabase.
         :rtype: OligoDatabase

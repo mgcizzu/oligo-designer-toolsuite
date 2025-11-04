@@ -31,8 +31,8 @@ def merge_databases(
     :type database1: dict
     :param database2: The second database to be merged.
     :type database2: dict
-    :param sequence_type: The type of sequence being loaded, must be one of the predefined sequence types, i.e. "oligo" or "target".
-    :type sequence_type: _TYPES_SEQ["oligo", "target"]
+    :param sequence_type: Type of sequence being processed. Must be one of the sequence types specified in `_constants._TYPES_SEQ`.
+    :type sequence_type: _TYPES_SEQ
     :param dir_cache_files: Directory to store cache files used for merging.
     :type dir_cache_files: str
     :param max_entries_in_memory: Maximum number of entries to keep in memory for the LRU (Least Recently Used) cache.
@@ -49,8 +49,8 @@ def merge_databases(
         :type database: dict
         :param regions: List of regions within the database to process.
         :type regions: list
-        :param sequence_type: The type of sequence being loaded, must be one of the predefined sequence types, i.e. "oligo" or "target".
-        :type sequence_type: _TYPES_SEQ["oligo", "target"]
+        :param sequence_type: Type of sequence being processed. Must be one of the sequence types specified in `_constants._TYPES_SEQ`.
+        :type sequence_type: _TYPES_SEQ
         :return: A dictionary with sequences as keys and oligo properties as values.
         :rtype: dict
         """
@@ -169,7 +169,7 @@ def check_if_region_in_database(
 
     :param database: The database.
     :type database: dict
-    :param region_ids: A list of region IDs to check.
+    :param region_ids: Region identifier(s) to process. Can be a single region ID (str) or a list of region IDs (List[str]). If None, all regions in the database are processed.
     :type region_ids: list
     :param write_regions_with_insufficient_oligos: Whether to write regions with insufficient oligos to a file.
     :type write_regions_with_insufficient_oligos: bool

@@ -25,7 +25,7 @@ class OligoSequenceGenerator:
     """
     A class to generate oligonucleotide sequences at random or from input FASTA files.
 
-    :param dir_output: The root directory where output files will be stored, defaults to "output".
+    :param dir_output: Directory path where output files will be saved. Defaults to "output".
     :type dir_output: str
     """
 
@@ -137,9 +137,9 @@ class OligoSequenceGenerator:
         :type split_region: int
         :param stride: The step size for the sliding window. Default is 1, meaning that the window moves to every base.
         :type stride: int
-        :param region_ids: List of region IDs to process. If None, all regions in the OligoDatabase are processed, defaults to None.
+        :param region_ids: Region identifier(s) to process. Can be a single region ID (str) or a list of region IDs (List[str]). If None, all regions in the database are processed, defaults to None.
         :type region_ids: Union[str, List[str]], optional
-        :param n_jobs: Number of parallel jobs to run. Default is 1.
+        :param n_jobs: Number of parallel jobs to use for processing. Defaults to 1.
         :type n_jobs: int
         :return: A sorted list of paths to the output FASTA files containing the generated sequences.
         :rtype: list

@@ -25,7 +25,7 @@ class BaseFtpLoader:
     """
     A base class for downloading files via FTP and postprocessing the downloaded files.
 
-    :param dir_output: The directory path where the downloaded files will be saved.
+    :param dir_output: Directory path where output files will be saved.
     :type dir_output: str
     """
 
@@ -128,7 +128,7 @@ class FtpLoaderEnsembl(BaseFtpLoader):
     for a specific species and annotation release from the Ensembl FTP server. The class handles the construction of FTP paths and file names,
     and manages the download and decompression of files.
 
-    :param dir_output: The directory where the downloaded files will be saved.
+    :param dir_output: Directory path where output files will be saved.
     :type dir_output: str
     :param species: The species for which the genomic data is to be downloaded (e.g., 'human', 'mouse').
     :type species: str

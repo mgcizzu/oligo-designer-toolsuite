@@ -42,12 +42,12 @@ class OligoScoring:
         for each oligo using the list of scoring strategies provided at initialization. The scores are
         added to the oligo entries under the key 'oligo_score' and also returned as a pandas Series.
 
-        :param oligo_database: The OligoDatabase containing the oligonucleotides and their associated properties.
+        :param oligo_database: The OligoDatabase instance containing oligonucleotide sequences and their associated properties. This database stores oligo data organized by genomic regions and can be used for filtering, property calculations, set generation, and output operations.
         :type oligo_database: OligoDatabase
         :param region_id: Region ID to process.
         :type region_id: str
-        :param sequence_type: The type of sequence to be used for filter calculations.
-        :type sequence_type: _TYPES_SEQ["oligo", "target"]
+        :param sequence_type: Type of sequence being processed. Must be one of the sequence types specified in `_constants._TYPES_SEQ`.
+        :type sequence_type: _TYPES_SEQ
         :return: A tuple containing the updated OligoDatabase and a pandas Series of scores indexed by oligo ID.
         :rtype: Tuple[OligoDatabase, pd.Series]
         """

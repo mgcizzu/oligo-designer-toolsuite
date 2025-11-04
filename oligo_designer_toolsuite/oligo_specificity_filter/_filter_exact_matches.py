@@ -63,11 +63,11 @@ class ExactMatchFilter(BaseSpecificityFilter):
         It then uses the provided policy to determine how these exact matches should be handled.
         The filter operates in parallel across regions in the OligoDatabase to improve performance.
 
-        :param oligo_database: The OligoDatabase containing the oligonucleotides and their associated properties.
+        :param oligo_database: The OligoDatabase instance containing oligonucleotide sequences and their associated properties. This database stores oligo data organized by genomic regions and can be used for filtering, property calculations, set generation, and output operations.
         :type oligo_database: OligoDatabase
-        :param sequence_type: The type of sequence to be used for the filter calculations.
-        :type sequence_type: _TYPES_SEQ["oligo", "target"]
-        :param n_jobs: The number of parallel jobs to use for processing.
+        :param sequence_type: Type of sequence being processed. Must be one of the sequence types specified in `_constants._TYPES_SEQ`.
+        :type sequence_type: _TYPES_SEQ
+        :param n_jobs: Number of parallel jobs to use for processing.
         :type n_jobs: int
         :return: The filtered OligoDatabase with exact matching sequences removed.
         :rtype: OligoDatabase
@@ -121,11 +121,11 @@ class ExactMatchFilter(BaseSpecificityFilter):
         This function compares oligo sequences within the OligoDatabase to identify pairs of oligos that have exact matches,
         including their reverse complements. It generates a list of these matching oligo pairs, which can be used for further filtering or analysis.
 
-        :param oligo_database: The OligoDatabase containing the oligonucleotides and their associated properties.
+        :param oligo_database: The OligoDatabase instance containing oligonucleotide sequences and their associated properties. This database stores oligo data organized by genomic regions and can be used for filtering, property calculations, set generation, and output operations.
         :type oligo_database: OligoDatabase
-        :param sequence_type: The type of sequence to be used for the filter calculations.
-        :type sequence_type: _TYPES_SEQ["oligo", "target"]r[]
-        :param n_jobs: The number of parallel jobs to use for processing.
+        :param sequence_type: Type of sequence being processed. Must be one of the sequence types specified in `_constants._TYPES_SEQ`.
+        :type sequence_type: _TYPES_SEQr[]
+        :param n_jobs: Number of parallel jobs to use for processing.
         :type n_jobs: int
         :return: A list of tuples representing oligo pairs that have exact matches.
         :rtype: list
@@ -210,7 +210,7 @@ class ExactMatchFilter(BaseSpecificityFilter):
         This function checks each sequence in a specified region of the oligo OligoDatabase against a list of search results.
         It then maps these sequences to their corresponding oligo IDs and records any hits that are either within or outside the input region, depending on the filter settings.
 
-        :param oligo_database: The OligoDatabase containing the oligonucleotides and their associated properties.
+        :param oligo_database: The OligoDatabase instance containing oligonucleotide sequences and their associated properties. This database stores oligo data organized by genomic regions and can be used for filtering, property calculations, set generation, and output operations.
         :type oligo_database: OligoDatabase
         :param search_results: A list of sequences that were identified as duplicates.
         :type search_results: List

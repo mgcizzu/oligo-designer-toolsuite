@@ -27,7 +27,7 @@ class GenomicRegionGenerator:
     A class to generate genomic regions and manage annotations. This class allows loading of annotations from different
     sources (NCBI, Ensembl, or custom files), and generates genomic regions such as genes, intergenic regions, exons, etc.
 
-    :param dir_output: Directory where the output files will be stored.
+    :param dir_output: Directory path where output files will be saved.
     :type dir_output: str
     """
 

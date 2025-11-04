@@ -38,11 +38,11 @@ class PropertyCalculator:
         Apply the property calculators to all oligonucleotides in the OligoDatabase and update
         the database with the calculated property values.
 
-        :param oligo_database: The OligoDatabase containing the oligonucleotides and their associated properties.
+        :param oligo_database: The OligoDatabase instance containing oligonucleotide sequences and their associated properties. This database stores oligo data organized by genomic regions and can be used for filtering, property calculations, set generation, and output operations.
         :type oligo_database: OligoDatabase
-        :param sequence_type: The type of sequence to be used for property calculation.
-        :type sequence_type: _TYPES_SEQ["oligo", "target"]
-        :param n_jobs: The number of jobs to run in parallel, defaults to 1.
+        :param sequence_type: Type of sequence being processed. Must be one of the sequence types specified in `_constants._TYPES_SEQ`.
+        :type sequence_type: _TYPES_SEQ
+        :param n_jobs: Number of parallel jobs to use for processing. Defaults to 1.
         :type n_jobs: int
         :return: The updated OligoDatabase with the calculated properties.
         :rtype: OligoDatabase
@@ -70,12 +70,12 @@ class PropertyCalculator:
         This method iterates through the oligonucleotides in a given region of the database,
         applying all property calculators to each oligo and updating the database with the calculated values.
 
-        :param oligo_database: The OligoDatabase containing the oligonucleotides and their associated properties.
+        :param oligo_database: The OligoDatabase instance containing oligonucleotide sequences and their associated properties. This database stores oligo data organized by genomic regions and can be used for filtering, property calculations, set generation, and output operations.
         :type oligo_database: OligoDatabase
         :param region_id: Region ID to process.
         :type region_id: str
-        :param sequence_type: The type of sequence to be used for the property calculations.
-        :type sequence_type: _TYPES_SEQ["oligo", "target"]
+        :param sequence_type: Type of sequence being processed. Must be one of the sequence types specified in `_constants._TYPES_SEQ`.
+        :type sequence_type: _TYPES_SEQ
         """
         new_oligo_property = {}
 

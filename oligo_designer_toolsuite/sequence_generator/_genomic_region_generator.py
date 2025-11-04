@@ -61,7 +61,7 @@ class CustomGenomicRegionGenerator:
     :type annotation_release: str, optional
     :param genome_assembly: The genome assembly version, defaults to "unknown".
     :type genome_assembly: str, optional
-    :param dir_output: The directory path for storing output files, defaults to "output".
+    :param dir_output: Directory path where output files will be saved. Defaults to "output".
     :type dir_output: str, optional
     """
 
@@ -1207,7 +1207,7 @@ class NcbiGenomicRegionGenerator(CustomGenomicRegionGenerator):
     :type species: str, optional
     :param annotation_release: The version of the annotation release to use, defaults to "current".
     :type annotation_release: str, optional
-    :param dir_output: The directory where output files will be stored, defaults to "output".
+    :param dir_output: Directory path where output files will be saved. Defaults to "output".
     :type dir_output: str, optional
     """
 
@@ -1259,7 +1259,7 @@ class EnsemblGenomicRegionGenerator(CustomGenomicRegionGenerator):
     :type species: str, optional
     :param annotation_release: The version of the annotation release to use, defaults to "current".
     :type annotation_release: str, optional
-    :param dir_output: The directory where output files will be stored, defaults to "output".
+    :param dir_output: Directory path where output files will be saved. Defaults to "output".
     :type dir_output: str, optional
     """
 

@@ -32,7 +32,7 @@ class CrossHybridizationFilter(BaseSpecificityFilter):
     :type alignment_method: AlignmentSpecificityFilter
     :param filter_name: Name of the filter for identification purposes.
     :type filter_name: str
-    :param dir_output: Directory to store output files and temporary data.
+    :param dir_output: Directory path where output files will be saved.
     :type dir_output: str
     """
 
@@ -58,7 +58,7 @@ class CrossHybridizationFilter(BaseSpecificityFilter):
         This function generates a FASTA file from the OligoDatabase, which is then loaded into a new ReferenceDatabase object.
         The ReferenceDatabase is used to identify potential cross-hybridization with the oligo sequences.
 
-        :param oligo_database: The OligoDatabase containing the oligonucleotides and their associated properties.
+        :param oligo_database: The OligoDatabase instance containing oligonucleotide sequences and their associated properties. This database stores oligo data organized by genomic regions and can be used for filtering, property calculations, set generation, and output operations.
         :type oligo_database: OligoDatabase
         :return: The generated ReferenceDatabase.
         :rtype: ReferenceDatabase
@@ -94,11 +94,11 @@ class CrossHybridizationFilter(BaseSpecificityFilter):
         This function compares oligonucleotides in the OligoDatabase with reference sequences consisting of all sequences in the OligoDatabase using the specified alignment method.
         Based on the results, it filters out oligonucleotides that meet the cross-hybridization criteria defined by the policy.
 
-        :param oligo_database: The OligoDatabase containing the oligonucleotides and their associated properties.
+        :param oligo_database: The OligoDatabase instance containing oligonucleotide sequences and their associated properties. This database stores oligo data organized by genomic regions and can be used for filtering, property calculations, set generation, and output operations.
         :type oligo_database: OligoDatabase
-        :param sequence_type: The type of sequence to be used for filter calculations.
-        :type sequence_type: _TYPES_SEQ["oligo", "target"]
-        :param n_jobs: The number of parallel jobs to use for processing.
+        :param sequence_type: Type of sequence being processed. Must be one of the sequence types specified in `_constants._TYPES_SEQ`.
+        :type sequence_type: _TYPES_SEQ
+        :param n_jobs: Number of parallel jobs to use for processing.
         :type n_jobs: int
         :return: The filtered OligoDatabase with potential cross-hybridizing sequences removed.
         :rtype: OligoDatabase

@@ -47,7 +47,7 @@ class HybridizationProbabilityFilter(ReferenceSpecificityFilter):
     :type remove_hits: bool
     :param filter_name: Name of the filter for identification purposes.
     :type filter_name: str
-    :param dir_output: Directory to store output files and temporary data.
+    :param dir_output: Directory path where output files will be saved.
     :type dir_output: str
     """
 
@@ -74,7 +74,7 @@ class HybridizationProbabilityFilter(ReferenceSpecificityFilter):
         """
         Creates a reference file and builds an index for alignment-based search.
 
-        :param n_jobs: Number of parallel jobs to use during the indexing process.
+        :param n_jobs: Number of parallel jobs to use for processing.
         :type n_jobs: int
         :return: The name of the created reference file.
         :rtype: str
@@ -96,11 +96,11 @@ class HybridizationProbabilityFilter(ReferenceSpecificityFilter):
         uses an AI model that predicts hybridization probabilities. The filter removes oligonucleotides that are
         likely to hybridize with off-target sequences, based on a predefined threshold.
 
-        :param oligo_database: The OligoDatabase containing the oligonucleotides and their associated properties.
+        :param oligo_database: The OligoDatabase instance containing oligonucleotide sequences and their associated properties. This database stores oligo data organized by genomic regions and can be used for filtering, property calculations, set generation, and output operations.
         :type oligo_database: OligoDatabase
-        :param sequence_type: The type of sequence to be used for the filter calculations.
-        :type sequence_type: _TYPES_SEQ["oligo", "target"]
-        :param n_jobs: The number of parallel jobs to use for processing.
+        :param sequence_type: Type of sequence being processed. Must be one of the sequence types specified in `_constants._TYPES_SEQ`.
+        :type sequence_type: _TYPES_SEQ
+        :param n_jobs: Number of parallel jobs to use for processing.
         :type n_jobs: int
         :return: The filtered OligoDatabase with off-targets removed.
         :rtype: OligoDatabase
@@ -147,7 +147,7 @@ class HybridizationProbabilityFilter(ReferenceSpecificityFilter):
         likelihood to hybridize with off-target sequences in a reference database. The filtering process uses
         an alignment method and AI model to evaluate the sequences, removing those that meet the criteria for potential cross-hybridization.
 
-        :param oligo_database: The OligoDatabase containing the oligonucleotides and their associated properties.
+        :param oligo_database: The OligoDatabase instance containing oligonucleotide sequences and their associated properties. This database stores oligo data organized by genomic regions and can be used for filtering, property calculations, set generation, and output operations.
         :type oligo_database: OligoDatabase
         :param file_reference: Path to the reference file used for alignment filtering.
         :type file_reference: str

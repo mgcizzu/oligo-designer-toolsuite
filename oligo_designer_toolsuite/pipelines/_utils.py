@@ -30,7 +30,7 @@ def setup_logging(
     This function creates a consistent logging setup across all pipelines, creating a log file
     in the output directory and optionally writing to the console.
 
-    :param dir_output: Directory where the log file will be created.
+    :param dir_output: Directory path where output files will be saved.
     :type dir_output: str
     :param pipeline_name: Name of the pipeline (used in log file name).
     :type pipeline_name: str

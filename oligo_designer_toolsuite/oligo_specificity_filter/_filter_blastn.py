@@ -62,7 +62,7 @@ class BlastNFilter(AlignmentSpecificityFilter):
     :type names_search_output: list
     :param filter_name: Name of the filter for identification purposes.
     :type filter_name: str
-    :param dir_output: Directory to store output files and temporary data.
+    :param dir_output: Directory path where output files will be saved.
     :type dir_output: str
     """
 
@@ -104,7 +104,7 @@ class BlastNFilter(AlignmentSpecificityFilter):
         This method generates an index for a nucleotide BLAST database from the specified reference file.
         The index is stored in the specified output directory.
 
-        :param n_jobs: The number of parallel jobs to use for creating the index (not utilized in this filter).
+        :param n_jobs: Number of parallel jobs to use for processing. Note: This parameter is not utilized in this filter.
         :type n_jobs: int
         :return: The name of the created BLAST reference file.
         :rtype: str
@@ -133,7 +133,7 @@ class BlastNFilter(AlignmentSpecificityFilter):
         performs a BLAST search against the provided ReferenceDatabase index.
         The results are read into a DataFrame for further analysis.
 
-        :param oligo_database: The OligoDatabase containing the oligonucleotides and their associated properties.
+        :param oligo_database: The OligoDatabase instance containing oligonucleotide sequences and their associated properties. This database stores oligo data organized by genomic regions and can be used for filtering, property calculations, set generation, and output operations.
         :type oligo_database: OligoDatabase
         :param file_reference: Path to the reference file used for alignment filtering.
         :type file_reference: str
@@ -197,7 +197,7 @@ class BlastNFilter(AlignmentSpecificityFilter):
         considering either a minimum alignment length or a coverage percentage of the query sequence.
         Additionally, it can exclude hits where the query and reference sequences originate from the same region.
 
-        :param oligo_database: The OligoDatabase containing the oligonucleotides and their associated properties (not utilized in this filter).
+        :param oligo_database: The OligoDatabase instance containing oligonucleotide sequences and their associated properties. This database stores oligo data organized by genomic regions and can be used for filtering, property calculations, set generation, and output operations. Note: This parameter is not utilized in this filter.
         :type oligo_database: OligoDatabase
         :param search_results: DataFrame containing the results of the BLAST search.
         :type search_results: pd.DataFrame
@@ -499,7 +499,7 @@ class BlastNSeedregionFilterBase(BlastNFilter):
     :type names_search_output: list
     :param filter_name: Name of the filter for identification purposes.
     :type filter_name: str
-    :param dir_output: Directory to store output files and temporary data.
+    :param dir_output: Directory path where output files will be saved.
     :type dir_output: str
     """
 
@@ -545,7 +545,7 @@ class BlastNSeedregionFilterBase(BlastNFilter):
         The `_add_seed_region_information` method is intended to be implemented in subclasses.
         It processes the BLAST search results and integrates specific seed region data into the provided OligoDatabase.
 
-        :param oligo_database: The OligoDatabase containing the oligonucleotides and their associated properties.
+        :param oligo_database: The OligoDatabase instance containing oligonucleotide sequences and their associated properties. This database stores oligo data organized by genomic regions and can be used for filtering, property calculations, set generation, and output operations.
         :type oligo_database: OligoDatabase
         :param search_results: The DataFrame containing the results of the BLAST search.
         :type search_results: pd.DataFrame
@@ -568,7 +568,7 @@ class BlastNSeedregionFilterBase(BlastNFilter):
         This method processes the search results to identify significant hits by applying user-defined thresholds for alignment length or coverage.
         It also incorporates seed region information into the search results and optionally filters out hits that originate from the same region as the input sequence.
 
-        :param oligo_database: The OligoDatabase containing the oligonucleotides and their associated properties.
+        :param oligo_database: The OligoDatabase instance containing oligonucleotide sequences and their associated properties. This database stores oligo data organized by genomic regions and can be used for filtering, property calculations, set generation, and output operations.
         :type oligo_database: OligoDatabase
         :param search_results: DataFrame containing BLAST search results.
         :type search_results: pd.DataFrame
@@ -654,7 +654,7 @@ class BlastNSeedregionFilter(BlastNSeedregionFilterBase):
     :type names_search_output: list
     :param filter_name: Name of the filter for identification purposes.
     :type filter_name: str
-    :param dir_output: Directory to store output files and temporary data.
+    :param dir_output: Directory path where output files will be saved.
     :type dir_output: str
     """
 
@@ -704,7 +704,7 @@ class BlastNSeedregionFilter(BlastNSeedregionFilterBase):
         This method enhances the BLAST search results by incorporating seed region start and end positions from the OligoDatabase.
         It calculates the seed region positions for each oligonucleotide and merges this information with the BLAST search results to refine the output.
 
-        :param oligo_database: The OligoDatabase containing the oligonucleotides and their associated properties.
+        :param oligo_database: The OligoDatabase instance containing oligonucleotide sequences and their associated properties. This database stores oligo data organized by genomic regions and can be used for filtering, property calculations, set generation, and output operations.
         :type oligo_database: OligoDatabase
         :param search_results: The DataFrame containing the results of the BLAST search.
         :type search_results: pd.DataFrame
@@ -770,7 +770,7 @@ class BlastNSeedregionSiteFilter(BlastNSeedregionFilterBase):
     :type names_search_output: list
     :param filter_name: Name of the filter for identification purposes.
     :type filter_name: str
-    :param dir_output: Directory to store output files and temporary data.
+    :param dir_output: Directory path where output files will be saved.
     :type dir_output: str
     """
 
@@ -813,7 +813,7 @@ class BlastNSeedregionSiteFilter(BlastNSeedregionFilterBase):
         This method calculates the seed region around the seed region site for each oligonucleotide in the OligoDatabase and
         merges this information with the BLASTN search results. The seed region is defined by the `seedregion_size` parameter.
 
-        :param oligo_database: The OligoDatabase containing the oligonucleotides and their associated properties.
+        :param oligo_database: The OligoDatabase instance containing oligonucleotide sequences and their associated properties. This database stores oligo data organized by genomic regions and can be used for filtering, property calculations, set generation, and output operations.
         :type oligo_database: OligoDatabase
         :param search_results: The DataFrame containing the results of the BLASTN search.
         :type search_results: pd.DataFrame

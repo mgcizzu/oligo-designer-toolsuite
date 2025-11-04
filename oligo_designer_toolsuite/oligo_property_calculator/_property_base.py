@@ -34,14 +34,14 @@ class BaseProperty(ABC):
         This abstract method must be implemented by subclasses to define the specific property
         calculation logic for a given oligo.
 
-        :param oligo_database: The OligoDatabase containing the oligonucleotides and their associated properties.
+        :param oligo_database: The OligoDatabase instance containing oligonucleotide sequences and their associated properties. This database stores oligo data organized by genomic regions and can be used for filtering, property calculations, set generation, and output operations.
         :type oligo_database: OligoDatabase
         :param region_id: Region ID to process.
         :type region_id: str
         :param oligo_id: The ID of the oligo for which the property is calculated.
         :type oligo_id: str
-        :param sequence_type: The type of sequence to be used for property calculation.
-        :type sequence_type: _TYPES_SEQ["oligo", "target"]
+        :param sequence_type: Type of sequence being processed. Must be one of the sequence types specified in `_constants._TYPES_SEQ`.
+        :type sequence_type: _TYPES_SEQ
         :return: A dictionary containing the calculated property(ies). Keys are property names, values are the calculated values.
         :rtype: dict
         """

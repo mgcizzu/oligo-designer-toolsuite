@@ -81,17 +81,17 @@ class OligosetGeneratorIndependentSet:
         +-------------+----------+----------+-----+----+-------+----------+-------------+-------------+-------+
 
 
-        :param oligo_database: The OligoDatabase containing the oligonucleotides and their associated properties.
+        :param oligo_database: The OligoDatabase instance containing oligonucleotide sequences and their associated properties. This database stores oligo data organized by genomic regions and can be used for filtering, property calculations, set generation, and output operations.
         :type oligo_database: OligoDatabase
-        :param sequence_type: The type of sequence to be used for the set calculations.
-        :type sequence_type: _TYPES_SEQ["oligo", "target"]
+        :param sequence_type: Type of sequence being processed. Must be one of the sequence types specified in `_constants._TYPES_SEQ`.
+        :type sequence_type: _TYPES_SEQ
         :param set_size_opt: The optimal size of each oligo set.
         :type set_size_opt: int
         :param set_size_min: The minimum allowed size of each oligo set.
         :type set_size_min: int
         :param n_sets: The number of oligo sets to generate.
         :type n_sets: int
-        :param n_jobs: The number of parallel jobs to use for processing.
+        :param n_jobs: Number of parallel jobs to use for processing.
         :type n_jobs: int, optional
         :return: The updated oligo database with the generated oligo sets.
         :rtype: OligoDatabase
@@ -123,12 +123,12 @@ class OligosetGeneratorIndependentSet:
         Computes the oligo set for a specific region by scoring, filtering, and selecting oligos.
         This includes generating a proximity matrix and applying a selection policy to create the optimal oligo set.
 
-        :param oligo_database: The OligoDatabase containing the oligonucleotides and their associated properties.
+        :param oligo_database: The OligoDatabase instance containing oligonucleotide sequences and their associated properties. This database stores oligo data organized by genomic regions and can be used for filtering, property calculations, set generation, and output operations.
         :type oligo_database: OligoDatabase
         :param region_id: Region ID to process.
         :type region_id: str
-        :param sequence_type: The type of sequence to be used for the set calculations.
-        :type sequence_type: _TYPES_SEQ["oligo", "target"]
+        :param sequence_type: Type of sequence being processed. Must be one of the sequence types specified in `_constants._TYPES_SEQ`.
+        :type sequence_type: _TYPES_SEQ
         :param set_size_opt: The optimal size of each oligo set.
         :type set_size_opt: int
         :param set_size_min: The minimum allowed size of each oligo set.
@@ -191,7 +191,7 @@ class OligosetGeneratorIndependentSet:
         The matrix is computed based on the intervals (start, end) of each oligo, with a distance threshold to determine overlap.
         The matrix has dimensions n_oligos * n_oligos. Each entry contains 1 if the correspondent oligos don't overlap and 0 if they overlap.
 
-        :param oligo_database: The OligoDatabase containing the oligonucleotides and their associated properties.
+        :param oligo_database: The OligoDatabase instance containing oligonucleotide sequences and their associated properties. This database stores oligo data organized by genomic regions and can be used for filtering, property calculations, set generation, and output operations.
         :type oligo_database: OligoDatabase
         :param region_id: Region ID to process.
         :type region_id: str
@@ -283,13 +283,13 @@ class HomogeneousPropertyOligoSetGenerator:
         +-------------+----------+----------+-----+----+-------+----------+-------------+-------------+-------+
 
 
-        :param oligo_database: The OligoDatabase containing the oligonucleotides and their associated properties.
+        :param oligo_database: The OligoDatabase instance containing oligonucleotide sequences and their associated properties. This database stores oligo data organized by genomic regions and can be used for filtering, property calculations, set generation, and output operations.
         :type oligo_database: OligoDatabase
         :param n_sets: The number of oligo sets to generate.
         :type n_sets: int
         :param n_combinations: The number of random oligo combinations to generate per region, defaults to 1000.
         :type n_combinations: int, optional
-        :param n_jobs: The number of parallel jobs to run, defaults to 1.
+        :param n_jobs: Number of parallel jobs to use for processing.
         :type n_jobs: int, optional
 
         :return: The updated oligo database with generated oligo sets for each region.
@@ -311,7 +311,7 @@ class HomogeneousPropertyOligoSetGenerator:
         Generates oligo sets for a specific region in the oligo database by scoring and sorting combinations
         of oligos based on the specified properties. The top n_sets sets with the lowest weighted sum of variances are selected.
 
-        :param oligo_database: The OligoDatabase containing the oligonucleotides and their associated properties.
+        :param oligo_database: The OligoDatabase instance containing oligonucleotide sequences and their associated properties. This database stores oligo data organized by genomic regions and can be used for filtering, property calculations, set generation, and output operations.
         :type oligo_database: OligoDatabase
         :param region_id: Region ID to process.
         :type region_id: str

@@ -144,7 +144,7 @@ def generate_unique_filename(dir_output: str, base_name: str, extension: str = "
     """
     Generates a unique filename based on the current timestamp and a random UUID.
 
-    :param dir_output: The directory where the file will be saved.
+    :param dir_output: Directory path where output files will be saved.
     :type dir_output: str
     :param base_name: The base name for the file.
     :type base_name: str

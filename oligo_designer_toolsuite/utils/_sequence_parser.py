@@ -374,7 +374,7 @@ class FastaParser:
 
         :param file_fasta_in: The path to the input FASTA file.
         :type file_fasta_in: str
-        :param region_ids: List of region IDs to process. If None, all regions in the OligoDatabase are processed, defaults to None.
+        :param region_ids: Region identifier(s) to process. Can be a single region ID (str) or a list of region IDs (List[str]). If None, all regions in the database are processed, defaults to None.
         :type region_ids: Union[str, List[str]], optional
         :return: A list of sequences from the FASTA file, filtered by region if specified.
         :rtype: list

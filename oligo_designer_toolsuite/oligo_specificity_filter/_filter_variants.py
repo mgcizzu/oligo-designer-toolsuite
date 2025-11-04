@@ -32,7 +32,7 @@ class VariantsFilter(ReferenceSpecificityFilter):
     :type remove_hits: bool
     :param filter_name: Name used to label the filter and create subdirectories for outputs.
     :type filter_name: str
-    :param dir_output: Path to the output directory where intermediate files will be stored.
+    :param dir_output: Directory path where output files will be saved.
     :type dir_output: str
     :param usecols_search_output: Column indices to extract from the BEDTools intersection output.
     :type usecols_search_output: list
@@ -64,7 +64,7 @@ class VariantsFilter(ReferenceSpecificityFilter):
         """
         Create a reference file from the variant reference database.
 
-        :param n_jobs: The number of parallel jobs to use for creating the reference (not utilized in this filter).
+        :param n_jobs: Number of parallel jobs to use for processing. Note: This parameter is not utilized in this filter.
         :type n_jobs: int
         :return: Path to the written reference file.
         :rtype: str
@@ -87,11 +87,11 @@ class VariantsFilter(ReferenceSpecificityFilter):
         Intersects oligo positions with the variant reference file using BEDTools,
         and either removes or flags oligos depending on the filter mode.
 
-        :param oligo_database: The OligoDatabase containing the oligonucleotides and their associated properties.
+        :param oligo_database: The OligoDatabase instance containing oligonucleotide sequences and their associated properties. This database stores oligo data organized by genomic regions and can be used for filtering, property calculations, set generation, and output operations.
         :type oligo_database: OligoDatabase
-        :param sequence_type: The type of sequence to be used for the filter calculations (not utilized in this filter).
-        :type sequence_type: _TYPES_SEQ["oligo", "target"]
-        :param n_jobs: The number of parallel jobs to use for processing.
+        :param sequence_type: Type of sequence being processed. Must be one of the sequence types specified in `_constants._TYPES_SEQ`. Note: This parameter is not utilized in this filter.
+        :type sequence_type: _TYPES_SEQ
+        :param n_jobs: Number of parallel jobs to use for processing.
         :type n_jobs: int
         :return: The filtered OligoDatabase.
         :rtype: OligoDatabase
@@ -131,7 +131,7 @@ class VariantsFilter(ReferenceSpecificityFilter):
 
         :param region_id: Region ID to process.
         :type region_id: str
-        :param oligo_database: The OligoDatabase containing the oligonucleotides and their associated properties.
+        :param oligo_database: The OligoDatabase instance containing oligonucleotide sequences and their associated properties. This database stores oligo data organized by genomic regions and can be used for filtering, property calculations, set generation, and output operations.
         :type oligo_database: OligoDatabase
         :param file_reference: Path to the reference file used for BED intersection.
         :type file_reference: str
