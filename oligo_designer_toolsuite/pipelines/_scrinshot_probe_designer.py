@@ -702,7 +702,7 @@ class ScrinshotProbeDesigner:
             oligosets_oligo_columns = [col for col in oligosets_region.columns if col.startswith("oligo_")]
             oligosets_score_columns = [col for col in oligosets_region.columns if col.startswith("score_")]
 
-            oligosets_region.sort_values(by=oligosets_score_columns, ascending=True)
+            oligosets_region.sort_values(by=oligosets_score_columns, ascending=True, inplace=True)
             oligosets_region = oligosets_region.head(top_n_sets)[oligosets_oligo_columns]
             oligosets_region.reset_index(inplace=True, drop=True)
 
