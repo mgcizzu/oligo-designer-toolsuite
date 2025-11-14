@@ -5,6 +5,7 @@
 import os
 
 from oligo_designer_toolsuite._constants import _TYPES_SEQ
+from oligo_designer_toolsuite._exceptions import ConfigurationError
 from oligo_designer_toolsuite.database import OligoDatabase, ReferenceDatabase
 from oligo_designer_toolsuite.oligo_specificity_filter import (
     AlignmentSpecificityFilter,
@@ -40,7 +41,7 @@ class CrossHybridizationFilter(BaseSpecificityFilter):
         self,
         policy: BaseFilterPolicy,
         alignment_method: AlignmentSpecificityFilter,
-        sequence_type_reference: _TYPES_SEQ = None,
+        sequence_type_reference: _TYPES_SEQ | None = None,
         filter_name: str = "cross_hybridization_filter",
         dir_output: str = "output",
     ) -> None:
@@ -49,9 +50,9 @@ class CrossHybridizationFilter(BaseSpecificityFilter):
 
         self.policy = policy
         self.alignment_method = alignment_method
-        self.sequence_type_reference = sequence_type_reference
+        self.sequence_type_reference: _TYPES_SEQ | None = sequence_type_reference
 
-    def set_reference_database(self, oligo_database: OligoDatabase) -> None:
+    def set_reference_database(self, oligo_database: OligoDatabase) -> ReferenceDatabase:
         """
         Creates a ReferenceDatabase for cross-hybridization filtering based on the sequences in the provided OligoDatabase.
 
@@ -63,6 +64,11 @@ class CrossHybridizationFilter(BaseSpecificityFilter):
         :return: The generated ReferenceDatabase.
         :rtype: ReferenceDatabase
         """
+        if self.sequence_type_reference is None:
+            raise ConfigurationError(
+                "sequence_type_reference must be set before calling set_reference_database"
+            )
+
         file_reference = oligo_database.write_database_to_fasta(
             filename=f"db_oligos_{self.filter_name}_{self.sequence_type_reference}",
             dir_output=self.dir_output,
@@ -85,7 +91,7 @@ class CrossHybridizationFilter(BaseSpecificityFilter):
     def apply(
         self,
         oligo_database: OligoDatabase,
-        sequence_type: _TYPES_SEQ,
+        sequence_type: _TYPES_SEQ | None,
         n_jobs: int = 1,
     ) -> OligoDatabase:
         """
@@ -97,12 +103,15 @@ class CrossHybridizationFilter(BaseSpecificityFilter):
         :param oligo_database: The OligoDatabase instance containing oligonucleotide sequences and their associated properties. This database stores oligo data organized by genomic regions and can be used for filtering, property calculations, set generation, and output operations.
         :type oligo_database: OligoDatabase
         :param sequence_type: Type of sequence being processed. Must be one of the sequence types specified in `_constants._TYPES_SEQ`.
-        :type sequence_type: _TYPES_SEQ
+        :type sequence_type: _TYPES_SEQ | None
         :param n_jobs: Number of parallel jobs to use for processing.
         :type n_jobs: int
         :return: The filtered OligoDatabase with potential cross-hybridizing sequences removed.
         :rtype: OligoDatabase
         """
+        if sequence_type is None:
+            raise ConfigurationError("sequence_type must be set before calling apply")
+
         if not self.sequence_type_reference:
             self.sequence_type_reference = sequence_type
 

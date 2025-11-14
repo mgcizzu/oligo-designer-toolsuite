@@ -3,12 +3,11 @@
 ############################################
 
 import gzip
-import math
 import os
 import pickle
 import re
 from subprocess import Popen
-from typing import List, Tuple, Union
+from typing import Any, TextIO, cast
 
 import pandas as pd
 from Bio import SeqIO
@@ -69,29 +68,30 @@ class GffParser:
         if os.path.exists(file):
             if not _check_gff_content(file):
                 raise FileFormatError(f"GFF file '{file}' has incorrect format. Expected valid GFF format.")
+            return True
         else:
             raise FileFormatError(f"GFF file '{file}' does not exist.")
 
     def parse_annotation_from_gff(
         self,
         annotation_file: str,
-        file_pickle: str = None,
+        file_pickle: str | None = None,
         chunk_size: int = 10000,
-        target_lines: int = math.inf,
-    ) -> Union[str, pd.DataFrame]:
+        target_lines: int | None = None,
+    ) -> str | pd.DataFrame:
         """
         Parses the GFF annotation file and converts it into a DataFrame. Optionally, saves the DataFrame to a pickle file.
 
         :param annotation_file: The path to the GFF annotation file to be parsed.
         :type annotation_file: str
         :param file_pickle: The path to save the resulting DataFrame as a pickle file (optional).
-        :type file_pickle: str, optional
+        :type file_pickle: str | None
         :param chunk_size: The number of lines to process at a time from the GFF file.
         :type chunk_size: int
         :param target_lines: The number of lines to parse before stopping (useful for sampling).
-        :type target_lines: int
+        :type target_lines: int | None
         :return: The parsed annotation as a DataFrame or the path to the pickle file if specified.
-        :rtype: Union[str, pd.DataFrame]
+        :rtype: str | pd.DataFrame
         """
         csv_file, extra_info_file = self._split_annotation(
             annotation_file, chunk_size=chunk_size, target_lines=target_lines
@@ -117,20 +117,22 @@ class GffParser:
         else:
             return dataframe
 
-    def load_annotation_from_pickle(self, file_pickel: str) -> pd.DataFrame:
+    def load_annotation_from_pickle(self, file_pickel: str) -> Any:
         """
         Loads a GFF annotation DataFrame from a pickle file.
 
         :param file_pickel: The path to the pickle file containing the GFF annotation DataFrame.
         :type file_pickel: str
         :return: The loaded DataFrame containing the GFF annotation.
-        :rtype: pd.DataFrame
+        :rtype: Any
         """
         dataframe_gff = pickle.load(open(file_pickel, "rb"))
 
         return dataframe_gff
 
-    def _split_annotation(self, annotation_file: str, chunk_size: int, target_lines: int) -> Tuple[str, str]:
+    def _split_annotation(
+        self, annotation_file: str, chunk_size: int, target_lines: int | None = None
+    ) -> tuple[str, str]:
         """
         Splits the GFF annotation file into two separate files: one containing the standard GFF columns and the other containing the extra information.
 
@@ -139,9 +141,9 @@ class GffParser:
         :param chunk_size: The number of lines to read at a time from the annotation file.
         :type chunk_size: int
         :param target_lines: The maximum number of lines to process from the annotation file.
-        :type target_lines: int
+        :type target_lines: int | None
         :return: A tuple containing the paths to the CSV file with the main GFF content and the text file with extra information.
-        :rtype: Tuple[str, str]
+        :rtype: tuple[str, str]
         """
         csv_file = ".".join(annotation_file.split(".")[:-1]) + ".csv"
         extra_info_file = ".".join(annotation_file.split(".")[:-1]) + ".txt"
@@ -150,15 +152,17 @@ class GffParser:
         lines_read = 0
 
         fn_open = gzip.open if annotation_file.endswith(".gz") else open
-        with fn_open(annotation_file, "r") as input_file:
+        mode = "rt" if annotation_file.endswith(".gz") else "r"
+
+        with cast(TextIO, fn_open(annotation_file, mode)) as input_file:
             with open(csv_file, "w") as out_csv:
                 with open(extra_info_file, "w") as out_extra_info:
-                    while not finished and lines_read < target_lines:
+                    while not finished and (target_lines is None or lines_read < target_lines):
                         csv_content_chunck = ""
                         extra_info_content_chunck = ""
                         for _ in range(chunk_size):
                             lines_read += 1
-                            if lines_read > target_lines:
+                            if target_lines is None or lines_read > target_lines:
                                 break
                             try:
                                 line = next(input_file)
@@ -173,14 +177,14 @@ class GffParser:
 
         return csv_file, extra_info_file
 
-    def _parse_fields(self, line: str) -> dict:
+    def _parse_fields(self, line: str) -> dict[str, Any]:
         """
         Parse the attributes from a GFF line.
 
         :param line: The line of text containing attribute information from a GFF file.
         :type line: str
         :return: A dictionary where keys are attribute names and values are the corresponding values from the GFF line.
-        :rtype: dict
+        :rtype: dict[str, Any]
         """
         result = {}
 
@@ -204,41 +208,41 @@ class GffParser:
 
         return result
 
-    def _get_value(self, value: str) -> Union[None, str]:
+    def _get_value(self, value: str) -> str | list[str] | None:
         """
         Process the value extracted from a GFF line, handling special cases like lists, empty values, and standardization.
 
         :param value: The value from an attribute in a GFF line.
         :type value: str
         :return: Processed value, which may be None, a string, or a list of strings.
-        :rtype: Union[None, str]
+        :rtype: str | list[str] | None
         """
         if not value:
             return None
 
         # Strip double and single quotes and new lines.
-        value = value.strip("\"'").strip("\n")
+        value = value.strip("\"'\n")
 
         # Return a list if the value has a comma.
         if "," in value:
-            value = re.split(self.R_COMMA, value)
+            return re.split(self.R_COMMA, value)
         # These values are equivalent to None.
         elif value in ["", ".", "NA"]:
             return None
+        else:
+            return value
 
-        return value
-
-    def _info_to_df_chunk(self, data_chunk: pd.DataFrame) -> pd.DataFrame:
+    def _info_to_df_chunk(self, data_chunk: list[str]) -> pd.DataFrame:
         """
         Convert a chunk of data into a DataFrame by parsing its fields.
 
         :param data_chunk: A chunk of data read from the GFF info file.
-        :type data_chunk: pd.DataFrame
+        :type data_chunk: list[str]
         :return: A DataFrame with parsed fields.
         :rtype: pd.DataFrame
         """
-        data_chunk = list(map(self._parse_fields, data_chunk))
-        return pd.DataFrame(data_chunk)
+        parsed_fields = [self._parse_fields(line) for line in data_chunk]
+        return pd.DataFrame(parsed_fields)
 
     def _info_to_df(self, info_file: str, chunk_size: int) -> pd.DataFrame:
         """
@@ -316,7 +320,7 @@ class FastaParser:
         pattern = r"(\S+):(\d+)-(\d+)\(.*\)"
         return bool(re.match(pattern, entry))
 
-    def parse_number(self, s: str):
+    def parse_number(self, s: str) -> int | float | str:
         """
         Check if a string is an integer or a float. If so, return
         the integer or float value. Otherwise, return the original string.
@@ -334,7 +338,7 @@ class FastaParser:
         :param s: The string to parse.
         :type s: str
         :return: The parsed integer or float value if successful, or None otherwise.
-        :rtype: int, float, or None
+        :rtype: int | float | str
         """
         try:
             return int(s)
@@ -348,14 +352,14 @@ class FastaParser:
 
         return s
 
-    def get_fasta_regions(self, file_fasta_in: str) -> list:
+    def get_fasta_regions(self, file_fasta_in: str) -> list[str]:
         """
         Extracts unique region identifiers from a FASTA file.
 
         :param file_fasta_in: The path to the input FASTA file.
         :type file_fasta_in: str
         :return: A list of unique region identifiers found in the FASTA file.
-        :rtype: list
+        :rtype: list[str]
         """
         region_ids = []
         # use index instead of parse function for memory efficiency
@@ -365,7 +369,9 @@ class FastaParser:
 
         return list(set(region_ids))
 
-    def read_fasta_sequences(self, file_fasta_in: str, region_ids: List[str] = None) -> list:
+    def read_fasta_sequences(
+        self, file_fasta_in: str, region_ids: str | list[str] | None = None
+    ) -> list[Any]:
         """
         Reads sequences from a FASTA file, optionally filtering by specific region identifiers.
 
@@ -374,8 +380,8 @@ class FastaParser:
 
         :param file_fasta_in: The path to the input FASTA file.
         :type file_fasta_in: str
-        :param region_ids: Region identifier(s) to process. Can be a single region ID (str) or a list of region IDs (List[str]). If None, all regions in the database are processed, defaults to None.
-        :type region_ids: Union[str, List[str]], optional
+        :param region_ids: Region identifier(s) to process. Can be a single region ID (str) or a list of region IDs (list[str]). If None, all regions in the database are processed, defaults to None.
+        :type region_ids: str | list[str], optional
         :return: A list of sequences from the FASTA file, filtered by region if specified.
         :rtype: list
         """
@@ -400,7 +406,7 @@ class FastaParser:
 
     def parse_fasta_header(
         self, header: str, parse_coordinates: bool = True, parse_additional_info: bool = True
-    ) -> Tuple[str, dict, dict]:
+    ) -> tuple[str, dict[str, list[Any]], dict[str, list[Any]]]:
         """
         Parses the header of a FASTA sequence to extract region, coordinates, and additional information.
 
@@ -414,11 +420,11 @@ class FastaParser:
         :param parse_additional_info: Whether to parse additional information from the header, defaults to True.
         :type parse_additional_info: bool, optional
         :return: A tuple containing the region name, additional info dictionary, and coordinates dictionary.
-        :rtype: Tuple[str, dict, dict]
+        :rtype: tuple[str, dict[str, list[Any]], dict[str, list[Any]]]
         """
-        region = None
-        additional_info = {}
-        coordinates = {
+        region: str = ""
+        additional_info: dict[str, list[Any]] = {}
+        coordinates: dict[str, list[Any]] = {
             "chromosome": [None],
             "start": [None],
             "end": [None],
@@ -446,43 +452,43 @@ class FastaParser:
                         )
 
             else:
-                info_list = header_entry
+                info = header_entry
                 # the additional info field should be parsed, save information in dict
                 if parse_additional_info:
-                    if SEPARATOR_FASTA_HEADER_FIELDS_LIST in info_list:
-                        info_list = info_list.split(SEPARATOR_FASTA_HEADER_FIELDS_LIST)
+                    if SEPARATOR_FASTA_HEADER_FIELDS_LIST in info:
+                        info_list = info.split(SEPARATOR_FASTA_HEADER_FIELDS_LIST)
 
                         for infos in info_list:
                             key, value = infos.split("=")
-                            value = self.parse_number(value)
+                            value_parsed = self.parse_number(value)
 
                             if key in additional_info:
-                                additional_info[key].append(value)
+                                additional_info[key].append(value_parsed)
                             else:
-                                additional_info[key] = [value]
+                                additional_info[key] = [value_parsed]
 
                     else:
-                        key, value = info_list.split("=")
-                        value = self.parse_number(value)
-                        additional_info[key] = [value]
+                        key, value = info.split("=")
+                        value_parsed = self.parse_number(value)
+                        additional_info[key] = [value_parsed]
                 else:
-                    additional_info = info_list
+                    additional_info = {"additional_info": [info]}
 
         return region, additional_info, coordinates
 
-    def write_fasta_sequences(self, fasta_sequences: list, file_out: str) -> None:
+    def write_fasta_sequences(self, fasta_sequences: list[Any], file_out: str) -> None:
         """
         Write a list of fasta sequences to an output file.
 
-        :param fasta_sequences: List of fasta sequences to be written.
-        :type fasta_sequences: list
+        :param fasta_sequences: list of fasta sequences to be written.
+        :type fasta_sequences: list[Any]
         :param file_out: Path to the output fasta file.
         :type file_out: str
         """
         with open(file_out, "w") as handle_fasta:
             SeqIO.write(fasta_sequences, handle_fasta, "fasta")
 
-    def merge_fasta_files(self, files_in: list, file_out: str, overwrite: bool = False) -> None:
+    def merge_fasta_files(self, files_in: list[str], file_out: str, overwrite: bool = False) -> None:
         """
         Merges multiple FASTA files into a single output file.
 
@@ -490,7 +496,7 @@ class FastaParser:
         The output file can either overwrite any existing file or append to it based on the `overwrite` parameter.
 
         :param files_in: A list of input FASTA files to be merged.
-        :type files_in: list
+        :type files_in: list[str]
         :param file_out: The path to the output FASTA file.
         :type file_out: str
         :param overwrite: Whether to overwrite the output file if it exists, defaults to False.
@@ -542,7 +548,7 @@ class VCFParser:
         else:
             raise FileFormatError(f"VCF file '{file}' does not exist.")
 
-    def read_vcf_variants(self, file: str) -> list:
+    def read_vcf_variants(self, file: str) -> tuple[list[Any], Any]:
         """
         Read variants from a VCF file.
 
@@ -566,7 +572,7 @@ class VCFParser:
         """
         Write a list of VCF variants to an output file.
 
-        :param vcf_variants: List of variant records to be written.
+        :param vcf_variants: list of variant records to be written.
         :type vcf_variants: list
         :param vcf_in: VCF file handler used for formatting.
         :type vcf_in: str
@@ -578,11 +584,11 @@ class VCFParser:
             vcf_out.write_record(variant)
         vcf_out.close()
 
-    def merge_vcf_files(self, files_in: list, file_out: str) -> None:
+    def merge_vcf_files(self, files_in: list[str], file_out: str) -> None:
         """
         Merge multiple VCF files into a single VCF file.
 
-        :param files_in: List of input VCF files to be merged.
+        :param files_in: list of input VCF files to be merged.
         :type files_in: list
         :param file_out: Path to the output merged VCF file.
         :type file_out: str

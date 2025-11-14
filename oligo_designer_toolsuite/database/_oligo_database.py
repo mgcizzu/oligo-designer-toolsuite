@@ -6,7 +6,7 @@ import os
 import pickle
 import warnings
 from pathlib import Path
-from typing import List, Union, get_args
+from typing import Any, get_args
 
 import pandas as pd
 import yaml
@@ -113,10 +113,10 @@ class OligoDatabase:
 
     def load_database_from_fasta(
         self,
-        files_fasta: Union[str, List[str]],
+        files_fasta: str | list[str],
         database_overwrite: bool,
         sequence_type: _TYPES_SEQ,
-        region_ids: Union[str, List[str]] = None,
+        region_ids: str | list[str] | None = None,
     ) -> None:
         """
         Loads oligonucleotide data from one or more FASTA files into the database, optionally overwriting the existing database.
@@ -137,14 +137,14 @@ class OligoDatabase:
         >ASR1::transcrip_id=XM456,exon_number=5::16:54552-54786(+)
         AGTTGACAGACCCCAGATTAAAGTGTGTCGCGCAACAC
 
-        :param files_fasta: Path(s) to FASTA file(s) to load. Can be a single file path (str) or a list of file paths (List[str]).
-        :type files_fasta: Union[str, List[str]]
+        :param files_fasta: Path(s) to FASTA file(s) to load. Can be a single file path (str) or a list of file paths (list[str]).
+        :type files_fasta: str | list[str]
         :param database_overwrite: If True, the existing database will be overwritten.
         :type database_overwrite: bool
         :param sequence_type: Type of sequence being processed. Must be one of the sequence types specified in `_constants._TYPES_SEQ`.
         :type sequence_type: _TYPES_SEQ
-        :param region_ids: Region identifier(s) to process. Can be a single region ID (str) or a list of region IDs (List[str]). If None, all regions in the database are processed, defaults to None.
-        :type region_ids: Union[str, List[str]], optional
+        :param region_ids: Region identifier(s) to process. Can be a single region ID (str) or a list of region IDs (list[str]). If None, all regions in the database are processed, defaults to None.
+        :type region_ids: str | list[str] | None, optional
         """
 
         def _load_fasta_file(file: str) -> None:
@@ -162,7 +162,7 @@ class OligoDatabase:
             if self.fasta_parser.check_fasta_format(file):
                 fasta_sequences = self.fasta_parser.read_fasta_sequences(file, region_ids)
 
-                sequences = {}
+                sequences: dict[str, dict[str, Any]] = {}
                 for entry in fasta_sequences:
                     region, additional_info, coordinates = self.fasta_parser.parse_fasta_header(entry.id)
                     oligo_properties = coordinates | additional_info
@@ -177,7 +177,7 @@ class OligoDatabase:
                     else:
                         sequences[region] = {str(entry.seq): oligo_properties}
 
-                database_region = {region: {} for region in sequences.keys()}
+                database_region: dict[str, dict[str, Any]] = {region: {} for region in sequences.keys()}
                 for region, sequences_region in sequences.items():
                     i = 1
                     for oligo_sequence, oligo_properties in sequences_region.items():
@@ -235,7 +235,7 @@ class OligoDatabase:
         file_database: str,
         database_overwrite: bool,
         merge_databases_on_sequence_type: _TYPES_SEQ,
-        region_ids: Union[str, List[str]] = None,
+        region_ids: str | list[str] | None = None,
     ) -> None:
         """
         Loads oligonucleotide data from a tab-delimited table (TSV) file into the database, optionally overwriting the existing database.
@@ -254,8 +254,8 @@ class OligoDatabase:
         :param merge_databases_on_sequence_type: The sequence type on which two databases should be merged on if database_overwrite = False,
                 must be one of the predefined sequence types, i.e. "oligo" or "target".
         :type sequence_type: _TYPES_SEQ
-        :param region_ids: Region identifier(s) to process. Can be a single region ID (str) or a list of region IDs (List[str]). If None, all regions in the database are processed, defaults to None.
-        :type region_ids: Union[str, List[str]], optional
+        :param region_ids: Region identifier(s) to process. Can be a single region ID (str) or a list of region IDs (list[str]). If None, all regions in the database are processed, defaults to None.
+        :type region_ids: str | list[str] | None, optional
         """
         # Check formatting
         region_ids = check_if_list(region_ids)
@@ -331,7 +331,7 @@ class OligoDatabase:
         dir_database: str,
         database_overwrite: bool,
         merge_databases_on_sequence_type: _TYPES_SEQ,
-        region_ids: Union[str, List[str]] = None,
+        region_ids: str | list[str] | None = None,
     ) -> None:
         """
         Loads oligonucleotide data from a directory of pickled files into the database, optionally overwriting the existing database.
@@ -345,8 +345,8 @@ class OligoDatabase:
         :param merge_databases_on_sequence_type: The sequence type on which two databases should be merged on (if database_overwrite = False),
                 must be one of the predefined sequence types, i.e. "oligo" or "target".
         :type sequence_type: _TYPES_SEQ
-        :param region_ids: Region identifier(s) to process. Can be a single region ID (str) or a list of region IDs (List[str]). If None, all regions in the database are processed, defaults to None.
-        :type region_ids: Union[str, List[str]], optional
+        :param region_ids: Region identifier(s) to process. Can be a single region ID (str) or a list of region IDs (list[str]). If None, all regions in the database are processed, defaults to None.
+        :type region_ids: str | list[str] | None, optional
         """
 
         def _load_database_file(file: str) -> None:
@@ -359,29 +359,32 @@ class OligoDatabase:
 
             :param file: The path to the database file to be loaded.
             :type file: str
+            :param region_ids: Region identifier(s) to process. Can be a single region ID (str) or a list of region IDs (list[str]). If None, all regions in the database are processed, defaults to None.
+            :type region_ids: str | list[str] | None, optional
             :return: None
             """
-            # extract region ID from the file name and remove the extension
+            # extract region ID and content from the file
             with open(file, "rb") as handle:
                 content = pickle.load(handle)
-                if (not region_ids) or (region_ids and region_id in region_ids):
-                    region_id = content["region_id"]
-                    database_region = content["database_region"]
-                    oligoset_region = content["oligoset_region"]
+                region_id = content["region_id"]
+                database_region = content["database_region"]
+                oligoset_region = content["oligoset_region"]
 
-            # only merge if there are common keys
-            if region_id in self.database.keys():
-                self.database = merge_databases(
-                    database1=self.database,
-                    database2={region_id: database_region},
-                    sequence_type=merge_databases_on_sequence_type,
-                    dir_cache_files=self._dir_cache_files,
-                    max_entries_in_memory=self._max_entries_in_memory,
-                )
-                self.oligosets[region_id] = pd.concat([self.oligosets[region_id], oligoset_region])
-            else:
-                self.database[region_id] = database_region
-                self.oligosets[region_id] = oligoset_region
+            # Only process selected regions
+            if not region_ids or region_id in region_ids:
+                # only merge if there are common keys
+                if region_id in self.database.keys():
+                    self.database = merge_databases(
+                        database1=self.database,
+                        database2={region_id: database_region},
+                        sequence_type=merge_databases_on_sequence_type,
+                        dir_cache_files=self._dir_cache_files,
+                        max_entries_in_memory=self._max_entries_in_memory,
+                    )
+                    self.oligosets[region_id] = pd.concat([self.oligosets[region_id], oligoset_region])
+                else:
+                    self.database[region_id] = database_region
+                    self.oligosets[region_id] = oligoset_region
 
         # Check formatting
         region_ids = check_if_list(region_ids)
@@ -420,8 +423,8 @@ class OligoDatabase:
     def save_database(
         self,
         name_database: str = "db_oligo",
-        dir_output: str = None,
-        region_ids: Union[str, List[str]] = None,
+        dir_output: str | None = None,
+        region_ids: str | list[str] | None = None,
     ) -> str:
         """
         Saves the current database and associated oligosets as pickl files into a specified directory.
@@ -430,8 +433,8 @@ class OligoDatabase:
         :type name_database: str
         :param dir_output: Directory path where output files will be saved.
         :type dir_output: str
-        :param region_ids: Region identifier(s) to process. Can be a single region ID (str) or a list of region IDs (List[str]). If None, all regions in the database are processed, defaults to None.
-        :type region_ids: Union[str, List[str]], optional
+        :param region_ids: Region identifier(s) to process. Can be a single region ID (str) or a list of region IDs (list[str]). If None, all regions in the database are processed, defaults to None.
+        :type region_ids: str | list[str] | None, optional
         :return: The directory path where the database was saved.
         :rtype: str
         """
@@ -468,8 +471,8 @@ class OligoDatabase:
         sequence_type: _TYPES_SEQ,
         save_description: bool,
         filename: str = "db_oligo",
-        dir_output: str = None,
-        region_ids: Union[str, List[str]] = None,
+        dir_output: str | None = None,
+        region_ids: str | list[str] | None = None,
     ) -> str:
         """
         Writes the current database to a FASTA file. Associated sequence properties can optionally be included in the sequence header.
@@ -482,8 +485,8 @@ class OligoDatabase:
         :type filename: str
         :param dir_output: Directory path where output files will be saved.
         :type dir_output: str
-        :param region_ids: Region identifier(s) to process. Can be a single region ID (str) or a list of region IDs (List[str]). If None, all regions in the database are processed, defaults to None.
-        :type region_ids: Union[str, List[str]], optional
+        :param region_ids: Region identifier(s) to process. Can be a single region ID (str) or a list of region IDs (list[str]). If None, all regions in the database are processed, defaults to None.
+        :type region_ids: str | list[str] | None, optional
         :return: The path to the saved FASTA file.
         :rtype: str
         """
@@ -520,8 +523,8 @@ class OligoDatabase:
     def write_database_to_bed(
         self,
         filename: str = "db_oligo",
-        dir_output: str = None,
-        region_ids: Union[str, List[str]] = None,
+        dir_output: str | None = None,
+        region_ids: str | list[str] | None = None,
     ) -> str:
         """
         Write the oligo database to a BED file format.
@@ -534,8 +537,8 @@ class OligoDatabase:
         :type filename: str
         :param dir_output: Directory path where output files will be saved.
         :type dir_output: str
-        :param region_ids: Region identifier(s) to process. Can be a single region ID (str) or a list of region IDs (List[str]). If None, all regions in the database are processed, defaults to None.
-        :type region_ids: Union[str, List[str]], optional
+        :param region_ids: Region identifier(s) to process. Can be a single region ID (str) or a list of region IDs (list[str]). If None, all regions in the database are processed, defaults to None.
+        :type region_ids: str | list[str] | None, optional
         :return: The path to the saved BED file.
         :rtype: str
         """
@@ -572,11 +575,11 @@ class OligoDatabase:
 
     def write_database_to_table(
         self,
-        properties: Union[str, List[str]],
+        properties: str | list[str],
         flatten_property: bool,
         filename: str = "oligo_database_table",
-        dir_output: str = None,
-        region_ids: list[str] = None,
+        dir_output: str | None = None,
+        region_ids: str | list[str] | None = None,
     ) -> str:
         """
         Writes the current database and selected properties to a TSV table file,
@@ -584,15 +587,15 @@ class OligoDatabase:
 
 
         :param properties: A list of properties to include in the table.
-        :type properties: Union[str, List[str]]
+        :type properties: str | list[str]
         :param flatten_property: Whether to flatten list properties to a unique set of values in the table.
         :type flatten_property: bool
         :param filename: The base name of the output TSV file, defaults to "oligo_database_table".
         :type filename: str
         :param dir_output: Directory path where output files will be saved.
         :type dir_output: str
-        :param region_ids: Region identifier(s) to process. Can be a single region ID (str) or a list of region IDs (List[str]). If None, all regions in the database are processed, defaults to None.
-        :type region_ids: Union[str, List[str]], optional
+        :param region_ids: Region identifier(s) to process. Can be a single region ID (str) or a list of region IDs (list[str]). If None, all regions in the database are processed, defaults to None.
+        :type region_ids: str | list[str] | None, optional
         :return: The path to the saved TSV file.
         :rtype: str
         """
@@ -621,27 +624,27 @@ class OligoDatabase:
                         else:
                             entry[property] = str(oligo_property).replace("[[", "[").replace("]]", "]")
                 file_tsv_content.append(entry)
-            file_tsv_content = pd.DataFrame(data=file_tsv_content)
-            file_tsv_content.to_csv(file_table, sep="\t", index=False, mode="a", header=first_entry)
+            file_tsv_content_as_df = pd.DataFrame(data=file_tsv_content)
+            file_tsv_content_as_df.to_csv(file_table, sep="\t", index=False, mode="a", header=first_entry)
             first_entry = False
 
         return file_table
 
     def write_oligosets_to_yaml(
         self,
-        properties: Union[str, List[str]],
+        properties: str | list[str],
         top_n_sets: int,
         ascending: bool,
         filename: str = "oligosets",
-        dir_output: str = None,
-        region_ids: list[str] = None,
+        dir_output: str | None = None,
+        region_ids: str | list[str] | None = None,
     ) -> str:
         """
         Writes the current top n oligosets and selected properties to a YAML file.
         The oligosets are sorted based on their scores in ascending or descending order.
 
         :param properties: A list of properties to include in the YAML file.
-        :type properties: Union[str, List[str]]
+        :type properties: str | list[str]
         :param top_n_sets: Number of top oligosets to include based on their score.
         :type top_n_sets: int
         :param ascending: If True, sort oligosets by score in ascending order (the smaller the score the better the oligo set);
@@ -651,8 +654,8 @@ class OligoDatabase:
         :type filename: str
         :param dir_output: Directory path where output files will be saved.
         :type dir_output: str
-        :param region_ids: Region identifier(s) to process. Can be a single region ID (str) or a list of region IDs (List[str]). If None, all regions in the database are processed, defaults to None.
-        :type region_ids: Union[str, List[str]], optional
+        :param region_ids: Region identifier(s) to process. Can be a single region ID (str) or a list of region IDs (list[str]). If None, all regions in the database are processed, defaults to None.
+        :type region_ids: str | list[str] | None, optional
         :return: Path to the saved YAML file.
         :rtype: str
         """
@@ -660,7 +663,7 @@ class OligoDatabase:
         properties = check_if_list(properties)
         region_ids = check_if_list(region_ids) if region_ids else self.database.keys()
 
-        yaml_dict = {region_id: {} for region_id in region_ids}
+        yaml_dict: dict[str, dict[str, Any]] = {region_id: {} for region_id in region_ids}
 
         for region_id in region_ids:
             oligosets_region = self.oligosets[region_id]
@@ -707,15 +710,15 @@ class OligoDatabase:
         return file_yaml
 
     def write_oligosets_to_table(
-        self, dir_output: str = "oligosets", region_ids: Union[str, List[str]] = None
+        self, dir_output: str = "oligosets", region_ids: str | list[str] | None = None
     ) -> str:
         """
         Writes the current oligosets for each specified region to a tab-separated value (TSV) file, saved in the specified folder.
 
         :param dir_output: Directory path where output files will be saved. Defaults to "oligosets".
         :type dir_output: str
-        :param region_ids: Region identifier(s) to process. Can be a single region ID (str) or a list of region IDs (List[str]). If None, all regions in the database are processed, defaults to None.
-        :type region_ids: Union[str, List[str]], optional
+        :param region_ids: Region identifier(s) to process. Can be a single region ID (str) or a list of region IDs (list[str]). If None, all regions in the database are processed, defaults to None.
+        :type region_ids: str | list[str] | None, optional
         :return: Path to the directory where the oligoset TSV files were saved.
         :rtype: str
         """
@@ -787,12 +790,12 @@ class OligoDatabase:
 
         return region_ids
 
-    def get_oligoid_list(self, region_ids: Union[str, List[str]] = None) -> list[str]:
+    def get_oligoid_list(self, region_ids: str | list[str] | None = None) -> list[str]:
         """
         Retrieves a list of all oligo IDs present in the database for a specific region or all regions in the database.
 
-        :param region_ids: Region identifier(s) to process. Can be a single region ID (str) or a list of region IDs (List[str]). If None, all regions in the database are processed, defaults to None.
-        :type region_ids: Union[str, List[str]], optional
+        :param region_ids: Region identifier(s) to process. Can be a single region ID (str) or a list of region IDs (list[str]). If None, all regions in the database are processed, defaults to None.
+        :type region_ids: str | list[str] | None, optional
         :return: A list of oligo IDs from all regions in the database.
         :rtype: list[str]
         """
@@ -889,7 +892,10 @@ class OligoDatabase:
         return sequence_oligoids_mapping
 
     def get_oligo_property_table(
-        self, properties: str, flatten: bool, region_ids: Union[str, List[str]] = None
+        self,
+        properties: str | list[str],
+        flatten: bool,
+        region_ids: str | list[str] | None = None,
     ) -> pd.DataFrame:
         """
         Generates a DataFrame containing oligo IDs and the specified property for each oligo,
@@ -899,8 +905,8 @@ class OligoDatabase:
         :type property: str
         :param flatten: Whether to flatten list properties to a unique set of values in the table.
         :type flatten: bool
-        :param region_ids: Region identifier(s) to process. Can be a single region ID (str) or a list of region IDs (List[str]). If None, all regions in the database are processed, defaults to None.
-        :type region_ids: Union[str, List[str]], optional
+        :param region_ids: Region identifier(s) to process. Can be a single region ID (str) or a list of region IDs (list[str]). If None, all regions in the database are processed, defaults to None.
+        :type region_ids: str | list[str] | None, optional
         :return: A DataFrame with oligo IDs and the corresponding property values.
         :rtype: pd.DataFrame
         """
@@ -955,7 +961,7 @@ class OligoDatabase:
 
     def get_oligo_property_value(
         self, property: str, flatten: bool, region_id: str, oligo_id: str
-    ) -> Union[str, List[str]]:
+    ) -> Any | list[Any] | None:
         """
         Retrieve the value of a specified property for a given oligo and region ID,
         optionally flattening nested or list properties to a unique set of values.
@@ -968,8 +974,8 @@ class OligoDatabase:
         :type region_id: str
         :param oligo_id: The ID of the oligo for which the property value is retrieved.
         :type oligo_id: str
-        :return: The value of the specified property, possibly flattened.
-        :rtype: Union[str, List[str]]
+        :return: The value of the specified property, possibly flattened. Can be any type (int, float, str, bool, etc.) or a list of values, or None if the property doesn't exist.
+        :rtype: Any | list[Any] | None
         :raises ValueError: If the specified region or oligo does not exist in the database.
         """
         if not region_id in self.database:
@@ -1016,7 +1022,7 @@ class OligoDatabase:
                 if oligo_id in new_oligo_property:
                     oligo_properties.update(format_oligo_properties(new_oligo_property[oligo_id]))
 
-    def filter_database_by_region(self, remove_region: bool, region_ids: Union[str, List[str]]) -> None:
+    def filter_database_by_region(self, remove_region: bool, region_ids: str | list[str]) -> None:
         """
         Filters the OligoDatabase based on the specified region IDs. Depending on the `remove_region` flag,
         this function either removes the specified regions from the database or retains only the specified regions
@@ -1024,8 +1030,8 @@ class OligoDatabase:
 
         :param remove_region: Flag indicating whether to remove the specified regions (True) or keep only the specified regions (False).
         :type remove_region: bool
-        :param region_ids: Region identifier(s) to process. Can be a single region ID (str) or a list of region IDs (List[str]). If None, all regions in the database are processed.
-        :type region_ids: Union[str, List[str]]
+        :param region_ids: Region identifier(s) to process. Can be a single region ID (str) or a list of region IDs (list[str]). If None, all regions in the database are processed.
+        :type region_ids: str | list[str]
         """
         # Check formatting
         region_ids = check_if_list(region_ids)
@@ -1040,7 +1046,7 @@ class OligoDatabase:
                 "Cannot filter database: database is empty. Call load_database() or load_database_from_fasta() first."
             )
 
-    def filter_database_by_oligo(self, remove_region: bool, oligo_ids: Union[str, List[str]]) -> None:
+    def filter_database_by_oligo(self, remove_region: bool, oligo_ids: str | list[str]) -> None:
         """
         Filters the OligoDatabase based on the specified oligo IDs. Depending on the `remove_region` flag,
         this function either removes the specified oligos from the database or retains only the specified oligos
@@ -1049,7 +1055,7 @@ class OligoDatabase:
         :param remove_region: Flag indicating whether to remove the specified oligos (True) or keep only the specified oligos (False).
         :type remove_region: bool
         :param oligo_ids: A single oligo ID or a list of oligo IDs to be removed or retained in the database.
-        :type oligo_ids: Union[str, List[str]]
+        :type oligo_ids: str | list[str]
         """
         # Check formatting
         oligo_ids = check_if_list(oligo_ids)
@@ -1102,7 +1108,7 @@ class OligoDatabase:
             del self.database[region_id][oligo_id]
 
     def filter_database_by_property_category(
-        self, property_name: str, property_category: Union[str, List[str]], remove_if_equals_category: bool
+        self, property_name: str, property_category: str | list[str], remove_if_equals_category: bool
     ) -> None:
         """
         Filters the OligoDatabase by the specified property category. The function removes oligos based on whether
@@ -1111,7 +1117,7 @@ class OligoDatabase:
         :param property_name: The name of the property to evaluate.
         :type property_name: str
         :param property_category: The category or categories to compare against the property values.
-        :type property_category: Union[str, List[str]]
+        :type property_category: str | list[str]
         :param remove_if_equals_category: If True, removes oligos with property values that match the specified category;
                                         if False, removes oligos with property values that do not match the specified category.
         :type remove_if_equals_category: bool

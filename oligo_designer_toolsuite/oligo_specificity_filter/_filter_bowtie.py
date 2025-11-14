@@ -9,7 +9,7 @@ from typing import Tuple
 import pandas as pd
 from Bio import SeqIO
 
-from oligo_designer_toolsuite._exceptions import FileFormatError
+from oligo_designer_toolsuite._exceptions import ConfigurationError, DatabaseError, FileFormatError
 from oligo_designer_toolsuite.database import OligoDatabase
 from oligo_designer_toolsuite.oligo_specificity_filter import AlignmentSpecificityFilter
 
@@ -93,6 +93,9 @@ class BowtieFilter(AlignmentSpecificityFilter):
         :return: The name of the created Bowtie reference file.
         :rtype: str
         """
+        if self.reference_database is None:
+            raise DatabaseError("reference_database must be set before calling create_reference")
+
         # write refrence database to fasta
         file_reference = self.reference_database.write_database_to_file(
             filename=f"db_reference_{self.filter_name}",
@@ -134,6 +137,9 @@ class BowtieFilter(AlignmentSpecificityFilter):
         :return: A DataFrame containing the Bowtie search results.
         :rtype: pd.DataFrame
         """
+        if self.sequence_type is None:
+            raise ConfigurationError("sequence_type must be set before calling _run_search")
+
         file_oligo_database = oligo_database.write_database_to_fasta(
             sequence_type=self.sequence_type,
             filename=f"oligo_database_bowtie_{region_id}",
@@ -358,6 +364,9 @@ class Bowtie2Filter(AlignmentSpecificityFilter):
         :return: The name of the created Bowtie2 reference file.
         :rtype: str
         """
+        if self.reference_database is None:
+            raise DatabaseError("reference_database must be set before calling create_reference")
+
         # write refrence database to fasta
         file_reference = self.reference_database.write_database_to_file(
             filename=f"db_reference_{self.filter_name}",
@@ -397,6 +406,8 @@ class Bowtie2Filter(AlignmentSpecificityFilter):
         :return: A DataFrame containing the Bowtie2 search results.
         :rtype: pd.DataFrame
         """
+        if self.sequence_type is None:
+            raise ConfigurationError("sequence_type must be set before calling _run_search")
 
         file_oligo_database = oligo_database.write_database_to_fasta(
             sequence_type=self.sequence_type,

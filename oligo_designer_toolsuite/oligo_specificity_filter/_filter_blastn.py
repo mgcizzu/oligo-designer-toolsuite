@@ -6,15 +6,15 @@ import os
 import subprocess
 import warnings
 from abc import abstractmethod
-from typing import Tuple, Union
 
 import numpy as np
 import pandas as pd
 from Bio import SeqIO
 
-from oligo_designer_toolsuite._exceptions import FileFormatError
+from oligo_designer_toolsuite._exceptions import ConfigurationError, DatabaseError, FileFormatError
 from oligo_designer_toolsuite.database import OligoDatabase
 from oligo_designer_toolsuite.oligo_property_calculator import (
+    BaseProperty,
     PropertyCalculator,
     SeedregionProperty,
     SeedregionSiteProperty,
@@ -109,6 +109,9 @@ class BlastNFilter(AlignmentSpecificityFilter):
         :return: The name of the created BLAST reference file.
         :rtype: str
         """
+        if self.reference_database is None:
+            raise DatabaseError("reference_database must be set before calling create_reference")
+
         # write refrence database to fasta
         file_reference = self.reference_database.write_database_to_file(
             filename=f"db_reference_{self.filter_name}",
@@ -142,6 +145,9 @@ class BlastNFilter(AlignmentSpecificityFilter):
         :return: A DataFrame containing the BLAST search results.
         :rtype: pd.DataFrame
         """
+        if self.sequence_type is None:
+            raise ConfigurationError("sequence_type must be set before calling _run_search")
+
         file_oligo_database = oligo_database.write_database_to_fasta(
             sequence_type=self.sequence_type,
             filename=f"oligo_database_blast_{region_id}",
@@ -217,7 +223,9 @@ class BlastNFilter(AlignmentSpecificityFilter):
         elif "coverage" in self.hit_parameters.keys():
             min_alignment_length = search_results["query_length"] * self.hit_parameters["coverage"] / 100
         else:
-            raise KeyError("Please provide either 'coverage' or a 'min_alignment_length' in hit_parameters!")
+            raise ConfigurationError(
+                "Please provide either 'coverage' or a 'min_alignment_length' in hit_parameters!"
+            )
 
         search_results["min_alignment_length"] = min_alignment_length
 
@@ -423,7 +431,7 @@ class BlastNFilter(AlignmentSpecificityFilter):
 
     def _add_alignment_gaps(
         self, table_hits: pd.DataFrame, queries: list, references: list
-    ) -> Tuple[list, list]:
+    ) -> tuple[list, list]:
         """
         Aligns query and reference sequences by introducing gaps based on alignment hits.
 
@@ -438,7 +446,7 @@ class BlastNFilter(AlignmentSpecificityFilter):
         :param references: List of reference sequences to be aligned.
         :type references: list
         :return: A tuple containing the gapped query and reference sequences.
-        :rtype: Tuple[list, list]
+        :rtype: tuple[list, list]
         """
 
         def add_gaps(seq, gaps):
@@ -447,12 +455,12 @@ class BlastNFilter(AlignmentSpecificityFilter):
             return seq
 
         table_hits["query_gaps"] = (
-            table_hits["query_sequence"].apply(lambda x: np.where(np.array(list(x)) == "-")[0])
+            table_hits["query_sequence"].apply(lambda x: np.where(np.array(list(x)) == "-")[0].tolist())
             + table_hits["query_start"]
             - 1  # blastn has 1-based indices
         )
         table_hits["reference_gaps"] = (
-            table_hits["reference_sequence"].apply(lambda x: np.where(np.array(list(x)) == "-")[0])
+            table_hits["reference_sequence"].apply(lambda x: np.where(np.array(list(x)) == "-")[0].tolist())
             + table_hits["query_start"]
             - 1
         )
@@ -506,9 +514,9 @@ class BlastNSeedregionFilterBase(BlastNFilter):
     def __init__(
         self,
         remove_hits: bool = True,
-        search_parameters: dict = None,
-        hit_parameters: dict = None,
-        names_search_output: list = None,
+        search_parameters: dict | None = None,
+        hit_parameters: dict | None = None,
+        names_search_output: list | None = None,
         filter_name: str = "blast_filter",
         dir_output: str = "output",
     ) -> None:
@@ -588,7 +596,9 @@ class BlastNSeedregionFilterBase(BlastNFilter):
         elif "coverage" in self.hit_parameters.keys():
             min_alignment_length = search_results["query_length"] * self.hit_parameters["coverage"] / 100
         else:
-            raise KeyError("Please provide either 'coverage' or a 'min_alignment_length' in hit_parameters!")
+            raise ConfigurationError(
+                "Please provide either 'coverage' or a 'min_alignment_length' in hit_parameters!"
+            )
 
         search_results["min_alignment_length"] = min_alignment_length
 
@@ -660,12 +670,12 @@ class BlastNSeedregionFilter(BlastNSeedregionFilterBase):
 
     def __init__(
         self,
-        seedregion_start: Union[int, float],
-        seedregion_end: Union[int, float],
+        seedregion_start: int | float,
+        seedregion_end: int | float,
         remove_hits: bool = True,
-        search_parameters: dict = None,
-        hit_parameters: dict = None,
-        names_search_output: list = None,
+        search_parameters: dict | None = None,
+        hit_parameters: dict | None = None,
+        names_search_output: list | None = None,
         filter_name: str = "blast_filter",
         dir_output: str = "output",
     ) -> None:
@@ -713,8 +723,12 @@ class BlastNSeedregionFilter(BlastNSeedregionFilterBase):
         :return: The BLAST search results with added seed region information.
         :rtype: pd.DataFrame
         """
-        # Calculate seedregion using new PropertyCalculator pattern
-        properties = [SeedregionProperty(start=self.seedregion_start, end=self.seedregion_end)]
+        if self.sequence_type is None:
+            raise ConfigurationError("sequence_type must be set before calling _add_seed_region_information")
+
+        properties: list[BaseProperty] = [
+            SeedregionProperty(start=self.seedregion_start, end=self.seedregion_end)
+        ]
         calculator = PropertyCalculator(properties=properties)
         oligo_database = calculator.apply(
             oligo_database=oligo_database, sequence_type=self.sequence_type, n_jobs=1
@@ -822,8 +836,10 @@ class BlastNSeedregionSiteFilter(BlastNSeedregionFilterBase):
         :return: The BLAST search results with added seed region information.
         :rtype: pd.DataFrame
         """
-        # Calculate seedregion site using new PropertyCalculator pattern
-        properties = [
+        if self.sequence_type is None:
+            raise ConfigurationError("sequence_type must be set before calling _add_seed_region_information")
+
+        properties: list[BaseProperty] = [
             SeedregionSiteProperty(
                 seedregion_size=self.seedregion_size,
                 seedregion_site_name=self.seedregion_site_name,

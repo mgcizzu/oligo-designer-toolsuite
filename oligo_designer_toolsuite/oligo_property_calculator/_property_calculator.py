@@ -2,7 +2,7 @@
 # imports
 ############################################
 
-from typing import List, get_args
+from typing import Any, get_args
 
 from joblib import Parallel, delayed
 from joblib_progress import joblib_progress
@@ -24,10 +24,10 @@ class PropertyCalculator:
     The properties are calculated in parallel across all regions of the database, and the calculated values are stored as properties in the database.
 
     :param properties: A list of property calculators to apply to oligonucleotides.
-    :type properties: List[BaseProperty]
+    :type properties: list[BaseProperty]
     """
 
-    def __init__(self, properties: List[BaseProperty]) -> None:
+    def __init__(self, properties: list[BaseProperty]) -> None:
         """Constructor for the PropertyCalculator class."""
         self.properties = properties
 
@@ -77,7 +77,7 @@ class PropertyCalculator:
         :param sequence_type: Type of sequence being processed. Must be one of the sequence types specified in `_constants._TYPES_SEQ`.
         :type sequence_type: _TYPES_SEQ
         """
-        new_oligo_property = {}
+        new_oligo_property: dict[str, dict[str, Any]] = {}
 
         for oligo_id in oligo_database.database[region_id].keys():
             # Calculate all properties for this oligo

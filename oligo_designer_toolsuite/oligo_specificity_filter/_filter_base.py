@@ -6,7 +6,6 @@ import os
 import re
 from abc import ABC, abstractmethod
 from pathlib import Path
-from typing import List, Tuple
 
 import pandas as pd
 from joblib import Parallel, delayed
@@ -44,13 +43,13 @@ class BaseSpecificityFilter(ABC):
         self.dir_output = os.path.abspath(os.path.join(dir_output, self.filter_name))
         Path(self.dir_output).mkdir(parents=True, exist_ok=True)
 
-        self.sequence_type = None
+        self.sequence_type: _TYPES_SEQ | None = None
 
     @abstractmethod
     def apply(
         self,
         oligo_database: OligoDatabase,
-        sequence_type: _TYPES_SEQ,
+        sequence_type: _TYPES_SEQ | None,
         n_jobs: int = 1,
     ) -> OligoDatabase:
         """
@@ -63,7 +62,7 @@ class BaseSpecificityFilter(ABC):
         :param oligo_database: The OligoDatabase instance containing oligonucleotide sequences and their associated properties. This database stores oligo data organized by genomic regions and can be used for filtering, property calculations, set generation, and output operations.
         :type oligo_database: OligoDatabase
         :param sequence_type: Type of sequence being processed. Must be one of the sequence types specified in `_constants._TYPES_SEQ`.
-        :type sequence_type: _TYPES_SEQ
+        :type sequence_type: _TYPES_SEQ | None
         :param n_jobs: Number of parallel jobs to use for processing.
         :type n_jobs: int
         :return: The filtered OligoDatabase.
@@ -73,7 +72,7 @@ class BaseSpecificityFilter(ABC):
     def _filter_hits_from_database(
         self,
         oligo_database: OligoDatabase,
-        region_ids: str,
+        region_ids: str | list[str],
         oligos_with_hits: dict,
     ) -> None:
         """
@@ -100,7 +99,7 @@ class BaseSpecificityFilter(ABC):
     def _flag_hits_in_database(
         self,
         oligo_database: OligoDatabase,
-        region_ids: str,
+        region_ids: str | list[str],
         oligos_with_hits: dict,
         oligos_with_hits_properties: dict,
     ) -> None:
@@ -161,15 +160,15 @@ class ReferenceSpecificityFilter(BaseSpecificityFilter):
         Path(self.dir_output).mkdir(parents=True, exist_ok=True)
 
         self.remove_hits = remove_hits
-        self.reference_database = None
-        self.sequence_type = None
+        self.reference_database: ReferenceDatabase | None = None
+        self.sequence_type: _TYPES_SEQ | None = None
 
-    def set_reference_database(self, reference_database: ReferenceDatabase) -> None:
+    def set_reference_database(self, reference_database: ReferenceDatabase | None) -> None:
         """
         Set the ReferenceDatabase for reference based specificity filters.
 
         :param reference_database: The ReferenceDatabase instance containing reference sequences for alignment or comparison.
-        :type reference_database: ReferenceDatabase
+        :type reference_database: ReferenceDatabase | None
         """
         self.reference_database = reference_database
 
@@ -203,7 +202,7 @@ class ReferenceSpecificityFilter(BaseSpecificityFilter):
         self,
         file_search_results: str,
         names_search_output: list,
-        usecols: list = None,
+        usecols: list | None = None,
         parse_query: bool = True,
         parse_reference: bool = True,
     ) -> pd.DataFrame:
@@ -272,13 +271,13 @@ class AlignmentSpecificityFilter(ReferenceSpecificityFilter):
         Path(self.dir_output).mkdir(parents=True, exist_ok=True)
 
         self.remove_hits = remove_hits
-        self.reference_database = None
-        self.sequence_type = None
+        self.reference_database: ReferenceDatabase | None = None
+        self.sequence_type: _TYPES_SEQ | None = None
 
     def apply(
         self,
         oligo_database: OligoDatabase,
-        sequence_type: _TYPES_SEQ,
+        sequence_type: _TYPES_SEQ | None,
         n_jobs: int = 1,
     ) -> OligoDatabase:
         """
@@ -290,7 +289,7 @@ class AlignmentSpecificityFilter(ReferenceSpecificityFilter):
         :param oligo_database: The OligoDatabase instance containing oligonucleotide sequences and their associated properties. This database stores oligo data organized by genomic regions and can be used for filtering, property calculations, set generation, and output operations.
         :type oligo_database: OligoDatabase
         :param sequence_type: Type of sequence being processed. Must be one of the sequence types specified in `_constants._TYPES_SEQ`.
-        :type sequence_type: _TYPES_SEQ
+        :type sequence_type: _TYPES_SEQ | None
         :param n_jobs: Number of parallel jobs to use for processing.
         :type n_jobs: int
         :return: The filtered OligoDatabase.
@@ -327,7 +326,7 @@ class AlignmentSpecificityFilter(ReferenceSpecificityFilter):
         oligo_database: OligoDatabase,
         sequence_type: _TYPES_SEQ,
         n_jobs: int,
-    ) -> list:
+    ) -> list[tuple[str, str]]:
         """
         Retrieves pairs of oligonucleotides that have significant alignment hits within the same region.
 
@@ -341,7 +340,7 @@ class AlignmentSpecificityFilter(ReferenceSpecificityFilter):
         :param n_jobs: Number of parallel jobs to use for processing.
         :type n_jobs: int
         :return: A list of tuples representing oligo pairs that have significant hits.
-        :rtype: list
+        :rtype: list[tuple[str, str]]
         """
         self.sequence_type = sequence_type
 
@@ -378,7 +377,7 @@ class AlignmentSpecificityFilter(ReferenceSpecificityFilter):
         file_reference: str,
         consider_hits_from_input_region: bool,
         mode: int,
-    ) -> pd.DataFrame:
+    ) -> pd.DataFrame | None:
         """
         Executes the filtering process for a specific region by running the search and identifying significant hits.
 
@@ -393,7 +392,7 @@ class AlignmentSpecificityFilter(ReferenceSpecificityFilter):
         :param mode: Operation mode — 0: flag hits, 1: remove hits, 2: return hits table.
         :type mode: int
         :return: DataFrame of hit results for the region if mode is 2, otherwise None.
-        :rtype: pd.DataFrame
+        :rtype: pd.DataFrame | None
         """
         search_results = self._run_search(
             oligo_database=oligo_database,
@@ -483,7 +482,7 @@ class AlignmentSpecificityFilter(ReferenceSpecificityFilter):
         oligo_database: OligoDatabase,
         table_hits: pd.DataFrame,
         region_id: str,
-    ) -> List[str]:
+    ) -> list[str]:
         """
         Retrieves the query sequences from the OligoDatabase based on the hit information.
 
@@ -494,7 +493,7 @@ class AlignmentSpecificityFilter(ReferenceSpecificityFilter):
         :param region_id: Region ID to process.
         :type region_id: str
         :return: A list of query sequences corresponding to the hits.
-        :rtype: List[str]
+        :rtype: list[str]
         """
         queries = [
             oligo_database.database[region_id][query_id][self.sequence_type]
@@ -523,7 +522,7 @@ class AlignmentSpecificityFilter(ReferenceSpecificityFilter):
         table_hits: pd.DataFrame,
         queries: list,
         references: list,
-    ) -> Tuple[list, list]:
+    ) -> tuple[list, list]:
         """
         Abstract method to align query and reference sequences by adding gaps.
 
@@ -534,5 +533,5 @@ class AlignmentSpecificityFilter(ReferenceSpecificityFilter):
         :param references: List of reference sequences.
         :type references: list
         :return: A tuple containing lists of gapped query and reference sequences.
-        :rtype: Tuple[list, list]
+        :rtype: tuple[list, list]
         """

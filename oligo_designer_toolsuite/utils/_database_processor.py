@@ -3,7 +3,7 @@
 ############################################
 
 import warnings
-from typing import Union, get_args
+from typing import Any, get_args
 
 from effidict import EffiDict, LRUReplacement, PickleBackend
 
@@ -17,20 +17,20 @@ from ._checkers_and_helpers import check_if_list, check_if_list_of_lists
 
 
 def merge_databases(
-    database1: dict,
-    database2: dict,
+    database1: EffiDict,
+    database2: EffiDict,
     sequence_type: _TYPES_SEQ,
     dir_cache_files: str,
     max_entries_in_memory: int,
-) -> dict:
+) -> EffiDict:
     """
     Merges two oligo databases by combining their content based on sequence keys,
     ensuring that sequences with the same oligo are merged, and avoiding duplicates.
 
     :param database1: The first database to be merged.
-    :type database1: dict
+    :type database1: EffiDict
     :param database2: The second database to be merged.
-    :type database2: dict
+    :type database2: EffiDict
     :param sequence_type: Type of sequence being processed. Must be one of the sequence types specified in `_constants._TYPES_SEQ`.
     :type sequence_type: _TYPES_SEQ
     :param dir_cache_files: Directory to store cache files used for merging.
@@ -38,21 +38,21 @@ def merge_databases(
     :param max_entries_in_memory: Maximum number of entries to keep in memory for the LRU (Least Recently Used) cache.
     :type max_entries_in_memory: int
     :return: The merged database.
-    :rtype: dict
+    :rtype: EffiDict
     """
 
-    def _get_sequence_as_key(database: dict, regions: list, sequence_type: _TYPES_SEQ) -> dict:
+    def _get_sequence_as_key(database: EffiDict, regions: list[str], sequence_type: _TYPES_SEQ) -> EffiDict:
         """
         Converts oligo sequences to dictionary keys, grouping oligo properties by sequence for each specified region.
 
         :param database: The database containing sequences and their properties.
-        :type database: dict
+        :type database: EffiDict
         :param regions: List of regions within the database to process.
         :type regions: list
         :param sequence_type: Type of sequence being processed. Must be one of the sequence types specified in `_constants._TYPES_SEQ`.
         :type sequence_type: _TYPES_SEQ
         :return: A dictionary with sequences as keys and oligo properties as values.
-        :rtype: dict
+        :rtype: EffiDict
         """
         backend = PickleBackend(storage_path=dir_cache_files)
         strategy = LRUReplacement(disk_backend=backend, max_in_memory=max_entries_in_memory)
@@ -67,16 +67,16 @@ def merge_databases(
                 database_modified[region][oligo_sequence] = oligo_properties
         return database_modified
 
-    def _add_database_content(database_merged_tmp: dict, database_in_tmp: dict) -> dict:
+    def _add_database_content(database_merged_tmp: EffiDict, database_in_tmp: EffiDict) -> EffiDict:
         """
         Merges oligo properties from two databases, ensuring sequences with the same oligo are combined and properties are updated.
 
         :param database_merged_tmp: The dictionary to which content is added.
-        :type database_merged_tmp: dict
+        :type database_merged_tmp: EffiDict
         :param database_in_tmp: The dictionary containing new content to merge.
-        :type database_in_tmp: dict
+        :type database_in_tmp: EffiDict
         :return: The updated dictionary with merged oligo properties.
-        :rtype: dict
+        :rtype: EffiDict
         """
         for region, database_region in database_in_tmp.items():
             for oligo_sequence, oligo_properties in database_region.items():
@@ -130,7 +130,9 @@ def merge_databases(
     return database_concat
 
 
-def collapse_properties_for_duplicated_sequences(oligo_properties1: dict, oligo_properties2: dict) -> dict:
+def collapse_properties_for_duplicated_sequences(
+    oligo_properties1: dict[str, Any], oligo_properties2: dict[str, Any]
+) -> dict[str, Any]:
     """
     Merges two dictionaries of oligo properties, combining values for non-sequence keys and issuing warnings if sequences for the same oligo ID.
 
@@ -162,7 +164,10 @@ def collapse_properties_for_duplicated_sequences(oligo_properties1: dict, oligo_
 
 
 def check_if_region_in_database(
-    database: dict, region_ids: list, write_regions_with_insufficient_oligos: bool, file_removed_regions: str
+    database: dict[str, Any],
+    region_ids: list[str],
+    write_regions_with_insufficient_oligos: bool,
+    file_removed_regions: str,
 ) -> None:
     """
     Checks if specified regions are present in the database and logs missing regions.
@@ -185,7 +190,7 @@ def check_if_region_in_database(
                     hanlde.write(f"{region_id}\t{'Not in Annotation'}\n")
 
 
-def format_oligo_properties(oligo_properties: dict) -> dict:
+def format_oligo_properties(oligo_properties: dict[str, Any]) -> dict[str, Any]:
     """
     Ensures that the values in an oligo properties dictionary are formatted as lists of lists.
 
@@ -200,14 +205,14 @@ def format_oligo_properties(oligo_properties: dict) -> dict:
     return oligo_properties
 
 
-def flatten_property_list(property: list) -> Union[list, str, int, float, bool]:
+def flatten_property_list(property: list[Any]) -> list[Any]:
     """
     Flattens a nested list of properties into a single list, or returns the item if only one element remains.
 
     :param property: The list or nested list of properties to flatten.
-    :type property: list
+    :type property: list[Any]
     :return: A flattened list or a single item if only one element exists.
-    :rtype: Union[list, str, int, float, bool]
+    :rtype: list[Any]
     """
     flattened_property_list = [
         item

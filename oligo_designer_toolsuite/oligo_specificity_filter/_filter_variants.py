@@ -8,7 +8,7 @@ from joblib import Parallel, delayed
 from joblib_progress import joblib_progress
 
 from oligo_designer_toolsuite._constants import _TYPES_SEQ
-from oligo_designer_toolsuite._exceptions import ConfigurationError
+from oligo_designer_toolsuite._exceptions import ConfigurationError, DatabaseError
 from oligo_designer_toolsuite.database import OligoDatabase
 from oligo_designer_toolsuite.oligo_specificity_filter import ReferenceSpecificityFilter
 from oligo_designer_toolsuite.utils import get_intersection
@@ -45,8 +45,8 @@ class VariantsFilter(ReferenceSpecificityFilter):
         remove_hits: bool = True,
         filter_name: str = "variants_filter",
         dir_output: str = "output",
-        usecols_search_output=[3, 8],
-        names_search_output: list = [
+        usecols_search_output: list[int] = [3, 8],
+        names_search_output: list[str] = [
             "query",
             "reference",
         ],
@@ -69,6 +69,9 @@ class VariantsFilter(ReferenceSpecificityFilter):
         :return: Path to the written reference file.
         :rtype: str
         """
+        if self.reference_database is None:
+            raise DatabaseError("reference_database must be set before calling create_reference")
+
         file_reference = self.reference_database.write_database_to_file(
             filename=f"db_reference_{self.filter_name}",
             dir_output=self.dir_output,
@@ -78,7 +81,7 @@ class VariantsFilter(ReferenceSpecificityFilter):
     def apply(
         self,
         oligo_database: OligoDatabase,
-        sequence_type: _TYPES_SEQ = None,
+        sequence_type: _TYPES_SEQ | None = None,
         n_jobs: int = 1,
     ) -> OligoDatabase:
         """
@@ -90,7 +93,7 @@ class VariantsFilter(ReferenceSpecificityFilter):
         :param oligo_database: The OligoDatabase instance containing oligonucleotide sequences and their associated properties. This database stores oligo data organized by genomic regions and can be used for filtering, property calculations, set generation, and output operations.
         :type oligo_database: OligoDatabase
         :param sequence_type: Type of sequence being processed. Must be one of the sequence types specified in `_constants._TYPES_SEQ`. Note: This parameter is not utilized in this filter.
-        :type sequence_type: _TYPES_SEQ
+        :type sequence_type: _TYPES_SEQ | None
         :param n_jobs: Number of parallel jobs to use for processing.
         :type n_jobs: int
         :return: The filtered OligoDatabase.
@@ -143,7 +146,7 @@ class VariantsFilter(ReferenceSpecificityFilter):
         )
         file_bed_results = os.path.join(self.dir_output, f"bed_results_{region_id}.txt")
 
-        get_intersection(file_oligo_database, file_reference, file_bed_results)
+        get_intersection(file_A=file_oligo_database, file_B=file_reference, file_bed_out=file_bed_results)
 
         # read the reuslts of the bed seatch
         table_hits = self._read_search_output(

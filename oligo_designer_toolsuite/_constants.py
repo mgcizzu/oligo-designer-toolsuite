@@ -17,6 +17,15 @@ _TYPES_SEQ = Literal[
     "oligo_pair_R",
     "sequence_encoding_probe",
     "sequence_target_probe",
+    # Reverse complement variants
+    "target_rc",
+    "target_short_rc",
+    "oligo_rc",
+    "oligo_short_rc",
+    "oligo_pair_L_rc",
+    "oligo_pair_R_rc",
+    "sequence_encoding_probe_rc",
+    "sequence_target_probe_rc",
 ]
 _TYPES_REF = Literal["fasta", "vcf"]
 _TYPES_FILE = Literal["gff", "gtf", "fasta"]

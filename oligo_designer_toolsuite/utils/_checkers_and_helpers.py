@@ -7,6 +7,10 @@ import os
 import time
 import uuid
 import warnings
+from typing import TYPE_CHECKING, Any, Iterable
+
+if TYPE_CHECKING:
+    from _typeshed import SupportsItems  # only available to type checkers
 
 import yaml
 
@@ -31,17 +35,18 @@ class CustomYamlDumper(yaml.SafeDumper):
     :type data: list or dict
     """
 
-    def increase_indent(self, flow=False):
-        return super(CustomYamlDumper, self).increase_indent(flow, False)
+    def increase_indent(self, flow: bool = False, indentless: bool = False) -> Any:
+        indentless = False
+        return super(CustomYamlDumper, self).increase_indent(flow, indentless)
 
-    def represent_list(self, data):
+    def represent_list(self, data: Iterable[Any]) -> Any:
         return self.represent_sequence("tag:yaml.org,2002:seq", data, flow_style=True)
 
-    def represent_dict(self, data):
+    def represent_dict(self, data: "SupportsItems[Any, Any] | Iterable[tuple[Any, Any]]") -> Any:
         return self.represent_mapping("tag:yaml.org,2002:map", data, flow_style=False)
 
     # Disables the use of aliases by returning True for all data
-    def ignore_aliases(self, data):
+    def ignore_aliases(self, data: Any) -> bool:
         return True
 
 
@@ -68,7 +73,7 @@ def check_if_dna_sequence(seq: str, valid_characters: list = ["A", "C", "T", "G"
     return all(char.upper() in valid_characters_upper for char in seq)
 
 
-def check_if_key_exists(nested_dict: dict, key: str) -> bool:
+def check_if_key_exists(nested_dict: dict[str, Any], key: str) -> bool:
     """
     Checks if a given key exists within a nested dictionary.
 
@@ -88,30 +93,31 @@ def check_if_key_exists(nested_dict: dict, key: str) -> bool:
                     return True
     except:
         return False
+    return False
 
 
-def check_if_list(obj: any) -> list:
+def check_if_list(obj: Any) -> list[Any]:
     """
     Ensures that the given object is returned as a list. Wraps non-list objects in a list.
 
     :param obj: The object to check and possibly convert.
-    :type obj: any
-    :return: The object wrapped in a list if it wasn't already a list.
-    :rtype: list
+    :type obj: Any
+    :return: The object wrapped in a list if it wasn't already a list, or None if obj is falsy.
+    :rtype: Any
     """
     if obj:
-        obj = [obj] if not isinstance(obj, list) else obj
-    return obj
+        obj_list = [obj] if not isinstance(obj, list) else obj
+    return obj_list
 
 
-def check_if_list_of_lists(obj: any) -> list:
+def check_if_list_of_lists(obj: Any) -> list[list[Any]]:
     """
     Ensures that the given object is returned as a list of lists.
 
     :param obj: The object to check and possibly convert.
-    :type obj: any
+    :type obj: Any
     :return: The object as a list of lists.
-    :rtype: list
+    :rtype: list[list[Any]]
     """
     if isinstance(obj, list):
         # Check if it's a list of lists
@@ -126,14 +132,56 @@ def check_if_list_of_lists(obj: any) -> list:
         return [[obj]]
 
 
-def check_tsv_format(file: str) -> list:
+def check_if_int(value: Any) -> int | None:
+    """
+    Convert a value to int, handling lists and various types.
+
+    :param value: The value to convert to int.
+    :type value: Any
+    :return: The value converted to int, or None if the value is None or not a list or a single element.
+    :rtype: int | None
+    """
+    if value is None:
+        return None
+
+    if isinstance(value, list):
+        if len(value) == 1:
+            return int(value[0])
+        else:
+            return None
+    else:
+        return int(value)
+
+
+def check_if_string(value: Any) -> str | None:
+    """
+    Convert a value to string, handling lists and various types.
+
+    :param value: The value to convert to string.
+    :type value: Any
+    :return: The value converted to string, or None if the value is None or not a list or a single element.
+    :rtype: str | None
+    """
+    if value is None:
+        return None
+
+    if isinstance(value, list):
+        if len(value) == 1:
+            return str(value[0])
+        else:
+            return None
+    else:
+        return str(value)
+
+
+def check_tsv_format(file: str) -> bool:
     """
     Checks if a given file is in valid TSV (Tab-Separated Values) format.
 
     :param file: The path to the TSV file to check.
     :type file: str
     :return: `True` if the file is in valid TSV format, `False` otherwise.
-    :rtype: list
+    :rtype: bool
     """
     with open(file, "r") as tsv:
         read_tsv = csv.reader(tsv, delimiter="\t")

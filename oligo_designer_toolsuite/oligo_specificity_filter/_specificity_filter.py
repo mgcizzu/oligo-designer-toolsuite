@@ -35,7 +35,7 @@ class SpecificityFilter:
     def apply(
         self,
         oligo_database: OligoDatabase,
-        sequence_type: _TYPES_SEQ = None,
+        sequence_type: _TYPES_SEQ | None = None,
         n_jobs: int = 1,
     ) -> OligoDatabase:
         """
@@ -48,7 +48,7 @@ class SpecificityFilter:
         :param oligo_database: The OligoDatabase instance containing oligonucleotide sequences and their associated properties. This database stores oligo data organized by genomic regions and can be used for filtering, property calculations, set generation, and output operations.
         :type oligo_database: OligoDatabase
         :param sequence_type: Type of sequence being processed. Must be one of the sequence types specified in `_constants._TYPES_SEQ`.
-        :type sequence_type: _TYPES_SEQ
+        :type sequence_type: _TYPES_SEQ | None
         :param n_jobs: Number of parallel jobs to use for processing.
         :type n_jobs: int
         :return: The filtered OligoDatabase.

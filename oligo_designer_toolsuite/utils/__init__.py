@@ -5,9 +5,11 @@ This module provides utilities for processing databases, parsing sequences and c
 from ._checkers_and_helpers import (
     CustomYamlDumper,
     check_if_dna_sequence,
+    check_if_int,
     check_if_key_exists,
     check_if_list,
     check_if_list_of_lists,
+    check_if_string,
     check_tsv_format,
     generate_unique_filename,
 )
@@ -35,6 +37,8 @@ __all__ = [
     "check_if_key_exists",
     "check_if_list",
     "check_if_list_of_lists",
+    "check_if_string",
+    "check_if_int",
     "check_tsv_format",
     "check_if_region_in_database",
     "generate_unique_filename",

@@ -2,16 +2,16 @@
 # imports
 ############################################
 
-from typing import List
-
 import iteration_utilities
 import pandas as pd
 from joblib import Parallel, delayed
 from joblib_progress import joblib_progress
 
 from oligo_designer_toolsuite._constants import _TYPES_SEQ
+from oligo_designer_toolsuite._exceptions import ConfigurationError
 from oligo_designer_toolsuite.database import OligoDatabase
 from oligo_designer_toolsuite.oligo_property_calculator import (
+    BaseProperty,
     PropertyCalculator,
     ReverseComplementSequenceProperty,
 )
@@ -39,7 +39,7 @@ class ExactMatchFilter(BaseSpecificityFilter):
 
     def __init__(
         self,
-        policy: BaseFilterPolicy = None,
+        policy: BaseFilterPolicy | None = None,
         filter_name: str = "exact_match_filter",
     ) -> None:
         """Constructor for the ExactMatches class."""
@@ -53,7 +53,7 @@ class ExactMatchFilter(BaseSpecificityFilter):
     def apply(
         self,
         oligo_database: OligoDatabase,
-        sequence_type: _TYPES_SEQ,
+        sequence_type: _TYPES_SEQ | None,
         n_jobs: int = 1,
     ) -> OligoDatabase:
         """
@@ -66,12 +66,15 @@ class ExactMatchFilter(BaseSpecificityFilter):
         :param oligo_database: The OligoDatabase instance containing oligonucleotide sequences and their associated properties. This database stores oligo data organized by genomic regions and can be used for filtering, property calculations, set generation, and output operations.
         :type oligo_database: OligoDatabase
         :param sequence_type: Type of sequence being processed. Must be one of the sequence types specified in `_constants._TYPES_SEQ`.
-        :type sequence_type: _TYPES_SEQ
+        :type sequence_type: _TYPES_SEQ | None
         :param n_jobs: Number of parallel jobs to use for processing.
         :type n_jobs: int
         :return: The filtered OligoDatabase with exact matching sequences removed.
         :rtype: OligoDatabase
         """
+        if sequence_type is None:
+            raise ConfigurationError("sequence_type must be set before calling apply")
+
         self.sequence_type = sequence_type
 
         # extract all the sequences
@@ -114,7 +117,7 @@ class ExactMatchFilter(BaseSpecificityFilter):
         oligo_database: OligoDatabase,
         sequence_type: _TYPES_SEQ,
         n_jobs: int = 1,
-    ) -> list:
+    ) -> list[tuple[str, str]]:
         """
         Identifies oligonucleotide pairs that have exact sequence matches within the OligoDatabase.
 
@@ -124,22 +127,22 @@ class ExactMatchFilter(BaseSpecificityFilter):
         :param oligo_database: The OligoDatabase instance containing oligonucleotide sequences and their associated properties. This database stores oligo data organized by genomic regions and can be used for filtering, property calculations, set generation, and output operations.
         :type oligo_database: OligoDatabase
         :param sequence_type: Type of sequence being processed. Must be one of the sequence types specified in `_constants._TYPES_SEQ`.
-        :type sequence_type: _TYPES_SEQr[]
+        :type sequence_type: _TYPES_SEQ
         :param n_jobs: Number of parallel jobs to use for processing.
         :type n_jobs: int
         :return: A list of tuples representing oligo pairs that have exact matches.
-        :rtype: list
+        :rtype: list[tuple[str, str]]
         """
         self.sequence_type = sequence_type
 
-        sequence_type_reverse_complement = f"{self.sequence_type}_rc"
+        sequence_type_reverse_complement: _TYPES_SEQ = f"{self.sequence_type}_rc"
         # Calculate reverse complement
-        properties = [
+        properties: list[BaseProperty] = [
             ReverseComplementSequenceProperty(
                 sequence_type_reverse_complement=sequence_type_reverse_complement
             )
         ]
-        calculator = PropertyCalculator(properties=properties)
+        calculator: PropertyCalculator = PropertyCalculator(properties=properties)
         oligo_database = calculator.apply(
             oligo_database=oligo_database, sequence_type=self.sequence_type, n_jobs=1
         )
@@ -199,7 +202,7 @@ class ExactMatchFilter(BaseSpecificityFilter):
     def _run_filter(
         self,
         oligo_database: OligoDatabase,
-        search_results: List,
+        search_results: list,
         sequence_oligoids_mapping: dict,
         consider_hits_from_input_region: bool,
         region_id: str,
@@ -213,7 +216,7 @@ class ExactMatchFilter(BaseSpecificityFilter):
         :param oligo_database: The OligoDatabase instance containing oligonucleotide sequences and their associated properties. This database stores oligo data organized by genomic regions and can be used for filtering, property calculations, set generation, and output operations.
         :type oligo_database: OligoDatabase
         :param search_results: A list of sequences that were identified as duplicates.
-        :type search_results: List
+        :type search_results: list
         :param sequence_oligoids_mapping: A dictionary mapping sequences to their respective oligo IDs.
         :type sequence_oligoids_mapping: dict
         :param consider_hits_from_input_region: Flag indicating whether to consider hits from the same region as the input sequences.

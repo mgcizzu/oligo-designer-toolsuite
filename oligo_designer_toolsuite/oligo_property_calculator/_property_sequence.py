@@ -2,12 +2,11 @@
 # imports
 ############################################
 
-from typing import List, Union
-
 from oligo_designer_toolsuite._constants import _TYPES_SEQ
 from oligo_designer_toolsuite._exceptions import ConfigurationError
 from oligo_designer_toolsuite.database import OligoDatabase
 from oligo_designer_toolsuite.oligo_property_calculator import BaseProperty
+from oligo_designer_toolsuite.utils import check_if_int, check_if_string
 
 from ._property_functions import (
     calc_detect_oligo,
@@ -56,10 +55,17 @@ class LengthProperty(BaseProperty):
         :return: A dictionary containing the calculated length property.
         :rtype: dict
         """
-        sequence = oligo_database.get_oligo_property_value(
-            property=sequence_type, region_id=region_id, oligo_id=oligo_id, flatten=True
+        sequence = check_if_string(
+            oligo_database.get_oligo_property_value(
+                property=sequence_type, region_id=region_id, oligo_id=oligo_id, flatten=True
+            )
         )
-        length = calc_oligo_length(sequence=sequence)
+
+        length: int | None = None
+
+        if sequence:
+            length = calc_oligo_length(sequence=sequence)
+
         return {f"length_{sequence_type}": length}
 
 
@@ -89,10 +95,17 @@ class GCContentProperty(BaseProperty):
         :return: A dictionary containing the calculated GC content property.
         :rtype: dict
         """
-        sequence = oligo_database.get_oligo_property_value(
-            property=sequence_type, region_id=region_id, oligo_id=oligo_id, flatten=True
+        sequence = check_if_string(
+            oligo_database.get_oligo_property_value(
+                property=sequence_type, region_id=region_id, oligo_id=oligo_id, flatten=True
+            )
         )
-        GC_content = calc_gc_content(sequence=sequence)
+
+        GC_content: float | None = None
+
+        if sequence:
+            GC_content = calc_gc_content(sequence=sequence)
+
         return {f"GC_content_{sequence_type}": GC_content}
 
 
@@ -117,8 +130,8 @@ class TmNNProperty(BaseProperty):
     def __init__(
         self,
         Tm_parameters: dict,
-        Tm_salt_correction_parameters: dict = None,
-        Tm_chem_correction_parameters: dict = None,
+        Tm_salt_correction_parameters: dict | None = None,
+        Tm_chem_correction_parameters: dict | None = None,
     ) -> None:
         """Constructor for the TmNNProperty class."""
         super().__init__()
@@ -143,15 +156,22 @@ class TmNNProperty(BaseProperty):
         :return: A dictionary containing the calculated Tm property.
         :rtype: dict
         """
-        sequence = oligo_database.get_oligo_property_value(
-            property=sequence_type, region_id=region_id, oligo_id=oligo_id, flatten=True
+        sequence = check_if_string(
+            oligo_database.get_oligo_property_value(
+                property=sequence_type, region_id=region_id, oligo_id=oligo_id, flatten=True
+            )
         )
-        TmNN = calc_tm_nn(
-            sequence=sequence,
-            Tm_parameters=self.Tm_parameters,
-            Tm_salt_correction_parameters=self.Tm_salt_correction_parameters,
-            Tm_chem_correction_parameters=self.Tm_chem_correction_parameters,
-        )
+
+        TmNN: float | None = None
+
+        if sequence:
+            TmNN = calc_tm_nn(
+                sequence=sequence,
+                Tm_parameters=self.Tm_parameters,
+                Tm_salt_correction_parameters=self.Tm_salt_correction_parameters,
+                Tm_chem_correction_parameters=self.Tm_chem_correction_parameters,
+            )
+
         return {f"TmNN_{sequence_type}": TmNN}
 
 
@@ -185,10 +205,17 @@ class DGSecondaryStructureProperty(BaseProperty):
         :return: A dictionary containing the calculated ΔG property.
         :rtype: dict
         """
-        sequence = oligo_database.get_oligo_property_value(
-            property=sequence_type, region_id=region_id, oligo_id=oligo_id, flatten=True
+        sequence = check_if_string(
+            oligo_database.get_oligo_property_value(
+                property=sequence_type, region_id=region_id, oligo_id=oligo_id, flatten=True
+            )
         )
-        DG_secondary_structure = calc_dg_secondary_structure(sequence=sequence, T=self.T)
+
+        DG_secondary_structure: float | None = None
+
+        if sequence:
+            DG_secondary_structure = calc_dg_secondary_structure(sequence=sequence, T=self.T)
+
         return {f"DG_secondary_structure_{sequence_type}": DG_secondary_structure}
 
 
@@ -218,10 +245,17 @@ class LengthSelfComplementProperty(BaseProperty):
         :return: A dictionary containing the calculated self-complement length property.
         :rtype: dict
         """
-        sequence = oligo_database.get_oligo_property_value(
-            property=sequence_type, region_id=region_id, oligo_id=oligo_id, flatten=True
+        sequence = check_if_string(
+            oligo_database.get_oligo_property_value(
+                property=sequence_type, region_id=region_id, oligo_id=oligo_id, flatten=True
+            )
         )
-        len_overlap = calc_length_selfcomplement(sequence=sequence)
+
+        len_overlap: int | None = None
+
+        if sequence:
+            len_overlap = calc_length_selfcomplement(sequence=sequence)
+
         return {f"length_selfcomplement_{sequence_type}": len_overlap}
 
 
@@ -255,10 +289,17 @@ class LengthComplementProperty(BaseProperty):
         :return: A dictionary containing the calculated complement length property.
         :rtype: dict
         """
-        sequence = oligo_database.get_oligo_property_value(
-            property=sequence_type, region_id=region_id, oligo_id=oligo_id, flatten=True
+        sequence = check_if_string(
+            oligo_database.get_oligo_property_value(
+                property=sequence_type, region_id=region_id, oligo_id=oligo_id, flatten=True
+            )
         )
-        len_overlap = calc_length_complement(sequence1=sequence, sequence2=self.comparison_sequence)
+
+        len_overlap: int | None = None
+
+        if sequence:
+            len_overlap = calc_length_complement(sequence1=sequence, sequence2=self.comparison_sequence)
+
         return {f"length_complement_{sequence_type}_{self.comparison_sequence}": len_overlap}
 
 
@@ -295,12 +336,19 @@ class ShortenedSequenceProperty(BaseProperty):
         :return: A dictionary containing the calculated shortened sequence property.
         :rtype: dict
         """
-        sequence = oligo_database.get_oligo_property_value(
-            property=sequence_type, region_id=region_id, oligo_id=oligo_id, flatten=True
+        sequence = check_if_string(
+            oligo_database.get_oligo_property_value(
+                property=sequence_type, region_id=region_id, oligo_id=oligo_id, flatten=True
+            )
         )
-        sequence_short = calculate_shortened_sequence(
-            sequence=sequence, sequence_length=self.sequence_length, reverse=self.reverse
-        )
+
+        sequence_short: str | None = None
+
+        if sequence:
+            sequence_short = calculate_shortened_sequence(
+                sequence=sequence, sequence_length=self.sequence_length, reverse=self.reverse
+            )
+
         return {f"{sequence_type}_short": sequence_short}
 
 
@@ -334,13 +382,16 @@ class ReverseComplementSequenceProperty(BaseProperty):
         :return: A dictionary containing the calculated reverse complement sequence property.
         :rtype: dict
         """
-        sequence = oligo_database.get_oligo_property_value(
-            property=sequence_type, region_id=region_id, oligo_id=oligo_id, flatten=True
+        sequence = check_if_string(
+            oligo_database.get_oligo_property_value(
+                property=sequence_type, region_id=region_id, oligo_id=oligo_id, flatten=True
+            )
         )
+        sequence_rc: str | None = None
+
         if sequence:
             sequence_rc = calculate_reverse_complement_sequence(sequence=sequence)
-        else:
-            sequence_rc = None
+
         return {self.sequence_type_reverse_complement: sequence_rc}
 
 
@@ -349,15 +400,15 @@ class SplitSequenceProperty(BaseProperty):
     A property class for splitting oligonucleotide sequences into sub-sequences.
 
     :param split_start_end: A list of tuples indicating (start, end) indices for sequence splitting.
-    :type split_start_end: List[tuple]
+    :type split_start_end: list[tuple]
     :param split_names: A list of names to assign to each of the split sequence segments.
-    :type split_names: List[str]
+    :type split_names: list[str]
     """
 
     def __init__(
         self,
-        split_start_end: List[tuple],
-        split_names: List[str],
+        split_start_end: list[tuple],
+        split_names: list[str],
     ) -> None:
         """Constructor for the SplitSequenceProperty class."""
         super().__init__()
@@ -386,14 +437,17 @@ class SplitSequenceProperty(BaseProperty):
         :return: A dictionary containing the calculated split sequence properties.
         :rtype: dict
         """
-        sequence = oligo_database.get_oligo_property_value(
-            property=sequence_type, region_id=region_id, oligo_id=oligo_id, flatten=True
+        sequence = check_if_string(
+            oligo_database.get_oligo_property_value(
+                property=sequence_type, region_id=region_id, oligo_id=oligo_id, flatten=True
+            )
         )
+        properties: dict[str, str | None] = dict.fromkeys(self.split_names, None)
+
         if sequence:
             split_sequences = calc_split_sequence(sequence=sequence, split_start_end=self.split_start_end)
             properties = dict(zip(self.split_names, split_sequences))
-        else:
-            properties = dict.fromkeys(self.split_names, None)
+
         return properties
 
 
@@ -402,12 +456,12 @@ class SeedregionProperty(BaseProperty):
     A property class for calculating seed regions of oligonucleotide sequences.
 
     :param start: The start position of the seed region. Can be an integer (exact position) or a float (fraction of the sequence length).
-    :type start: Union[int, float]
+    :type start: int | float
     :param end: The end position of the seed region. Can be an integer (exact position) or a float (fraction of the sequence length).
-    :type end: Union[int, float]
+    :type end: int | float
     """
 
-    def __init__(self, start: Union[int, float], end: Union[int, float]) -> None:
+    def __init__(self, start: int | float, end: int | float) -> None:
         """Constructor for the SeedregionProperty class."""
         super().__init__()
         self.start = start
@@ -430,10 +484,20 @@ class SeedregionProperty(BaseProperty):
         :return: A dictionary containing the calculated seedregion start and end positions.
         :rtype: dict
         """
-        sequence = oligo_database.get_oligo_property_value(
-            property=sequence_type, region_id=region_id, oligo_id=oligo_id, flatten=True
+        sequence = check_if_string(
+            oligo_database.get_oligo_property_value(
+                property=sequence_type, region_id=region_id, oligo_id=oligo_id, flatten=True
+            )
         )
-        seedregion_start, seedregion_end = calc_seedregion(sequence=sequence, start=self.start, end=self.end)
+
+        seedregion_start: int | None = None
+        seedregion_end: int | None = None
+
+        if sequence:
+            seedregion_start, seedregion_end = calc_seedregion(
+                sequence=sequence, start=self.start, end=self.end
+            )
+
         return {
             "seedregion_start": seedregion_start,
             "seedregion_end": seedregion_end,
@@ -477,18 +541,24 @@ class SeedregionSiteProperty(BaseProperty):
         :return: A dictionary containing the calculated seedregion start and end positions.
         :rtype: dict
         """
-        sequence = oligo_database.get_oligo_property_value(
-            property=sequence_type, region_id=region_id, oligo_id=oligo_id, flatten=True
+        sequence = check_if_string(
+            oligo_database.get_oligo_property_value(
+                property=sequence_type, region_id=region_id, oligo_id=oligo_id, flatten=True
+            )
         )
-        seedregion_site = oligo_database.get_oligo_property_value(
-            property=self.seedregion_site_name, region_id=region_id, oligo_id=oligo_id, flatten=True
+        seedregion_site = check_if_int(
+            oligo_database.get_oligo_property_value(
+                property=self.seedregion_site_name, region_id=region_id, oligo_id=oligo_id, flatten=True
+            )
         )
-        if seedregion_site:
+
+        seedregion_start: int | None = None
+        seedregion_end: int | None = None
+
+        if sequence and seedregion_site:
             seedregion_start, seedregion_end = calculate_seedregion_site(
                 sequence=sequence, seedregion_site=seedregion_site, seedregion_size=self.seedregion_size
             )
-        else:
-            seedregion_start = seedregion_end = None
 
         return {
             "seedregion_start": seedregion_start,
@@ -511,9 +581,9 @@ class PadlockArmsProperty(BaseProperty):
     :param Tm_parameters: Parameters for the nearest-neighbor Tm calculation.
     :type Tm_parameters: dict
     :param Tm_salt_correction_parameters: Optional parameters for salt correction.
-    :type Tm_salt_correction_parameters: dict, optional
+    :type Tm_salt_correction_parameters: dict | None, optional
     :param Tm_chem_correction_parameters: Optional parameters for chemical correction.
-    :type Tm_chem_correction_parameters: dict, optional
+    :type Tm_chem_correction_parameters: dict | None, optional
     """
 
     def __init__(
@@ -523,8 +593,8 @@ class PadlockArmsProperty(BaseProperty):
         arm_Tm_min: float,
         arm_Tm_max: float,
         Tm_parameters: dict,
-        Tm_salt_correction_parameters: dict = None,
-        Tm_chem_correction_parameters: dict = None,
+        Tm_salt_correction_parameters: dict | None = None,
+        Tm_chem_correction_parameters: dict | None = None,
     ) -> None:
         """Constructor for the PadlockArmsProperty class."""
         super().__init__()
@@ -553,19 +623,26 @@ class PadlockArmsProperty(BaseProperty):
         :return: A dictionary containing the calculated arm temperatures and ligation site.
         :rtype: dict
         """
-        sequence = oligo_database.get_oligo_property_value(
-            property=sequence_type, region_id=region_id, oligo_id=oligo_id, flatten=True
+        sequence = check_if_string(
+            oligo_database.get_oligo_property_value(
+                property=sequence_type, region_id=region_id, oligo_id=oligo_id, flatten=True
+            )
         )
-        arm1_Tm, arm2_Tm, ligation_site = calc_padlock_arms(
-            sequence=sequence,
-            arm_length_min=self.arm_length_min,
-            arm_Tm_dif_max=self.arm_Tm_dif_max,
-            arm_Tm_min=self.arm_Tm_min,
-            arm_Tm_max=self.arm_Tm_max,
-            Tm_parameters=self.Tm_parameters,
-            Tm_salt_correction_parameters=self.Tm_salt_correction_parameters,
-            Tm_chem_correction_parameters=self.Tm_chem_correction_parameters,
-        )
+        arm1_Tm: float | None = None
+        arm2_Tm: float | None = None
+        ligation_site: int | None = None
+
+        if sequence:
+            arm1_Tm, arm2_Tm, ligation_site = calc_padlock_arms(
+                sequence=sequence,
+                arm_length_min=self.arm_length_min,
+                arm_Tm_dif_max=self.arm_Tm_dif_max,
+                arm_Tm_min=self.arm_Tm_min,
+                arm_Tm_max=self.arm_Tm_max,
+                Tm_parameters=self.Tm_parameters,
+                Tm_salt_correction_parameters=self.Tm_salt_correction_parameters,
+                Tm_chem_correction_parameters=self.Tm_chem_correction_parameters,
+            )
         return {
             "arm1_Tm": arm1_Tm,
             "arm2_Tm": arm2_Tm,
@@ -618,14 +695,22 @@ class DetectOligoProperty(BaseProperty):
         :return: A dictionary containing the calculated detection oligo sequences.
         :rtype: dict
         """
-        sequence = oligo_database.get_oligo_property_value(
-            property=sequence_type, region_id=region_id, oligo_id=oligo_id, flatten=True
+        sequence = check_if_string(
+            oligo_database.get_oligo_property_value(
+                property=sequence_type, region_id=region_id, oligo_id=oligo_id, flatten=True
+            )
         )
-        ligation_site = oligo_database.get_oligo_property_value(
-            property=self.ligation_site_name, region_id=region_id, oligo_id=oligo_id, flatten=True
+        ligation_site = check_if_int(
+            oligo_database.get_oligo_property_value(
+                property=self.ligation_site_name, region_id=region_id, oligo_id=oligo_id, flatten=True
+            )
         )
 
-        if ligation_site:
+        detect_oligo_even: str | None = None
+        detect_oligo_long_left: str | None = None
+        detect_oligo_long_right: str | None = None
+
+        if sequence and ligation_site:
             (
                 detect_oligo_even,
                 detect_oligo_long_left,
@@ -637,8 +722,6 @@ class DetectOligoProperty(BaseProperty):
                 detect_oligo_length_max=self.detect_oligo_length_max,
                 min_thymines=self.min_thymines,
             )
-        else:
-            detect_oligo_even = detect_oligo_long_left = detect_oligo_long_right = None
 
         return {
             "detect_oligo_even": detect_oligo_even,

@@ -18,6 +18,10 @@ class SetScoringBase(ABC):
     Implementations should define how to extract the best subset of oligonucleotides based on their scores.
     """
 
+    def __init__(self, ascending: bool) -> None:
+        """Constructor for the SetScoringBase class."""
+        self.ascending = ascending
+
     @abstractmethod
     def apply(self, oligo_set: pd.Series, n: int) -> Tuple[list, dict]:
         """

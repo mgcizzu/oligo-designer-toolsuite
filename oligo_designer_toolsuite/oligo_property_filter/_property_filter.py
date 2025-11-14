@@ -2,9 +2,8 @@
 # imports
 ############################################
 
-from typing import List, get_args
+from typing import get_args
 
-from Bio.SeqUtils import Seq
 from joblib import Parallel, delayed
 from joblib_progress import joblib_progress
 
@@ -25,12 +24,12 @@ class PropertyFilter:
     The filters are applied in parallel across all regions of the database, and sequences that do not meet all filter criteria are removed.
 
     :param filters: A list of property filters to apply to sequences.
-    :type filters: List[BasePropertyFilter]
+    :type filters: list[BasePropertyFilter]
     """
 
     def __init__(
         self,
-        filters: List[BasePropertyFilter],
+        filters: list[BasePropertyFilter],
     ) -> None:
         """Constructor for the PropertyFilter class."""
         self.filters = filters
@@ -91,7 +90,7 @@ class PropertyFilter:
             if not fulfills_all_filter:
                 del oligo_database.database[region_id][oligo_id]
 
-    def _filter_sequence(self, sequence: Seq) -> bool:
+    def _filter_sequence(self, sequence: str) -> bool:
         """
         Applies a series of filters to a sequence and checks if it meets all criteria.
 

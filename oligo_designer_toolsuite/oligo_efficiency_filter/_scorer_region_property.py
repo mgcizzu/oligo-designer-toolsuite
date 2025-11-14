@@ -146,9 +146,15 @@ class IsoformConsensusScorer(BaseScorer):
         transcript_id = oligo_database.get_oligo_property_value(
             property="transcript_id", region_id=region_id, oligo_id=oligo_id, flatten=True
         )
+        if not isinstance(transcript_id, list):
+            raise TypeError(f"Transcript ID must be a list, got {type(transcript_id)}")
+
         number_transcripts = oligo_database.get_oligo_property_value(
             property="number_total_transcripts", region_id=region_id, oligo_id=oligo_id, flatten=True
         )
+        if not isinstance(number_transcripts, list):
+            raise TypeError(f"Number of transcripts must be a list, got {type(number_transcripts)}")
+
         if transcript_id and number_transcripts:
             isoform_consensus = calc_isoform_consensus(
                 transcript_id=transcript_id, number_total_transcripts=number_transcripts

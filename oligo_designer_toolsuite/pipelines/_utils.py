@@ -9,8 +9,11 @@ import sys
 import warnings
 from argparse import ArgumentParser, RawDescriptionHelpFormatter
 from datetime import datetime
+from typing import Any, Callable, Dict, List, Tuple, TypeVar
 
 from oligo_designer_toolsuite.database import OligoDatabase
+
+F = TypeVar("F", bound=Callable[..., Any])
 
 ############################################
 # Utils functions
@@ -47,7 +50,7 @@ def setup_logging(
         f"log_{pipeline_name}_{timestamp.year}-{timestamp.month}-{timestamp.day}-{timestamp.hour}-{timestamp.minute}.txt",
     )
 
-    handlers = [logging.FileHandler(file_logger)]
+    handlers: List[logging.Handler] = [logging.FileHandler(file_logger)]
     if include_console:
         handlers.append(logging.StreamHandler())
 
@@ -64,7 +67,7 @@ def setup_logging(
         logging.info("--------------START PIPELINE--------------")
 
 
-def base_parser():
+def base_parser() -> Dict[str, Any]:
     parser = ArgumentParser(
         prog="Genomic Region Generator",
         usage="genomic_region_generation [options]",
@@ -83,14 +86,31 @@ def base_parser():
     return vars(args)
 
 
-def base_log_parameters(parameters):
+def base_log_parameters(parameters: Dict[str, Any]) -> None:
+    """
+    Log all parameters from a dictionary, excluding 'self'.
 
+    :param parameters: Dictionary of parameters to log.
+    :type parameters: Dict[str, Any]
+    """
     for key, value in parameters.items():
         if key != "self":
             logging.info("Parameter: %s = %s", key, value)
 
 
-def log_parameters_and_get_db(func, args, kwargs):
+def log_parameters_and_get_db(func: Callable[..., Any], args: Tuple[Any, ...], kwargs: Dict[str, Any]) -> Any:
+    """
+    Log function parameters and return the oligo_database argument if present.
+
+    :param func: The function to inspect.
+    :type func: Callable[..., Any]
+    :param args: Positional arguments passed to the function.
+    :type args: Tuple[Any, ...]
+    :param kwargs: Keyword arguments passed to the function.
+    :type kwargs: Dict[str, Any]
+    :return: The oligo_database argument if present, otherwise None.
+    :rtype: Any
+    """
     sig = inspect.signature(func)
     bound_args = sig.bind(*args, **kwargs)
     bound_args.apply_defaults()
@@ -103,14 +123,21 @@ def log_parameters_and_get_db(func, args, kwargs):
     return bound_args.arguments.get("oligo_database")
 
 
-def get_oligo_database_info(oligo_database: dict):
+def get_oligo_database_info(oligo_database: Dict[str, Dict[str, Any]]) -> Tuple[int, int]:
+    """
+    Get information about the number of regions and oligos in a database.
 
+    :param oligo_database: Dictionary containing region IDs as keys and oligo dictionaries as values.
+    :type oligo_database: Dict[str, Dict[str, Any]]
+    :return: Tuple containing (number of regions, total number of oligos).
+    :rtype: Tuple[int, int]
+    """
     num_genes = len(oligo_database)
     num_oligos = sum(len(oligos) for oligos in oligo_database.values())
     return num_genes, num_oligos
 
 
-def get_oligo_length_min_max_from_database(oligo_database: dict):
+def get_oligo_length_min_max_from_database(oligo_database: OligoDatabase):
 
     oligo_length_min = sys.maxsize
     oligo_length_max = 0
@@ -146,9 +173,18 @@ def pipeline_step_basic(step_name: str):
     return decorator
 
 
-def pipeline_step_advanced(step_name: str):
-    def decorator(function):
-        def wrapper(*args, **kwargs):
+def pipeline_step_advanced(step_name: str) -> Callable[[F], F]:
+    """
+    Decorator for advanced pipeline steps that logs parameters and tracks database changes.
+
+    :param step_name: Name of the pipeline step.
+    :type step_name: str
+    :return: Decorator function.
+    :rtype: Callable[[F], F]
+    """
+
+    def decorator(function: F) -> F:
+        def wrapper(*args: Any, **kwargs: Any) -> Any:
             logging.info(f"Parameters {step_name}:")
             oligo_database = log_parameters_and_get_db(function, args, kwargs)
 
@@ -169,8 +205,14 @@ def pipeline_step_advanced(step_name: str):
     return decorator
 
 
-def check_content_oligo_database(oligo_database: OligoDatabase):
+def check_content_oligo_database(oligo_database: OligoDatabase) -> None:
+    """
+    Check if the oligo database is empty and exit if it is.
 
+    :param oligo_database: The OligoDatabase instance to check.
+    :type oligo_database: OligoDatabase
+    :raises SystemExit: If the database is empty, exits with status code 1.
+    """
     if len(oligo_database.get_regionid_list()) == 0:
         print("The oligo database is empty. Exiting program...")
         warnings.warn("The oligo database is empty. Exiting program...", UserWarning)

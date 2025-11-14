@@ -81,6 +81,10 @@ class DeviationFromOptimalGCContentScorer(SequencePropertyScorer):
         sequence = oligo_database.get_oligo_property_value(
             property=sequence_type, region_id=region_id, oligo_id=oligo_id, flatten=True
         )
+
+        if not isinstance(sequence, str):
+            raise TypeError(f"Sequence must be a string, got {type(sequence)}")
+
         GC_content_oligo = calc_gc_content(sequence=sequence)
         GC_content_dev = abs(self.GC_content_opt - GC_content_oligo)
 
@@ -139,6 +143,10 @@ class DeviationFromOptimalTmScorer(SequencePropertyScorer):
         sequence = oligo_database.get_oligo_property_value(
             property=sequence_type, region_id=region_id, oligo_id=oligo_id, flatten=True
         )
+
+        if not isinstance(sequence, str):
+            raise TypeError(f"Sequence must be a string, got {type(sequence)}")
+
         Tm_oligo = calc_tm_nn(
             sequence=sequence,
             Tm_parameters=self.Tm_parameters,
@@ -203,6 +211,10 @@ class NormalizedDeviationFromOptimalGCContentScorer(SequencePropertyScorer):
         sequence = oligo_database.get_oligo_property_value(
             property=sequence_type, region_id=region_id, oligo_id=oligo_id, flatten=True
         )
+
+        if not isinstance(sequence, str):
+            raise TypeError(f"Sequence must be a string, got {type(sequence)}")
+
         GC_content_oligo = calc_gc_content(sequence=sequence)
         GC_content_dev = GC_content_oligo - self.GC_content_opt
         GC_content_dev_norm = self._normalize_deviation(
@@ -277,6 +289,10 @@ class NormalizedDeviationFromOptimalTmScorer(SequencePropertyScorer):
         sequence = oligo_database.get_oligo_property_value(
             property=sequence_type, region_id=region_id, oligo_id=oligo_id, flatten=True
         )
+
+        if not isinstance(sequence, str):
+            raise TypeError(f"Sequence must be a string, got {type(sequence)}")
+
         Tm_oligo = calc_tm_nn(
             sequence=sequence,
             Tm_parameters=self.Tm_parameters,

@@ -55,7 +55,7 @@ class HybridizationProbabilityFilter(ReferenceSpecificityFilter):
         self,
         alignment_method: AlignmentSpecificityFilter,
         threshold: float,
-        ai_filter_path: str = None,
+        ai_filter_path: str | None = None,
         remove_hits: bool = True,
         filter_name: str = "hybridization_probability_filter",
         dir_output: str = "output",
@@ -70,7 +70,7 @@ class HybridizationProbabilityFilter(ReferenceSpecificityFilter):
         self.threshold = threshold
         self.model = APIHybridizationProbability(ai_filter_path=ai_filter_path)
 
-    def create_reference(self, n_jobs):
+    def create_reference(self, n_jobs: int) -> str:
         """
         Creates a reference file and builds an index for alignment-based search.
 
@@ -86,7 +86,7 @@ class HybridizationProbabilityFilter(ReferenceSpecificityFilter):
     def apply(
         self,
         oligo_database: OligoDatabase,
-        sequence_type: _TYPES_SEQ,
+        sequence_type: _TYPES_SEQ | None,
         n_jobs: int = 1,
     ) -> OligoDatabase:
         """
@@ -99,12 +99,15 @@ class HybridizationProbabilityFilter(ReferenceSpecificityFilter):
         :param oligo_database: The OligoDatabase instance containing oligonucleotide sequences and their associated properties. This database stores oligo data organized by genomic regions and can be used for filtering, property calculations, set generation, and output operations.
         :type oligo_database: OligoDatabase
         :param sequence_type: Type of sequence being processed. Must be one of the sequence types specified in `_constants._TYPES_SEQ`.
-        :type sequence_type: _TYPES_SEQ
+        :type sequence_type: _TYPES_SEQ | None
         :param n_jobs: Number of parallel jobs to use for processing.
         :type n_jobs: int
         :return: The filtered OligoDatabase with off-targets removed.
         :rtype: OligoDatabase
         """
+        if sequence_type is None:
+            raise ConfigurationError("sequence_type must be set before calling apply")
+
         self.alignment_method.sequence_type = sequence_type
 
         # When applying the filter we don't want to consider hits within the same region
@@ -167,7 +170,7 @@ class HybridizationProbabilityFilter(ReferenceSpecificityFilter):
         )
 
         # check if there are any oligos to filter
-        if len(table_hits) == 0:
+        if table_hits is None or len(table_hits) == 0:
             return
 
         # generate the references and queries sequences
@@ -226,11 +229,9 @@ class HybridizationProbabilityFilter(ReferenceSpecificityFilter):
         the `names_search_output` and `search_parameters["outfmt"]` to include detailed alignment information.
         """
         # if the alignment method is a  Blastn method overwrite the
-        if type(self.alignment_method) in [
-            BlastNFilter,
-            BlastNSeedregionFilter,
-            BlastNSeedregionSiteFilter,
-        ]:
+        if isinstance(
+            self.alignment_method, (BlastNFilter, BlastNSeedregionFilter, BlastNSeedregionSiteFilter)
+        ):
             self.alignment_method.names_search_output = [
                 "query",
                 "reference",

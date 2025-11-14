@@ -6,6 +6,7 @@
 from oligo_designer_toolsuite._constants import _TYPES_SEQ
 from oligo_designer_toolsuite.database import OligoDatabase
 from oligo_designer_toolsuite.oligo_property_calculator import BaseProperty
+from oligo_designer_toolsuite.utils import check_if_list
 
 from ._property_functions import calc_isoform_consensus, calc_num_targeted_transcripts
 
@@ -40,8 +41,10 @@ class NumTargetedTranscriptsProperty(BaseProperty):
         :return: A dictionary containing the calculated number of targeted transcripts property.
         :rtype: dict
         """
-        transcript_id = oligo_database.get_oligo_property_value(
-            property="transcript_id", region_id=region_id, oligo_id=oligo_id, flatten=True
+        transcript_id = check_if_list(
+            oligo_database.get_oligo_property_value(
+                property="transcript_id", region_id=region_id, oligo_id=oligo_id, flatten=True
+            )
         )
         if transcript_id:
             num_targeted_transcripts = calc_num_targeted_transcripts(transcript_id=transcript_id)
@@ -79,11 +82,15 @@ class IsoformConsensusProperty(BaseProperty):
         :return: A dictionary containing the calculated isoform consensus property.
         :rtype: dict
         """
-        number_total_transcripts = oligo_database.get_oligo_property_value(
-            property="number_total_transcripts", region_id=region_id, oligo_id=oligo_id, flatten=True
+        number_total_transcripts = check_if_list(
+            oligo_database.get_oligo_property_value(
+                property="number_total_transcripts", region_id=region_id, oligo_id=oligo_id, flatten=True
+            )
         )
-        transcript_id = oligo_database.get_oligo_property_value(
-            property="transcript_id", region_id=region_id, oligo_id=oligo_id, flatten=True
+        transcript_id = check_if_list(
+            oligo_database.get_oligo_property_value(
+                property="transcript_id", region_id=region_id, oligo_id=oligo_id, flatten=True
+            )
         )
 
         if transcript_id and number_total_transcripts:

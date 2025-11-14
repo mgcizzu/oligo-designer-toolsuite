@@ -59,7 +59,7 @@ If you would like to modify an existing pipeline for adjusted experimental setti
 
 ### Requirements
 
-This packages was tested for ***Python 3.9 - 3.12*** on ***Linux (x64)*** and ***MacOS (osx64 and arm64)***.
+This packages was tested for ***Python 3.10 - 3.12*** on ***Linux (x64)*** and ***MacOS (osx64 and arm64)***.
 
 For stable installation, we recommend to first setup a conda environment.
 

@@ -612,7 +612,7 @@ class ScrinshotProbeDesigner:
         self,
         oligo_database: OligoDatabase,
         top_n_sets: int = 3,
-        properties: list = [
+        properties: List[str] = [
             "source",
             "species",
             "annotation_release",

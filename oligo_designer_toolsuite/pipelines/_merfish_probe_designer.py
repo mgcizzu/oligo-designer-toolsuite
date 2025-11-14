@@ -8,7 +8,7 @@ import shutil
 import warnings
 from itertools import combinations
 from pathlib import Path
-from typing import List, Tuple
+from typing import Dict, List, Optional, Tuple
 
 import numpy as np
 import pandas as pd
@@ -440,7 +440,7 @@ class MerfishProbeDesigner:
         target_probe_Tm_min: float = 66,
         target_probe_Tm_opt: float = 72,
         target_probe_Tm_max: float = 76,
-        target_probe_homopolymeric_base_n: dict = {"A": 5, "T": 5, "C": 5, "G": 5},
+        target_probe_homopolymeric_base_n: Optional[Dict[str, int]] = {"A": 5, "T": 5, "C": 5, "G": 5},
         target_probe_T_secondary_structure: float = 76,
         target_probe_secondary_structures_threshold_deltaG: float = 0,
         target_probe_GC_weight: float = 1,
@@ -587,12 +587,17 @@ class MerfishProbeDesigner:
         n_genes: int,
         files_fasta_reference_database_readout_probe: List[str],
         readout_probe_length: int = 20,
-        readout_probe_base_probabilities: dict = {"A": 0.25, "C": 0.00, "G": 0.50, "T": 0.25},
+        readout_probe_base_probabilities: Optional[Dict[str, float]] = {
+            "A": 0.25,
+            "C": 0.00,
+            "G": 0.50,
+            "T": 0.25,
+        },
         readout_probe_GC_content_min: float = 40,
         readout_probe_GC_content_max: float = 50,
-        readout_probe_homopolymeric_base_n: dict = {"G": 3},
+        readout_probe_homopolymeric_base_n: Optional[Dict[str, int]] = {"G": 3},
         readout_probe_set_size: int = 16,
-        readout_probe_homogeneous_properties_weights: dict = {"TmNN": 1, "GC_content": 1},
+        readout_probe_homogeneous_properties_weights: Optional[Dict[str, int]] = {"TmNN": 1, "GC_content": 1},
         n_bits: int = 16,
         min_hamming_dist: int = 4,
         hamming_weight: int = 4,
@@ -773,19 +778,19 @@ class MerfishProbeDesigner:
         files_fasta_reference_database_primer: List[str],
         reverse_primer_sequence: str = "CCCTATAGTGAGTCGTATTA",
         primer_length: int = 20,
-        primer_base_probabilities: dict = {"A": 0.25, "C": 0.25, "G": 0.25, "T": 0.25},
+        primer_base_probabilities: Optional[Dict[str, float]] = {"A": 0.25, "C": 0.25, "G": 0.25, "T": 0.25},
         primer_GC_content_min: float = 50,
         primer_GC_content_max: float = 65,
         primer_number_GC_GCclamp: int = 1,
         primer_number_three_prime_base_GCclamp: int = 2,
-        primer_homopolymeric_base_n: int = {"A": 4, "T": 4, "C": 4, "G": 4},
+        primer_homopolymeric_base_n: Optional[Dict[str, int]] = {"A": 4, "T": 4, "C": 4, "G": 4},
         primer_max_len_selfcomplement: int = 6,
         primer_max_len_complement_reverse_primer: int = 5,
         primer_Tm_min: float = 60,
         primer_Tm_max: float = 75,
         primer_T_secondary_structure: float = 76,
         primer_secondary_structures_threshold_deltaG: float = 0,
-    ):
+    ) -> Tuple[str, str]:
         """
         Design forward and reverse primers for the encoding probe database.
 
@@ -916,7 +921,7 @@ class MerfishProbeDesigner:
         reverse_primer_sequence: str,
         forward_primer_sequence: str,
         top_n_sets: int = 3,
-        properties: list = [
+        properties: List[str] = [
             "source",
             "species",
             "annotation_release",

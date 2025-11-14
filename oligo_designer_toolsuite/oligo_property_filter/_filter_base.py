@@ -31,7 +31,7 @@ class BasePropertyFilter(ABC):
         This abstract method must be implemented by subclasses to define the specific filtering logic for a given sequence.
 
         :param sequence: The nucleotide sequence.
-        :type sequence: Seq
+        :type sequence: str
         :return: `True` if the sequence meets the filter's criteria, `False` otherwise.
         :rtype: bool
         """

@@ -6,7 +6,7 @@ import gc
 import itertools
 import random
 from math import comb
-from typing import Dict, List, Tuple
+from typing import cast
 
 import pandas as pd
 from joblib import Parallel, delayed
@@ -38,7 +38,7 @@ class OligosetGeneratorIndependentSet:
     :param set_scoring: Scoring function used to evaluate the overall quality of each oligo set.
     :type set_scoring: SetScoringBase
     :param max_oligos: Maximum number of oligos to include in the set optimizatoin process. If None, there is no limit on the number of oligos.
-    :type max_oligos: int, optional
+    :type max_oligos: int | None, optional
     :param distance_between_oligos: Minimum allowed distance between oligos in the set to avoid clustering of oligos.
     :type distance_between_oligos: int, optional
     """
@@ -48,7 +48,7 @@ class OligosetGeneratorIndependentSet:
         selection_policy: OligoSelectionPolicy,
         oligos_scoring: OligoScoring,
         set_scoring: SetScoringBase,
-        max_oligos: int = None,
+        max_oligos: int | None = None,
         distance_between_oligos: int = 0,
     ) -> None:
         """Constructor for the OligosetGeneratorIndependentSet class."""
@@ -185,7 +185,9 @@ class OligosetGeneratorIndependentSet:
         del non_overlap_matrix  # free some memory
         gc.collect()
 
-    def _get_non_overlap_matrix(self, oligo_database: OligoDatabase, region_id: str) -> csr_matrix:
+    def _get_non_overlap_matrix(
+        self, oligo_database: OligoDatabase, region_id: str
+    ) -> tuple[csr_matrix, list[str]]:
         """
         Generates a sparse matrix that represents the overlap between oligos in the specified region of the oligo database.
         The matrix is computed based on the intervals (start, end) of each oligo, with a distance threshold to determine overlap.
@@ -239,7 +241,7 @@ class OligosetGeneratorIndependentSet:
 
         # Create a sparse matrix containing only ones
         ones_matrix = lil_matrix((n_oligos, n_oligos), dtype=int)
-        ones_matrix[:, :] = 1
+        ones_matrix[:, :] = 1  # type: ignore[index]
 
         # Invert theoverlap matrix by subtracting the overlapping matrix from the ones matrix
         non_overlap_matrix = ones_matrix - non_overlap_matrix
@@ -257,10 +259,10 @@ class HomogeneousPropertyOligoSetGenerator:
     :param set_size: The desired size of the oligo set to be generated.
     :type set_size: int
     :param properties: A dictionary of oligo properties (e.g., 'GC_content', 'length') and their respective weights.
-    :type properties: Dict[str, float]
+    :type properties: dict[str, float]
     """
 
-    def __init__(self, set_size: int, properties: Dict[str, float]) -> None:
+    def __init__(self, set_size: int, properties: dict[str, float]) -> None:
         """Constructor for the HomogeneousPropertyOligoSetGenerator class."""
         self.set_size = set_size
         self.properties = properties
@@ -321,7 +323,7 @@ class HomogeneousPropertyOligoSetGenerator:
         :type n_combinations: int, optional
         """
         oligo_df = oligo_database.get_oligo_property_table(
-            properties=self.properties, flatten=True, region_ids=region_id
+            properties=list(self.properties.keys()), flatten=True, region_ids=region_id
         )
 
         # # check if all properties in self.properties are in oligo_df columns
@@ -341,7 +343,7 @@ class HomogeneousPropertyOligoSetGenerator:
                         f"Properties used for variance computation must be numeric (integer or float)."
                     )
 
-        combinations = self._generate_random_combinations(oligo_df.index, self.set_size, n_combinations)
+        combinations = self._generate_random_combinations(list(oligo_df.index), self.set_size, n_combinations)
 
         scored_combinations = [
             self._score_combination(oligo_df, list(combination)) for combination in combinations
@@ -354,41 +356,48 @@ class HomogeneousPropertyOligoSetGenerator:
 
         oligo_database.oligosets[region_id] = pd.DataFrame(rows, columns=columns)
 
-    def _score_combination(self, oligo_df: pd.DataFrame, combination: List[str]) -> Tuple[List[str], float]:
+    def _score_combination(self, oligo_df: pd.DataFrame, combination: list[str]) -> tuple[list[str], float]:
         """
         Scores a combination of oligos by calculating the variance of each oligo's properties in the set.
 
         :param oligo_df: The DataFrame containing the oligo information.
         :type oligo_df: pd.DataFrame
         :param combination: A list of oligo IDs for which the score is computed.
-        :type combination: List[str]
+        :type combination: list[str]
         :return: A tuple containing the oligo combination and its score.
-        :rtype: Tuple[List[str], float]
+        :rtype: tuple[list[str], float]
         """
         oligo_set = oligo_df.loc[combination]
-        score = sum([oligo_set[property].var() * self.properties[property] for property in self.properties])
+        score = sum(
+            [
+                cast(float, oligo_set[property].var()) * self.properties[property]
+                for property in self.properties
+            ]
+        )
         return combination, score
 
     @staticmethod
-    def _generate_random_combinations(arr, combination_size, number_of_combinations) -> list:
+    def _generate_random_combinations(
+        arr: list[str], combination_size: int, number_of_combinations: int
+    ) -> list[tuple[str, ...]]:
         """
         Generates oligo sets of specified size from random combinations of oligos.
 
         :param arr: The list of oligos to generate combinations from.
-        :type arr: list
+        :type arr: list[str]
         :param combination_size: The size of each combination.
         :type combination_size: int
         :param number_of_combinations: The number of random combinations to generate.
         :type number_of_combinations: int
         :return: A list of random combinations.
-        :rtype: list
+        :rtype: list[tuple[str, ...]]
         """
         total_combinations = comb(len(arr), combination_size)
 
         if total_combinations <= number_of_combinations:
             return list(itertools.combinations(arr, combination_size))
 
-        seen_combinations = set()
+        seen_combinations = set[tuple[str, ...]]()
         while len(seen_combinations) < number_of_combinations:
             combination = tuple(sorted(random.sample(list(arr), combination_size)))
             if combination not in seen_combinations:

@@ -517,7 +517,7 @@ class CycleHCRProbeDesigner:
         self,
         forward_primer_sequence: str,
         reverse_primer_sequence: str,
-    ):
+    ) -> Tuple[str, str]:
         """
         Design forward and reverse primers for the encoding probe database.
 
@@ -560,7 +560,7 @@ class CycleHCRProbeDesigner:
         reverse_primer_sequence: str,
         forward_primer_sequence: str,
         top_n_sets: int = 3,
-        properties: list = [
+        properties: List[str] = [
             "source",
             "species",
             "annotation_release",
