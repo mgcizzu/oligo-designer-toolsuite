@@ -3,7 +3,6 @@
 ############################################
 
 
-from oligo_designer_toolsuite._constants import _TYPES_SEQ
 from oligo_designer_toolsuite.database import OligoDatabase
 from oligo_designer_toolsuite.oligo_property_calculator import BaseProperty
 from oligo_designer_toolsuite.utils import check_if_list
@@ -24,9 +23,7 @@ class NumTargetedTranscriptsProperty(BaseProperty):
         """Constructor for the NumTargetedTranscriptsProperty class."""
         super().__init__()
 
-    def apply(
-        self, oligo_database: OligoDatabase, region_id: str, oligo_id: str, sequence_type: _TYPES_SEQ
-    ) -> dict:
+    def apply(self, oligo_database: OligoDatabase, region_id: str, oligo_id: str, sequence_type: str) -> dict:
         """
         Calculate the number of unique transcripts targeted by the oligonucleotide.
 
@@ -36,8 +33,8 @@ class NumTargetedTranscriptsProperty(BaseProperty):
         :type region_id: str
         :param oligo_id: The ID of the oligo for which the property is calculated.
         :type oligo_id: str
-        :param sequence_type: Type of sequence being processed. Must be one of the sequence types specified in `_constants._TYPES_SEQ`. Note: This parameter is not used for this property.
-        :type sequence_type: _TYPES_SEQ
+        :param sequence_type: Type of sequence being processed. Must use the `seq_` prefix naming convention (e.g., "seq_target", "seq_oligo"). Note: This parameter is not used for this property.
+        :type sequence_type: str
         :return: A dictionary containing the calculated number of targeted transcripts property.
         :rtype: dict
         """
@@ -65,9 +62,7 @@ class IsoformConsensusProperty(BaseProperty):
         """Constructor for the IsoformConsensusProperty class."""
         super().__init__()
 
-    def apply(
-        self, oligo_database: OligoDatabase, region_id: str, oligo_id: str, sequence_type: _TYPES_SEQ
-    ) -> dict:
+    def apply(self, oligo_database: OligoDatabase, region_id: str, oligo_id: str, sequence_type: str) -> dict:
         """
         Calculate the isoform consensus for the oligonucleotide.
 
@@ -77,8 +72,8 @@ class IsoformConsensusProperty(BaseProperty):
         :type region_id: str
         :param oligo_id: The ID of the oligo for which the property is calculated.
         :type oligo_id: str
-        :param sequence_type: Type of sequence being processed. Must be one of the sequence types specified in `_constants._TYPES_SEQ`. Note: This parameter is not used for this property.
-        :type sequence_type: _TYPES_SEQ
+        :param sequence_type: Type of sequence being processed. Must use the `seq_` prefix naming convention (e.g., "seq_target", "seq_oligo"). Note: This parameter is not used for this property.
+        :type sequence_type: str
         :return: A dictionary containing the calculated isoform consensus property.
         :rtype: dict
         """

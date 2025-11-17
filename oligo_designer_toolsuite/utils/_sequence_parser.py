@@ -7,7 +7,7 @@ import os
 import pickle
 import re
 from subprocess import Popen
-from typing import Any, TextIO, cast
+from typing import Any
 
 import pandas as pd
 from Bio import SeqIO
@@ -151,10 +151,10 @@ class GffParser:
         finished = False
         lines_read = 0
 
-        fn_open = gzip.open if annotation_file.endswith(".gz") else open
-        mode = "rt" if annotation_file.endswith(".gz") else "r"
+        fn_open: Any = gzip.open if annotation_file.endswith(".gz") else open
+        mode: str = "rt" if annotation_file.endswith(".gz") else "r"
 
-        with cast(TextIO, fn_open(annotation_file, mode)) as input_file:
+        with fn_open(annotation_file, mode) as input_file:
             with open(csv_file, "w") as out_csv:
                 with open(extra_info_file, "w") as out_extra_info:
                     while not finished and (target_lines is None or lines_read < target_lines):

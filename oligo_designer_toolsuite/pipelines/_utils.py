@@ -9,7 +9,7 @@ import sys
 import warnings
 from argparse import ArgumentParser, RawDescriptionHelpFormatter
 from datetime import datetime
-from typing import Any, Callable, Dict, List, Tuple, TypeVar
+from typing import Any, Callable, TypeVar, cast
 
 from oligo_designer_toolsuite.database import OligoDatabase
 
@@ -50,7 +50,7 @@ def setup_logging(
         f"log_{pipeline_name}_{timestamp.year}-{timestamp.month}-{timestamp.day}-{timestamp.hour}-{timestamp.minute}.txt",
     )
 
-    handlers: List[logging.Handler] = [logging.FileHandler(file_logger)]
+    handlers: list[logging.Handler] = [logging.FileHandler(file_logger)]
     if include_console:
         handlers.append(logging.StreamHandler())
 
@@ -67,7 +67,7 @@ def setup_logging(
         logging.info("--------------START PIPELINE--------------")
 
 
-def base_parser() -> Dict[str, Any]:
+def base_parser() -> dict[str, Any]:
     parser = ArgumentParser(
         prog="Genomic Region Generator",
         usage="genomic_region_generation [options]",
@@ -86,28 +86,28 @@ def base_parser() -> Dict[str, Any]:
     return vars(args)
 
 
-def base_log_parameters(parameters: Dict[str, Any]) -> None:
+def base_log_parameters(parameters: dict[str, Any]) -> None:
     """
     Log all parameters from a dictionary, excluding 'self'.
 
     :param parameters: Dictionary of parameters to log.
-    :type parameters: Dict[str, Any]
+    :type parameters: dict[str, Any]
     """
     for key, value in parameters.items():
         if key != "self":
             logging.info("Parameter: %s = %s", key, value)
 
 
-def log_parameters_and_get_db(func: Callable[..., Any], args: Tuple[Any, ...], kwargs: Dict[str, Any]) -> Any:
+def log_parameters_and_get_db(func: Callable[..., Any], args: tuple[Any, ...], kwargs: dict[str, Any]) -> Any:
     """
     Log function parameters and return the oligo_database argument if present.
 
     :param func: The function to inspect.
     :type func: Callable[..., Any]
     :param args: Positional arguments passed to the function.
-    :type args: Tuple[Any, ...]
+    :type args: tuple[Any, ...]
     :param kwargs: Keyword arguments passed to the function.
-    :type kwargs: Dict[str, Any]
+    :type kwargs: dict[str, Any]
     :return: The oligo_database argument if present, otherwise None.
     :rtype: Any
     """
@@ -123,28 +123,31 @@ def log_parameters_and_get_db(func: Callable[..., Any], args: Tuple[Any, ...], k
     return bound_args.arguments.get("oligo_database")
 
 
-def get_oligo_database_info(oligo_database: Dict[str, Dict[str, Any]]) -> Tuple[int, int]:
+def get_oligo_database_info(oligo_database: dict[str, dict[str, Any]]) -> tuple[int, int]:
     """
     Get information about the number of regions and oligos in a database.
 
     :param oligo_database: Dictionary containing region IDs as keys and oligo dictionaries as values.
-    :type oligo_database: Dict[str, Dict[str, Any]]
+    :type oligo_database: dict[str, dict[str, Any]]
     :return: Tuple containing (number of regions, total number of oligos).
-    :rtype: Tuple[int, int]
+    :rtype: tuple[int, int]
     """
     num_genes = len(oligo_database)
     num_oligos = sum(len(oligos) for oligos in oligo_database.values())
     return num_genes, num_oligos
 
 
-def get_oligo_length_min_max_from_database(oligo_database: OligoDatabase):
+def get_oligo_length_min_max_from_database(oligo_database: OligoDatabase) -> tuple[int, int]:
 
     oligo_length_min = sys.maxsize
     oligo_length_max = 0
 
-    for region in oligo_database.keys():
-        for oligo in oligo_database[region].keys():
-            length = oligo_database[region][oligo]["length"]
+    region_ids = oligo_database.database.keys()
+
+    for region_id in region_ids:
+        oligo_ids = oligo_database.database[region_id].keys()
+        for oligo_id in oligo_ids:
+            length = oligo_database.database[region_id][oligo_id]["length"]
             if length < oligo_length_min:
                 oligo_length_min = length
             if length > oligo_length_max:
@@ -200,7 +203,7 @@ def pipeline_step_advanced(step_name: str) -> Callable[[F], F]:
 
             return oligo_database, *returned_values
 
-        return wrapper
+        return cast(F, wrapper)
 
     return decorator
 
@@ -217,3 +220,30 @@ def check_content_oligo_database(oligo_database: OligoDatabase) -> None:
         print("The oligo database is empty. Exiting program...")
         warnings.warn("The oligo database is empty. Exiting program...", UserWarning)
         sys.exit(1)  # Exit the program with a status code of 1
+
+
+def format_sequence(database: OligoDatabase, property: str, region_id: str, oligo_id: str) -> str:
+    """
+    Get a sequence property as a string from the database, raising an error if not available.
+
+    :param database: The OligoDatabase instance to query.
+    :type database: OligoDatabase
+    :param property: The property name to retrieve.
+    :type property: str
+    :param region_id: The region ID to query.
+    :type region_id: str
+    :param oligo_id: The oligo ID to query.
+    :type oligo_id: str
+    :return: The sequence as a string.
+    :rtype: str
+    :raises ValueError: If the property value is not a string.
+    """
+    value = database.get_oligo_property_value(
+        property=property,
+        region_id=region_id,
+        oligo_id=oligo_id,
+        flatten=True,
+    )
+    if not isinstance(value, str):
+        raise ValueError(f"Expected string for {property}, got {type(value)}")
+    return value

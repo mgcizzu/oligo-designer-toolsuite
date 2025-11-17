@@ -2,14 +2,13 @@
 # imports
 ############################################
 
-from typing import get_args
 
 from joblib import Parallel, delayed
 from joblib_progress import joblib_progress
 
-from oligo_designer_toolsuite._constants import _TYPES_SEQ
 from oligo_designer_toolsuite.database import OligoDatabase
 from oligo_designer_toolsuite.oligo_property_filter import BasePropertyFilter
+from oligo_designer_toolsuite.utils import check_if_key_in_database
 
 ############################################
 # Property Filter Class
@@ -34,9 +33,7 @@ class PropertyFilter:
         """Constructor for the PropertyFilter class."""
         self.filters = filters
 
-    def apply(
-        self, oligo_database: OligoDatabase, sequence_type: _TYPES_SEQ, n_jobs: int = 1
-    ) -> OligoDatabase:
+    def apply(self, oligo_database: OligoDatabase, sequence_type: str, n_jobs: int = 1) -> OligoDatabase:
         """
         Apply the property filters to all sequences in the OligoDatabase and filter
         sequences in the OligoDatabase based on the specified property filters.
@@ -44,17 +41,16 @@ class PropertyFilter:
 
         :param oligo_database: The OligoDatabase instance containing oligonucleotide sequences and their associated properties. This database stores oligo data organized by genomic regions and can be used for filtering, property calculations, set generation, and output operations.
         :type oligo_database: OligoDatabase
-        :param sequence_type: Type of sequence being processed. Must be one of the sequence types specified in `_constants._TYPES_SEQ`.
-        :type sequence_type: _TYPES_SEQ
+        :param sequence_type: Type of sequence being processed. Must use the `seq_` prefix naming convention (e.g., "seq_target", "seq_oligo").
+        :type sequence_type: str
         :param n_jobs: Number of parallel jobs to use for processing. Defaults to 1.
         :type n_jobs: int
         :return: The filtered OligoDatabase.
         :rtype: OligoDatabase
         """
-        options = get_args(_TYPES_SEQ)
-        assert (
-            sequence_type in options
-        ), f"Sequence type not supported! '{sequence_type}' is not in {options}."
+        assert check_if_key_in_database(
+            oligo_database.database, sequence_type
+        ), f"Sequence type '{sequence_type}' not found in database."
 
         region_ids = list(oligo_database.database.keys())
         with joblib_progress(description="Property Filter", total=len(region_ids)):
@@ -65,9 +61,7 @@ class PropertyFilter:
 
         return oligo_database
 
-    def _filter_region(
-        self, oligo_database: OligoDatabase, region_id: str, sequence_type: _TYPES_SEQ
-    ) -> None:
+    def _filter_region(self, oligo_database: OligoDatabase, region_id: str, sequence_type: str) -> None:
         """
         Filters a specific region in the OligoDatabase based on sequence properties.
 
@@ -79,8 +73,8 @@ class PropertyFilter:
         :type oligo_database: OligoDatabase
         :param region_id: Region ID to process.
         :type region_id: str
-        :param sequence_type: Type of sequence being processed. Must be one of the sequence types specified in `_constants._TYPES_SEQ`.
-        :type sequence_type: _TYPES_SEQ
+        :param sequence_type: Type of sequence being processed. Must use the `seq_` prefix naming convention (e.g., "seq_target", "seq_oligo").
+        :type sequence_type: str
         """
         oligo_ids = list(oligo_database.database[region_id].keys())
         for oligo_id in oligo_ids:

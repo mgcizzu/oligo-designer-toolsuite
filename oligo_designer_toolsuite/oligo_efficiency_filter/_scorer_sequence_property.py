@@ -2,7 +2,6 @@
 # imports
 ############################################
 
-from oligo_designer_toolsuite._constants import _TYPES_SEQ
 from oligo_designer_toolsuite.database import OligoDatabase
 from oligo_designer_toolsuite.oligo_efficiency_filter import BaseScorer
 from oligo_designer_toolsuite.oligo_property_calculator import calc_gc_content, calc_tm_nn
@@ -63,7 +62,7 @@ class DeviationFromOptimalGCContentScorer(SequencePropertyScorer):
         self.GC_content_opt = GC_content_opt
         self.score_weight = score_weight
 
-    def apply(self, oligo_database: OligoDatabase, region_id: str, oligo_id: str, sequence_type: _TYPES_SEQ):
+    def apply(self, oligo_database: OligoDatabase, region_id: str, oligo_id: str, sequence_type: str):
         """
         Calculate a score based on the absolute deviation of GC content from the optimal value.
 
@@ -73,8 +72,8 @@ class DeviationFromOptimalGCContentScorer(SequencePropertyScorer):
         :type region_id: str
         :param oligo_id: The ID of the oligo for which the score is computed.
         :type oligo_id: str
-        :param sequence_type: Type of sequence being processed. Must be one of the sequence types specified in `_constants._TYPES_SEQ`.
-        :type sequence_type: _TYPES_SEQ
+        :param sequence_type: Type of sequence being processed. Must use the `seq_` prefix naming convention (e.g., "seq_target", "seq_oligo").
+        :type sequence_type: str
         :return: Weighted score based on GC content deviation.
         :rtype: float
         """
@@ -101,21 +100,21 @@ class DeviationFromOptimalTmScorer(SequencePropertyScorer):
     :type Tm_opt: float
     :param Tm_parameters: Parameters for Tm calculation using the nearest-neighbor model.
     :type Tm_parameters: dict
+    :param score_weight: Weight applied to the Tm deviation score.
+    :type score_weight: float
     :param Tm_salt_correction_parameters: Parameters for salt correction.
     :type Tm_salt_correction_parameters: dict
     :param Tm_chem_correction_parameters: Parameters for chemical correction.
     :type Tm_chem_correction_parameters: dict
-    :param score_weight: Weight applied to the Tm deviation score.
-    :type score_weight: float
     """
 
     def __init__(
         self,
         Tm_opt: float,
         Tm_parameters: dict,
-        Tm_salt_correction_parameters: dict,
-        Tm_chem_correction_parameters: dict,
         score_weight: float,
+        Tm_salt_correction_parameters: dict | None = None,
+        Tm_chem_correction_parameters: dict | None = None,
     ):
         """Constructor for the DeviationFromOptimalTmScorer class."""
 
@@ -125,7 +124,7 @@ class DeviationFromOptimalTmScorer(SequencePropertyScorer):
         self.Tm_chem_correction_parameters = Tm_chem_correction_parameters
         self.score_weight = score_weight
 
-    def apply(self, oligo_database: OligoDatabase, region_id: str, oligo_id: str, sequence_type: _TYPES_SEQ):
+    def apply(self, oligo_database: OligoDatabase, region_id: str, oligo_id: str, sequence_type: str):
         """
         Calculate a score based on the absolute deviation of Tm from the optimal value.
 
@@ -135,8 +134,8 @@ class DeviationFromOptimalTmScorer(SequencePropertyScorer):
         :type region_id: str
         :param oligo_id: The ID of the oligo for which the score is computed.
         :type oligo_id: str
-        :param sequence_type: Type of sequence being processed. Must be one of the sequence types specified in `_constants._TYPES_SEQ`.
-        :type sequence_type: _TYPES_SEQ
+        :param sequence_type: Type of sequence being processed. Must use the `seq_` prefix naming convention (e.g., "seq_target", "seq_oligo").
+        :type sequence_type: str
         :return: Weighted score based on Tm deviation.
         :rtype: float
         """
@@ -193,7 +192,7 @@ class NormalizedDeviationFromOptimalGCContentScorer(SequencePropertyScorer):
         self.GC_content_max = GC_content_max
         self.score_weight = score_weight
 
-    def apply(self, oligo_database: OligoDatabase, region_id: str, oligo_id: str, sequence_type: _TYPES_SEQ):
+    def apply(self, oligo_database: OligoDatabase, region_id: str, oligo_id: str, sequence_type: str):
         """
         Calculate a score based on normalized deviation of GC content from optimal value.
 
@@ -203,8 +202,8 @@ class NormalizedDeviationFromOptimalGCContentScorer(SequencePropertyScorer):
         :type region_id: str
         :param oligo_id: The ID of the oligo for which the score is computed.
         :type oligo_id: str
-        :param sequence_type: Type of sequence being processed. Must be one of the sequence types specified in `_constants._TYPES_SEQ`.
-        :type sequence_type: _TYPES_SEQ
+        :param sequence_type: Type of sequence being processed. Must use the `seq_` prefix naming convention (e.g., "seq_target", "seq_oligo").
+        :type sequence_type: str
         :return: Weighted score based on normalized GC content deviation.
         :rtype: float
         """
@@ -243,12 +242,13 @@ class NormalizedDeviationFromOptimalTmScorer(SequencePropertyScorer):
     :type Tm_max: float
     :param Tm_parameters: Parameters for Tm calculation using the nearest-neighbor model.
     :type Tm_parameters: dict
+    :param score_weight: Weight applied to the normalized deviation score.
+    :type score_weight: float
     :param Tm_salt_correction_parameters: Salt correction parameters.
     :type Tm_salt_correction_parameters: dict
     :param Tm_chem_correction_parameters: Chemical correction parameters.
     :type Tm_chem_correction_parameters: dict
-    :param score_weight: Weight applied to the normalized deviation score.
-    :type score_weight: float
+
     """
 
     def __init__(
@@ -257,10 +257,10 @@ class NormalizedDeviationFromOptimalTmScorer(SequencePropertyScorer):
         Tm_opt: float,
         Tm_max: float,
         Tm_parameters: dict,
-        Tm_salt_correction_parameters: dict,
-        Tm_chem_correction_parameters: dict,
         score_weight: float,
-    ):
+        Tm_salt_correction_parameters: dict | None = None,
+        Tm_chem_correction_parameters: dict | None = None,
+    ) -> None:
         """Constructor for the NormalizedDeviationFromOptimalTmScorer class."""
 
         self.Tm_min = Tm_min
@@ -271,7 +271,7 @@ class NormalizedDeviationFromOptimalTmScorer(SequencePropertyScorer):
         self.Tm_chem_correction_parameters = Tm_chem_correction_parameters
         self.score_weight = score_weight
 
-    def apply(self, oligo_database: OligoDatabase, region_id: str, oligo_id: str, sequence_type: _TYPES_SEQ):
+    def apply(self, oligo_database: OligoDatabase, region_id: str, oligo_id: str, sequence_type: str):
         """
         Calculate a score based on normalized deviation of Tm from the optimal value.
 
@@ -281,8 +281,8 @@ class NormalizedDeviationFromOptimalTmScorer(SequencePropertyScorer):
         :type region_id: str
         :param oligo_id: The ID of the oligo for which the score is computed.
         :type oligo_id: str
-        :param sequence_type: Type of sequence being processed. Must be one of the sequence types specified in `_constants._TYPES_SEQ`.
-        :type sequence_type: _TYPES_SEQ
+        :param sequence_type: Type of sequence being processed. Must use the `seq_` prefix naming convention (e.g., "seq_target", "seq_oligo").
+        :type sequence_type: str
         :return: Weighted score based on normalized Tm deviation.
         :rtype: float
         """

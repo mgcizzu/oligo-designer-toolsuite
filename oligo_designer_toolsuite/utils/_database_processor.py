@@ -3,11 +3,11 @@
 ############################################
 
 import warnings
-from typing import Any, get_args
+from typing import Any
 
 from effidict import EffiDict, LRUReplacement, PickleBackend
 
-from oligo_designer_toolsuite._constants import _TYPES_SEQ, SEPARATOR_OLIGO_ID
+from oligo_designer_toolsuite._constants import SEPARATOR_OLIGO_ID
 
 from ._checkers_and_helpers import check_if_list, check_if_list_of_lists
 
@@ -19,7 +19,8 @@ from ._checkers_and_helpers import check_if_list, check_if_list_of_lists
 def merge_databases(
     database1: EffiDict,
     database2: EffiDict,
-    sequence_type: _TYPES_SEQ,
+    sequence_type: str,
+    database_sequence_types: list[str],
     dir_cache_files: str,
     max_entries_in_memory: int,
 ) -> EffiDict:
@@ -31,8 +32,10 @@ def merge_databases(
     :type database1: EffiDict
     :param database2: The second database to be merged.
     :type database2: EffiDict
-    :param sequence_type: Type of sequence being processed. Must be one of the sequence types specified in `_constants._TYPES_SEQ`.
-    :type sequence_type: _TYPES_SEQ
+    :param sequence_type: The sequence type key to use for merging (must be in database_sequence_types).
+    :type sequence_type: str
+    :param database_sequence_types: List of sequence type keys in the database.
+    :type database_sequence_types: list[str]
     :param dir_cache_files: Directory to store cache files used for merging.
     :type dir_cache_files: str
     :param max_entries_in_memory: Maximum number of entries to keep in memory for the LRU (Least Recently Used) cache.
@@ -40,8 +43,13 @@ def merge_databases(
     :return: The merged database.
     :rtype: EffiDict
     """
+    if sequence_type not in database_sequence_types:
+        raise ValueError(
+            f"sequence_type '{sequence_type}' must be in database_sequence_types. "
+            f"Current database_sequence_types: {database_sequence_types}"
+        )
 
-    def _get_sequence_as_key(database: EffiDict, regions: list[str], sequence_type: _TYPES_SEQ) -> EffiDict:
+    def _get_sequence_as_key(database: EffiDict, regions: list[str], sequence_type: str) -> EffiDict:
         """
         Converts oligo sequences to dictionary keys, grouping oligo properties by sequence for each specified region.
 
@@ -49,8 +57,8 @@ def merge_databases(
         :type database: EffiDict
         :param regions: List of regions within the database to process.
         :type regions: list
-        :param sequence_type: Type of sequence being processed. Must be one of the sequence types specified in `_constants._TYPES_SEQ`.
-        :type sequence_type: _TYPES_SEQ
+        :param sequence_type: The sequence type key to use for merging.
+        :type sequence_type: str
         :return: A dictionary with sequences as keys and oligo properties as values.
         :rtype: EffiDict
         """
@@ -67,7 +75,9 @@ def merge_databases(
                 database_modified[region][oligo_sequence] = oligo_properties
         return database_modified
 
-    def _add_database_content(database_merged_tmp: EffiDict, database_in_tmp: EffiDict) -> EffiDict:
+    def _add_database_content(
+        database_merged_tmp: EffiDict, database_in_tmp: EffiDict, database_sequence_types: list[str]
+    ) -> EffiDict:
         """
         Merges oligo properties from two databases, ensuring sequences with the same oligo are combined and properties are updated.
 
@@ -75,6 +85,8 @@ def merge_databases(
         :type database_merged_tmp: EffiDict
         :param database_in_tmp: The dictionary containing new content to merge.
         :type database_in_tmp: EffiDict
+        :param database_sequence_types: List of sequence type keys in the database.
+        :type database_sequence_types: list[str]
         :return: The updated dictionary with merged oligo properties.
         :rtype: EffiDict
         """
@@ -82,7 +94,7 @@ def merge_databases(
             for oligo_sequence, oligo_properties in database_region.items():
                 if oligo_sequence in database_merged_tmp[region]:
                     oligo_properties_merged = collapse_properties_for_duplicated_sequences(
-                        database_merged_tmp[region][oligo_sequence], oligo_properties
+                        database_merged_tmp[region][oligo_sequence], oligo_properties, database_sequence_types
                     )
                     database_merged_tmp[region][oligo_sequence] = oligo_properties_merged
                 else:
@@ -103,8 +115,8 @@ def merge_databases(
     db1_sequences_as_keys = _get_sequence_as_key(database1, regions_intersection, sequence_type)
     db2_sequences_as_keys = _get_sequence_as_key(database2, regions_intersection, sequence_type)
 
-    database_merged = _add_database_content(database_merged, db1_sequences_as_keys)
-    database_merged = _add_database_content(database_merged, db2_sequences_as_keys)
+    database_merged = _add_database_content(database_merged, db1_sequences_as_keys, database_sequence_types)
+    database_merged = _add_database_content(database_merged, db2_sequences_as_keys, database_sequence_types)
 
     backend = PickleBackend(storage_path=dir_cache_files)
     strategy = LRUReplacement(disk_backend=backend, max_in_memory=max_entries_in_memory)
@@ -131,7 +143,7 @@ def merge_databases(
 
 
 def collapse_properties_for_duplicated_sequences(
-    oligo_properties1: dict[str, Any], oligo_properties2: dict[str, Any]
+    oligo_properties1: dict[str, Any], oligo_properties2: dict[str, Any], database_sequence_types: list[str]
 ) -> dict[str, Any]:
     """
     Merges two dictionaries of oligo properties, combining values for non-sequence keys and issuing warnings if sequences for the same oligo ID.
@@ -140,6 +152,8 @@ def collapse_properties_for_duplicated_sequences(
     :type oligo_properties1: dict
     :param oligo_properties2: The second dictionary of oligo properties.
     :type oligo_properties2: dict
+    :param database_sequence_types: List of sequence type keys in the database.
+    :type database_sequence_types: list[str]
     :return: A merged dictionary with combined oligo properties.
     :rtype: dict
     """
@@ -153,11 +167,11 @@ def collapse_properties_for_duplicated_sequences(
             if key not in oligo_properties:
                 oligo_properties[key] = values
             else:
-                if key in get_args(_TYPES_SEQ) and oligo_properties[key] != values:
+                if key in database_sequence_types and oligo_properties[key] != values:
                     warnings.warn(
                         f"Values for key {key} are different in the two oligo_properties dictionaries."
                     )
-                elif key not in get_args(_TYPES_SEQ):
+                elif key not in database_sequence_types:
                     oligo_properties[key].extend(values)
 
     return oligo_properties
@@ -190,17 +204,65 @@ def check_if_region_in_database(
                     hanlde.write(f"{region_id}\t{'Not in Annotation'}\n")
 
 
-def format_oligo_properties(oligo_properties: dict[str, Any]) -> dict[str, Any]:
+def check_if_key_in_database(database: EffiDict, key: str, region_ids: str | list[str] | None = None) -> bool:
+    """
+    Checks if a key exists in the database.
+
+    :param database: The database to check.
+    :type database: EffiDict
+    :param key: The key to check.
+    :type key: str
+    :param region_ids: Optional region ID(s) to check in specific region(s). Can be a single region ID (str) or a list of region IDs (list[str]). If provided, checks that the key exists in ALL specified regions. If None, checks if it exists in at least one region.
+    :type region_ids: str | list[str] | None
+    :return: True if the key exists in the database (in all specified regions if region_ids is provided, or in at least one region if region_ids is None), False otherwise.
+    :rtype: bool
+    """
+
+    # Helper for recursive search
+    def recursive_contains(d: Any, target: str) -> bool:
+        """
+        Recursively checks if `target` exists as a key in a nested structure.
+        Top-level is EffiDict, deeper levels are plain dicts.
+        """
+        try:
+            if isinstance(d, dict):  # this will match EffiDict at the top AND nested dicts
+                if target in d:
+                    return True
+                return any(recursive_contains(v, target) for v in d.values())
+            return False
+        except Exception:
+            return False
+
+    # --- Case: region restriction ---
+    if region_ids is not None:
+        region_ids = check_if_list(region_ids)
+        for region_id in region_ids:
+            if region_id not in database:
+                continue
+            region_data = database[region_id]
+            if not recursive_contains(region_data, key):
+                return False
+        return True
+
+    # --- Case: no region restriction → any region may match ---
+    return any(recursive_contains(region_data, key) for region_data in database.values())
+
+
+def format_oligo_properties(
+    oligo_properties: dict[str, Any], database_sequence_types: list[str]
+) -> dict[str, Any]:
     """
     Ensures that the values in an oligo properties dictionary are formatted as lists of lists.
 
     :param oligo_properties: The dictionary of oligo properties to format.
     :type oligo_properties: dict
+    :param database_sequence_types: List of sequence type keys in the database.
+    :type database_sequence_types: list[str]
     :return: The formatted dictionary with lists of lists for non-sequence keys.
     :rtype: dict
     """
     for key, value in oligo_properties.items():
-        if key not in get_args(_TYPES_SEQ):
+        if key not in database_sequence_types:
             oligo_properties[key] = check_if_list_of_lists(value)
     return oligo_properties
 

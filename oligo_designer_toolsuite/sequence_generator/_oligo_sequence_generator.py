@@ -115,7 +115,7 @@ class OligoSequenceGenerator:
 
     def create_sequences_sliding_window(
         self,
-        files_fasta_in: list[str],
+        files_fasta_in: str | list[str],
         length_interval_sequences: tuple,
         split_region: int = 1,
         stride: int = 1,
@@ -129,7 +129,7 @@ class OligoSequenceGenerator:
         It allows for filtering based on region IDs and handles cases where sequences span split regions (e.g. exon junctions).
 
         :param files_fasta_in: List of input FASTA files to generate sequences from.
-        :type files_fasta_in: list[str]
+        :type files_fasta_in: str | list[str]
         :param length_interval_sequences: A tuple specifying the range (min, max) of sequence lengths to generate.
         :type length_interval_sequences: tuple
         :param split_region: The number of bases required on each side of a split sequence (e.g. exon junctions) to include it. Default is 1.

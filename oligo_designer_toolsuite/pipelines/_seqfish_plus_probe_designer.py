@@ -8,7 +8,6 @@ import shutil
 import warnings
 from itertools import product
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple
 
 import numpy as np
 import pandas as pd
@@ -48,6 +47,7 @@ from oligo_designer_toolsuite.oligo_property_filter import (
 from oligo_designer_toolsuite.oligo_selection import (
     GraphBasedSelectionPolicy,
     GreedySelectionPolicy,
+    OligoSelectionPolicy,
     OligosetGeneratorIndependentSet,
 )
 from oligo_designer_toolsuite.oligo_specificity_filter import (
@@ -63,6 +63,7 @@ from oligo_designer_toolsuite.pipelines._utils import (
     base_log_parameters,
     base_parser,
     check_content_oligo_database,
+    format_sequence,
     pipeline_step_basic,
     setup_logging,
 )
@@ -193,8 +194,8 @@ class SeqFishPlusProbeDesigner:
             "Mg": 0,
             "dNTPs": 0,
         },
-        primer_Tm_chem_correction_parameters: dict = None,
-        primer_Tm_salt_correction_parameters: dict = None,
+        primer_Tm_chem_correction_parameters: dict | None = None,
+        primer_Tm_salt_correction_parameters: dict | None = None,
         max_graph_size: int = 5000,
         n_attempts: int = 100000,
         heuristic: bool = True,
@@ -338,15 +339,15 @@ class SeqFishPlusProbeDesigner:
     def design_target_probes(
         self,
         files_fasta_target_probe_database: list[str],
-        files_fasta_reference_database_target_probe: List[str],
-        gene_ids: list = None,
+        files_fasta_reference_database_target_probe: list[str],
+        gene_ids: list[str] | None = None,
         target_probe_length_min: int = 28,
         target_probe_length_max: int = 28,
         target_probe_isoform_consensus: float = 100,
         target_probe_GC_content_min: float = 45,
         target_probe_GC_content_opt: float = 55,
         target_probe_GC_content_max: float = 65,
-        target_probe_homopolymeric_base_n: Optional[Dict[str, int]] = {"A": 5, "T": 5, "C": 5, "G": 5},
+        target_probe_homopolymeric_base_n: dict[str, int] | None = {"A": 5, "T": 5, "C": 5, "G": 5},
         target_probe_T_secondary_structure: float = 76,
         target_probe_secondary_structures_threshold_deltaG: float = 0,
         target_probe_GC_weight: float = 1,
@@ -401,7 +402,7 @@ class SeqFishPlusProbeDesigner:
         """
         target_probe_designer = TargetProbeDesigner(self.dir_output, self.n_jobs)
 
-        oligo_database = target_probe_designer.create_oligo_database(
+        oligo_database: OligoDatabase = target_probe_designer.create_oligo_database(
             gene_ids=gene_ids,
             oligo_length_min=target_probe_length_min,
             oligo_length_max=target_probe_length_max,
@@ -467,9 +468,9 @@ class SeqFishPlusProbeDesigner:
     def design_readout_probes(
         self,
         n_genes: int,
-        files_fasta_reference_database_readout_probe: List[str],
+        files_fasta_reference_database_readout_probe: list[str],
         readout_probe_length: int = 15,
-        readout_probe_base_probabilities: Optional[Dict[str, float]] = {
+        readout_probe_base_probabilities: dict[str, float] | None = {
             "A": 0.25,
             "C": 0.25,
             "G": 0.25,
@@ -477,18 +478,18 @@ class SeqFishPlusProbeDesigner:
         },
         readout_probe_GC_content_min: float = 40,
         readout_probe_GC_content_max: float = 60,
-        readout_probe_homopolymeric_base_n: Optional[Dict[str, int]] = {"G": 3},
+        readout_probe_homopolymeric_base_n: dict[str, int] | None = {"G": 3},
         n_barcode_rounds: int = 4,
         n_pseudocolors: int = 20,
         channels_ids: list = ["Alexa488", "Cy3b", "Alexa647"],
-    ) -> Tuple[pd.DataFrame, pd.DataFrame]:
+    ) -> tuple[pd.DataFrame, pd.DataFrame]:
         """
         Design readout probes based on specified parameters.
 
         :param n_genes: Number of genes for which to design readout probes.
         :type n_genes: int
         :param files_fasta_reference_database_readout_probe: List of FASTA files containing reference sequences for specificity filtering.
-        :type files_fasta_reference_database_readout_probe: List[str]
+        :type files_fasta_reference_database_readout_probe: list[str]
         :param readout_probe_length: Length of the readout probes. Default is 15.
         :type readout_probe_length: int
         :param readout_probe_base_probabilities: Probabilities for each nucleotide in readout probe sequences. Default is {"A": 0.25, "C": 0.25, "G": 0.25, "T": 0.25}.
@@ -506,13 +507,13 @@ class SeqFishPlusProbeDesigner:
         :param channels_ids: List of channel identifiers for assigning readout probes. Default is ["Alexa488", "Cy3b", "Alexa647"].
         :type channels_ids: list
         :return: A tuple containing the generated codebook and readout probe table.
-        :rtype: Tuple[pd.DataFrame, pd.DataFrame]
+        :rtype: tuple[pd.DataFrame, pd.DataFrame]
         """
         readout_probe_designer = ReadoutProbeDesigner(
             dir_output=self.dir_output,
             n_jobs=self.n_jobs,
         )
-        oligo_database = readout_probe_designer.create_oligo_database(
+        oligo_database: OligoDatabase = readout_probe_designer.create_oligo_database(
             oligo_length=readout_probe_length,
             oligo_base_probabilities=readout_probe_base_probabilities,
             initial_num_sequences=self.readout_probe_initial_num_sequences,
@@ -626,8 +627,11 @@ class SeqFishPlusProbeDesigner:
                         str(Seq(sequence_readout_probe_1).reverse_complement())
                         + str(Seq(sequence_readout_probe_2).reverse_complement())
                         + "T"
-                        + target_probe_database.get_oligo_property_value(
-                            property="oligo", region_id=region_id, oligo_id=probe_id, flatten=True
+                        + format_sequence(
+                            database=target_probe_database,
+                            property="oligo",
+                            region_id=region_id,
+                            oligo_id=probe_id,
                         )
                         + "T"
                         + str(Seq(sequence_readout_probe_3).reverse_complement())
@@ -641,30 +645,30 @@ class SeqFishPlusProbeDesigner:
 
     def design_primers(
         self,
-        encoding_probe_database: str,
-        files_fasta_reference_database_primer: List[str],
+        encoding_probe_database: OligoDatabase,
+        files_fasta_reference_database_primer: list[str],
         reverse_primer_sequence: str = "CCCTATAGTGAGTCGTATTA",
         primer_length: int = 20,
-        primer_base_probabilities: Optional[Dict[str, float]] = {"A": 0.25, "C": 0.25, "G": 0.25, "T": 0.25},
+        primer_base_probabilities: dict[str, float] | None = {"A": 0.25, "C": 0.25, "G": 0.25, "T": 0.25},
         primer_GC_content_min: float = 50,
         primer_GC_content_max: float = 65,
         primer_number_GC_GCclamp: int = 1,
         primer_number_three_prime_base_GCclamp: int = 2,
-        primer_homopolymeric_base_n: Optional[Dict[str, int]] = {"A": 4, "T": 4, "C": 4, "G": 4},
+        primer_homopolymeric_base_n: dict[str, int] | None = {"A": 4, "T": 4, "C": 4, "G": 4},
         primer_max_len_selfcomplement: int = 6,
         primer_max_len_complement_reverse_primer: int = 5,
         primer_Tm_min: float = 60,
         primer_Tm_max: float = 75,
         primer_T_secondary_structure: float = 76,
         primer_secondary_structures_threshold_deltaG: float = 0,
-    ) -> Tuple[str, str]:
+    ) -> tuple[str, str]:
         """
         Design forward and reverse primers for the encoding probe database.
 
         :param encoding_probe_database: Path to the encoding probe database file.
         :type encoding_probe_database: str
         :param files_fasta_reference_database_primer: List of input FASTA files for the reference database.
-        :type files_fasta_reference_database_primer: List[str]
+        :type files_fasta_reference_database_primer: list[str]
         :param reverse_primer_sequence: Sequence of the reverse primer. Default is "CCCTATAGTGAGTCGTATTA".
         :type reverse_primer_sequence: str
         :param primer_length: Length of the primers to be designed. Default is 20.
@@ -694,7 +698,7 @@ class SeqFishPlusProbeDesigner:
         :param primer_secondary_structures_threshold_deltaG: Threshold for secondary structure stability based on deltaG. Default is 0.
         :type primer_secondary_structures_threshold_deltaG: float
         :return: A tuple containing the reverse primer sequence and the selected forward primer sequence.
-        :rtype: Tuple[str, str]
+        :rtype: tuple[str, str]
         """
         file_fasta_encoding_probes_database = encoding_probe_database.write_database_to_fasta(
             filename=f"db_reference_encoding_probes",
@@ -707,7 +711,7 @@ class SeqFishPlusProbeDesigner:
             dir_output=self.dir_output,
             n_jobs=self.n_jobs,
         )
-        oligo_database = primer_designer.create_oligo_database(
+        oligo_database: OligoDatabase = primer_designer.create_oligo_database(
             oligo_length=primer_length,
             oligo_base_probabilities=primer_base_probabilities,
             initial_num_sequences=self.primer_initial_num_sequences,
@@ -754,7 +758,7 @@ class SeqFishPlusProbeDesigner:
             dir_database = oligo_database.save_database(name_database="3_db_primer_specificty_filter")
             print(f"Saved primer database for step 3 (Specificity Filters) in directory {dir_database}")
 
-        min_dif_Tm = 100
+        min_dif_Tm = float("inf")
 
         # calculate Tm for the reverse primer
         Tm_reverse_primer = calc_tm_nn(
@@ -788,7 +792,7 @@ class SeqFishPlusProbeDesigner:
         reverse_primer_sequence: str,
         forward_primer_sequence: str,
         top_n_sets: int,
-        properties: List[str] = [
+        properties: list[str] = [
             "source",
             "species",
             "annotation_release",
@@ -844,26 +848,31 @@ class SeqFishPlusProbeDesigner:
                     "sequence_reverse_primer": reverse_primer_sequence,
                     "sequence_forward_primer": forward_primer_sequence,
                     "sequence_seqfish_plus_probe": forward_primer_sequence
-                    + encoding_probe_database.get_oligo_property_value(
+                    + format_sequence(
+                        database=encoding_probe_database,
                         property="sequence_encoding_probe",
                         region_id=region_id,
                         oligo_id=probe_id,
-                        flatten=True,
                     )
                     + reverse_primer_sequence,
                 }
         encoding_probe_database.update_oligo_properties(new_probe_properties_primer)
 
         # Calculate oligo length, GC content, num targeted transcripts, and isoform consensus
-        properties = [
-            LengthProperty(),
-            GCContentProperty(),
-            NumTargetedTranscriptsProperty(),
-            IsoformConsensusProperty(),
-        ]
-        calculator = PropertyCalculator(properties=properties)
+        length_property = LengthProperty()
+        gc_content_property = GCContentProperty()
+        num_targeted_transcripts_property = NumTargetedTranscriptsProperty()
+        isoform_consensus_property = IsoformConsensusProperty()
+        calculator = PropertyCalculator(
+            properties=[
+                length_property,
+                gc_content_property,
+                num_targeted_transcripts_property,
+                isoform_consensus_property,
+            ]
+        )
         encoding_probe_database = calculator.apply(
-            oligo_database=encoding_probe_database, sequence_type="oligo", n_jobs=self.n_jobs
+            oligo_database=encoding_probe_database, sequence_type="seq_oligo", n_jobs=self.n_jobs
         )
 
         encoding_probe_database.write_oligosets_to_yaml(
@@ -874,7 +883,7 @@ class SeqFishPlusProbeDesigner:
         )
 
         # write a second file that only contains order information
-        yaml_dict_order = {}
+        yaml_dict_order: dict[str, dict] = {}
 
         for region_id in encoding_probe_database.database.keys():
             yaml_dict_order[region_id] = {}
@@ -892,35 +901,35 @@ class SeqFishPlusProbeDesigner:
                 yaml_dict_order[region_id][oligoset_id] = {}
                 for oligo_id in oligoset:
                     yaml_dict_order[region_id][oligoset_id][oligo_id] = {
-                        "sequence_seqfish_plus_probe": encoding_probe_database.get_oligo_property_value(
+                        "sequence_seqfish_plus_probe": format_sequence(
+                            database=encoding_probe_database,
                             property="sequence_seqfish_plus_probe",
                             region_id=region_id,
                             oligo_id=oligo_id,
-                            flatten=True,
                         ),
-                        "sequence_readout_probe_1": encoding_probe_database.get_oligo_property_value(
+                        "sequence_readout_probe_1": format_sequence(
+                            database=encoding_probe_database,
                             property="sequence_readout_probe_1",
                             region_id=region_id,
                             oligo_id=oligo_id,
-                            flatten=True,
                         ),
-                        "sequence_readout_probe_2": encoding_probe_database.get_oligo_property_value(
+                        "sequence_readout_probe_2": format_sequence(
+                            database=encoding_probe_database,
                             property="sequence_readout_probe_2",
                             region_id=region_id,
                             oligo_id=oligo_id,
-                            flatten=True,
                         ),
-                        "sequence_readout_probe_3": encoding_probe_database.get_oligo_property_value(
+                        "sequence_readout_probe_3": format_sequence(
+                            database=encoding_probe_database,
                             property="sequence_readout_probe_3",
                             region_id=region_id,
                             oligo_id=oligo_id,
-                            flatten=True,
                         ),
-                        "sequence_readout_probe_4": encoding_probe_database.get_oligo_property_value(
+                        "sequence_readout_probe_4": format_sequence(
+                            database=encoding_probe_database,
                             property="sequence_readout_probe_4",
                             region_id=region_id,
                             oligo_id=oligo_id,
-                            flatten=True,
                         ),
                     }
 
@@ -1011,6 +1020,8 @@ class TargetProbeDesigner:
             sequence_type="target",
             region_ids=gene_ids,
         )
+        # Set all sequence types that will be used in this pipeline
+        oligo_database.set_database_sequence_types(["target", "oligo", "sequence_encoding_probe"])
         # Calculate reverse complement and isoform consensus
         properties = [
             ReverseComplementSequenceProperty(sequence_type_reverse_complement="oligo"),
@@ -1042,7 +1053,7 @@ class TargetProbeDesigner:
         oligo_database: OligoDatabase,
         GC_content_min: float,
         GC_content_max: float,
-        homopolymeric_base_n: int,
+        homopolymeric_base_n: dict[str, int],
         T_secondary_structure: float,
         secondary_structures_threshold_deltaG: float,
     ) -> OligoDatabase:
@@ -1056,7 +1067,7 @@ class TargetProbeDesigner:
         :param GC_content_max: Maximum acceptable GC content for oligos.
         :type GC_content_max: float
         :param homopolymeric_base_n: Maximum allowable length of homopolymeric base runs.
-        :type homopolymeric_base_n: str
+        :type homopolymeric_base_n: dict[str, int]
         :param T_secondary_structure: Temperature for secondary structure analysis.
         :type T_secondary_structure: float
         :param secondary_structures_threshold_deltaG: Threshold for secondary structure deltaG.
@@ -1102,7 +1113,7 @@ class TargetProbeDesigner:
     def filter_by_specificity(
         self,
         oligo_database: OligoDatabase,
-        files_fasta_reference_database: List[str],
+        files_fasta_reference_database: list[str],
         specificity_blastn_search_parameters: dict,
         specificity_blastn_hit_parameters: dict,
         cross_hybridization_blastn_search_parameters: dict,
@@ -1243,6 +1254,7 @@ class TargetProbeDesigner:
         # We change the processing dependent on the required number of probes in the probe sets
         # For small sets, we don't pre-filter and find the initial set by iterating
         # through all possible generated sets, which is faster than the max clique approximation.
+        selection_policy: OligoSelectionPolicy
         if set_size_opt < 10:
             pre_filter = False
             clique_init_approximation = False
@@ -1395,6 +1407,8 @@ class ReadoutProbeDesigner:
             sequence_type="oligo",
             region_ids=None,
         )
+        # Set all sequence types that will be used in this pipeline
+        oligo_database.set_database_sequence_types(["oligo"])
 
         dir = oligo_sequences.dir_output
         shutil.rmtree(dir) if os.path.exists(dir) else None
@@ -1407,7 +1421,7 @@ class ReadoutProbeDesigner:
         oligo_database: OligoDatabase,
         GC_content_min: float,
         GC_content_max: float,
-        homopolymeric_base_n: int,
+        homopolymeric_base_n: dict[str, int],
     ) -> OligoDatabase:
         """
         Filter the oligo database based on various sequence properties.
@@ -1553,7 +1567,9 @@ class ReadoutProbeDesigner:
         :rtype: pd.DataFrame
         """
 
-        def _generate_barcode(pseudocolors: list, channel: int, n_pseudocolors: int, n_channels: int) -> list:
+        def _generate_barcode(
+            pseudocolors: list, channel: int, n_pseudocolors: int, n_channels: int
+        ) -> np.ndarray:
             pseudocolors = pseudocolors + [sum(pseudocolors) % n_pseudocolors]
             assert n_pseudocolors > max(
                 pseudocolors
@@ -1567,7 +1583,7 @@ class ReadoutProbeDesigner:
                 barcode[i * n_pseudocolors * n_channels + n_channels * pseudocolor + channel] = 1
             return barcode
 
-        codebook = []
+        codebook: list[np.ndarray] = []
         codebook_size = n_channels * (n_pseudocolors ** (n_barcode_rounds - 1))
         barcode_size = n_pseudocolors * n_barcode_rounds * n_channels
         if codebook_size < n_regions:
@@ -1576,19 +1592,18 @@ class ReadoutProbeDesigner:
                 f"Consider increasing the number of pseudocolors or barcoding rounds, or reducing the number of regions."
             )
         for pseudocolors in product(range(n_pseudocolors), repeat=n_barcode_rounds - 1):
-            pseudocolors = list(pseudocolors)
             for channel in range(n_channels):
                 barcode = _generate_barcode(
-                    pseudocolors=pseudocolors,
+                    pseudocolors=list(pseudocolors),
                     channel=channel,
                     n_pseudocolors=n_pseudocolors,
                     n_channels=n_channels,
                 )
                 codebook.append(barcode)
 
-        codebook = pd.DataFrame(codebook, columns=[f"bit_{i+1}" for i in range(barcode_size)])
+        codebook_df = pd.DataFrame(codebook, columns=[f"bit_{i+1}" for i in range(barcode_size)])
 
-        return codebook
+        return codebook_df
 
     def create_readout_probe_table(
         self,
@@ -1633,13 +1648,22 @@ class ReadoutProbeDesigner:
         pseudocolor = 0
         channel = 0
         for i, readout_probe_sequence in enumerate(readout_probes.values()):
-            readout_probe_table.iloc[i] = [
-                f"bit_{i + 1}",
-                barcode_round + 1,
-                pseudocolor + 1,
-                channels_ids[channel],
-                readout_probe_sequence,
-            ]
+            readout_probe_table.iloc[i] = pd.Series(
+                [
+                    f"bit_{i + 1}",
+                    barcode_round + 1,
+                    pseudocolor + 1,
+                    channels_ids[channel],
+                    readout_probe_sequence,
+                ],
+                index=[
+                    "bit",
+                    "barcode_round",
+                    "pseudocolor",
+                    "channel",
+                    "readout_probe_sequence",
+                ],
+            )
             channel = (channel + 1) % n_channels
             if channel == 0:
                 pseudocolor = (pseudocolor + 1) % n_pseudocolors
@@ -1730,6 +1754,8 @@ class PrimerDesigner:
             sequence_type="oligo",
             region_ids=None,
         )
+        # Set all sequence types that will be used in this pipeline
+        oligo_database.set_database_sequence_types(["oligo"])
 
         dir = forward_primer_sequences.dir_output
         shutil.rmtree(dir) if os.path.exists(dir) else None
@@ -1744,7 +1770,7 @@ class PrimerDesigner:
         GC_content_max: float,
         number_GC_GCclamp: int,
         number_three_prime_base_GCclamp: int,
-        homopolymeric_base_n: int,
+        homopolymeric_base_n: dict[str, int],
         max_len_selfcomplement: int,
         reverse_primer_sequence: str,
         max_len_complement: int,
@@ -1770,7 +1796,7 @@ class PrimerDesigner:
         :param number_three_prime_base_GCclamp: The number of bases to consider from the 3' end of the sequence.
         :type number_three_prime_base_GCclamp: int
         :param homopolymeric_base_n: Maximum allowable length of homopolymeric base runs.
-        :type homopolymeric_base_n: int
+        :type homopolymeric_base_n: dict[str, int]
         :param max_len_selfcomplement: Maximum allowable length of self-complementary sequences.
         :type max_len_selfcomplement: int
         :param reverse_primer_sequence: Sequence of the reverse primer for complementarity filtering.
@@ -1844,7 +1870,7 @@ class PrimerDesigner:
     def filter_by_specificity(
         self,
         oligo_database: OligoDatabase,
-        files_fasta_reference_database: List[str],
+        files_fasta_reference_database: list[str],
         specificity_refrence_blastn_search_parameters: dict,
         specificity_refrence_blastn_hit_parameters: dict,
         file_fasta_encoding_probes_database: str,

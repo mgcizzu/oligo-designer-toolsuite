@@ -108,6 +108,22 @@ class FTPLoaderFilesBase:
         pass
 
     @abstractmethod
+    def get_correct_metadata(self):
+        pass
+
+    @abstractmethod
+    def get_correct_gff(self):
+        pass
+
+    @abstractmethod
+    def get_correct_gtf(self):
+        pass
+
+    @abstractmethod
+    def get_correct_fasta(self):
+        pass
+
+    @abstractmethod
     def get_true_asserts(self):
         pass
 
@@ -298,8 +314,8 @@ class TestOligoSequenceGenerator(unittest.TestCase):
             sequence_type=self.sequence_type,
             region_ids=None,
         )
-        properties = [LengthProperty()]
-        calculator = PropertyCalculator(properties=properties)
+        length_property = LengthProperty()
+        calculator = PropertyCalculator(properties=[length_property])
         self.oligo_database_1 = calculator.apply(
             oligo_database=self.oligo_database_1, sequence_type=self.sequence_type, n_jobs=1
         )
@@ -361,8 +377,8 @@ class TestOligoSequenceGenerator(unittest.TestCase):
             sequence_type="oligo",
             region_ids=["AARS1", "ABAT"],
         )
-        properties = [LengthProperty()]
-        calculator = PropertyCalculator(properties=properties)
+        length_property = LengthProperty()
+        calculator = PropertyCalculator(properties=[length_property])
         self.oligo_database_1 = calculator.apply(
             oligo_database=self.oligo_database_1, sequence_type=self.sequence_type, n_jobs=1
         )
@@ -381,14 +397,15 @@ class TestOligoSequenceGenerator(unittest.TestCase):
             oligo_id="ABAT::1",
         )
 
-        num_start = len(
-            self.oligo_database_1.get_oligo_property_value(
-                property="start",
-                flatten=True,
-                region_id="ABAT",
-                oligo_id="ABAT::1",
-            )
+        num_start_value = self.oligo_database_1.get_oligo_property_value(
+            property="start",
+            flatten=True,
+            region_id="ABAT",
+            oligo_id="ABAT::1",
         )
+
+        assert isinstance(num_start_value, list), "error: start property is not a list"
+        num_start = len(num_start_value)
 
         assert "AARS1" in self.oligo_database_1.database.keys(), "error: region missing"
 

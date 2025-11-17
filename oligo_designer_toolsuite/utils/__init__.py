@@ -14,6 +14,7 @@ from ._checkers_and_helpers import (
     generate_unique_filename,
 )
 from ._database_processor import (
+    check_if_key_in_database,
     check_if_region_in_database,
     collapse_properties_for_duplicated_sequences,
     flatten_property_list,
@@ -44,6 +45,7 @@ __all__ = [
     "generate_unique_filename",
     "collapse_properties_for_duplicated_sequences",
     "format_oligo_properties",
+    "check_if_key_in_database",
     "merge_databases",
     "flatten_property_list",
     "get_complement_regions",

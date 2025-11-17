@@ -38,7 +38,7 @@ CONFIG_CYCLEHCR_PROBE_DESIGNER = "data/configs/cycle_hcr_probe_designer.yaml"
 ############################################
 
 
-class PipelinesBase:
+class PipelinesBase(unittest.TestCase):
     def setUp(self):
         self.tmp_path = self.setup_output_dir()
         self.script = self.setup_script()

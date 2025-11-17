@@ -46,5 +46,5 @@ Path(s) to FASTA file(s) to load. Can be a single file path (str) or a list of f
 ### `sequence_type`
 **Standard description:**
 ```
-Type of sequence being processed. Must be one of the sequence types specified in `_constants._TYPES_SEQ`.
+Type of sequence being processed. Must use the `seq_` prefix naming convention (e.g., "seq_target", "seq_oligo"). Sequence types are stored as keys in oligo_properties and are identified dynamically by the naming convention.
 ```

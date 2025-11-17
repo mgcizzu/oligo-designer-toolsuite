@@ -362,7 +362,7 @@ class FtpLoaderNCBI(BaseFtpLoader):
             index=mapping_scaffolds_df["RefSeq-Accn"],
         ).to_dict()
 
-        mapping = mapping_chromosome
+        mapping: dict[str, str] = mapping_chromosome
         mapping.update(mapping_scaffolds)
 
         return mapping

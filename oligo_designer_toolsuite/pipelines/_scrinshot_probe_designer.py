@@ -9,7 +9,6 @@ import random
 import shutil
 import warnings
 from pathlib import Path
-from typing import List, Tuple
 
 import yaml
 from Bio.SeqUtils import MeltingTemp as mt
@@ -49,9 +48,11 @@ from oligo_designer_toolsuite.oligo_property_filter import (
 from oligo_designer_toolsuite.oligo_selection import (
     GraphBasedSelectionPolicy,
     GreedySelectionPolicy,
+    OligoSelectionPolicy,
     OligosetGeneratorIndependentSet,
 )
 from oligo_designer_toolsuite.oligo_specificity_filter import (
+    AlignmentSpecificityFilter,
     BlastNFilter,
     BlastNSeedregionSiteFilter,
     CrossHybridizationFilter,
@@ -162,7 +163,7 @@ class ScrinshotProbeDesigner:
             "fmdmethod": 1,
             "GC": None,
         },
-        target_probe_Tm_salt_correction_parameters: dict = None,
+        target_probe_Tm_salt_correction_parameters: dict | None = None,
         detection_oligo_Tm_parameters: dict = {
             "check": True,
             "strict": True,
@@ -190,7 +191,7 @@ class ScrinshotProbeDesigner:
             "fmdmethod": 1,
             "GC": None,
         },
-        detection_oligo_Tm_salt_correction_parameters: dict = None,
+        detection_oligo_Tm_salt_correction_parameters: dict | None = None,
     ):
         """
         Set developer-specific parameters for scrinshot probe designer pipeline.
@@ -287,7 +288,7 @@ class ScrinshotProbeDesigner:
         self,
         files_fasta_target_probe_database: list,
         files_fasta_reference_database_target_probe: list,
-        gene_ids: list = None,
+        gene_ids: list | None = None,
         target_probe_length_min: int = 40,
         target_probe_length_max: int = 45,
         target_probe_isoform_consensus: float = 50,
@@ -379,7 +380,7 @@ class ScrinshotProbeDesigner:
         """
         target_probe_designer = TargetProbeDesigner(self.dir_output, self.n_jobs)
 
-        oligo_database = target_probe_designer.create_oligo_database(
+        oligo_database: OligoDatabase = target_probe_designer.create_oligo_database(
             gene_ids=gene_ids,
             oligo_length_min=target_probe_length_min,
             oligo_length_max=target_probe_length_max,
@@ -525,12 +526,12 @@ class ScrinshotProbeDesigner:
         :rtype: OligoDatabase
         """
 
-        def _get_barcode(number_regions: int, barcode_length: int, seed: int, choices: list) -> list:
+        def _get_barcode(number_regions: int, barcode_length: int, seed: int, choices: list) -> list[str]:
 
             while len(choices) ** barcode_length < number_regions:
                 barcode_length += 1
 
-            barcodes = ["".join(nts) for nts in itertools.product(choices, repeat=barcode_length)]
+            barcodes: list[str] = ["".join(nts) for nts in itertools.product(choices, repeat=barcode_length)]
             random.seed(seed)
             random.shuffle(barcodes)
 
@@ -549,7 +550,7 @@ class ScrinshotProbeDesigner:
             for index in range(len(oligo_sets_region.index)):
                 for column in oligo_sets_oligo_columns:
                     oligo_id = str(oligo_sets_region.loc[index, column])
-                    barcode = barcodes[region_idx]
+                    barcode: str = barcodes[region_idx]
 
                     ligation_site = oligo_database.get_oligo_property_value(
                         property="ligation_site", region_id=region_id, oligo_id=oligo_id, flatten=True
@@ -557,18 +558,20 @@ class ScrinshotProbeDesigner:
                     sequence_oligo = oligo_database.get_oligo_property_value(
                         property="oligo", region_id=region_id, oligo_id=oligo_id, flatten=True
                     )
-                    sequence_padlock_arm1 = sequence_oligo[ligation_site:]
-                    sequence_padlock_arm2 = sequence_oligo[:ligation_site]
-                    sequence_padlock_accessory1 = "TCCTCTATGATTACTGAC"
-                    sequence_padlock_ISS_anchor = "TGCGTCTATTTAGTGGAGCC"
-                    sequence_padlock_accessory2 = "CTATCTTCTTT"
-                    sequence_padlock_backbone = (
+                    if not isinstance(sequence_oligo, str) or not isinstance(ligation_site, int):
+                        continue
+                    sequence_padlock_arm1: str = sequence_oligo[ligation_site:]
+                    sequence_padlock_arm2: str = sequence_oligo[:ligation_site]
+                    sequence_padlock_accessory1: str = "TCCTCTATGATTACTGAC"
+                    sequence_padlock_ISS_anchor: str = "TGCGTCTATTTAGTGGAGCC"
+                    sequence_padlock_accessory2: str = "CTATCTTCTTT"
+                    sequence_padlock_backbone: str = (
                         sequence_padlock_accessory1
                         + sequence_padlock_ISS_anchor
                         + barcode
                         + sequence_padlock_accessory2
                     )
-                    sequence_padlock_probe = (
+                    sequence_padlock_probe: str = (
                         sequence_padlock_arm1 + sequence_padlock_backbone + sequence_padlock_arm2
                     )
                     Tm_arm1 = calc_tm_nn(
@@ -612,7 +615,7 @@ class ScrinshotProbeDesigner:
         self,
         oligo_database: OligoDatabase,
         top_n_sets: int = 3,
-        properties: List[str] = [
+        properties: list[str] = [
             "source",
             "species",
             "annotation_release",
@@ -658,17 +661,17 @@ class ScrinshotProbeDesigner:
         :return: None
         """
         # Calculate oligo length, GC content, Tm, and isoform consensus
-        properties = [
-            LengthProperty(),
-            GCContentProperty(),
-            TmNNProperty(
-                Tm_parameters=self.target_probe_Tm_parameters,
-                Tm_chem_correction_parameters=self.target_probe_Tm_chem_correction_parameters,
-                Tm_salt_correction_parameters=self.target_probe_Tm_salt_correction_parameters,
-            ),
-            IsoformConsensusProperty(),
-        ]
-        calculator = PropertyCalculator(properties=properties)
+        length_property = LengthProperty()
+        gc_content_property = GCContentProperty()
+        TmNN_property = TmNNProperty(
+            Tm_parameters=self.target_probe_Tm_parameters,
+            Tm_chem_correction_parameters=self.target_probe_Tm_chem_correction_parameters,
+            Tm_salt_correction_parameters=self.target_probe_Tm_salt_correction_parameters,
+        )
+        isoform_consensus_property = IsoformConsensusProperty()
+        calculator = PropertyCalculator(
+            properties=[length_property, gc_content_property, TmNN_property, isoform_consensus_property]
+        )
 
         oligo_database = calculator.apply(
             oligo_database=oligo_database, sequence_type="sequence_target_probe", n_jobs=self.n_jobs
@@ -682,7 +685,7 @@ class ScrinshotProbeDesigner:
         )
 
         # write a second file that only contains order information
-        yaml_dict_order = {}
+        yaml_dict_order: dict[str, dict] = {}
 
         for region_id in oligo_database.database.keys():
             yaml_dict_order[region_id] = {}
@@ -798,6 +801,8 @@ class TargetProbeDesigner:
             sequence_type="target",
             region_ids=gene_ids,
         )
+        # Set all sequence types that will be used in this pipeline
+        oligo_database.set_database_sequence_types(["target", "oligo", "sequence_target_probe"])
         # Calculate reverse complement and isoform consensus
         properties = [
             ReverseComplementSequenceProperty(sequence_type_reverse_complement="oligo"),
@@ -838,10 +843,10 @@ class TargetProbeDesigner:
         arm_length_min: int,
         arm_Tm_min: float,
         arm_Tm_max: float,
-        homopolymeric_base_n: str,
+        homopolymeric_base_n: dict[str, int],
         Tm_parameters: dict,
-        Tm_chem_correction_parameters: dict,
-        Tm_salt_correction_parameters: dict,
+        Tm_chem_correction_parameters: dict | None = None,
+        Tm_salt_correction_parameters: dict | None = None,
     ) -> OligoDatabase:
         """
         Filter the oligo database based on various sequence properties.
@@ -871,13 +876,13 @@ class TargetProbeDesigner:
         :param arm_Tm_max: Maximum melting temperature for Padlock arms.
         :type arm_Tm_max: float
         :param homopolymeric_base_n: Maximum allowed length of homopolymeric runs (e.g., 'A', 'T', 'C', 'G').
-        :type homopolymeric_base_n: str
+        :type homopolymeric_base_n: dict[str, int]
         :param Tm_parameters: Parameters for calculating melting temperature.
         :type Tm_parameters: dict
         :param Tm_chem_correction_parameters: Parameters for chemical corrections to melting temperature.
-        :type Tm_chem_correction_parameters: dict
+        :type Tm_chem_correction_parameters: dict | None
         :param Tm_salt_correction_parameters: Parameters for salt corrections to melting temperature.
-        :type Tm_salt_correction_parameters: dict
+        :type Tm_salt_correction_parameters: dict | None
         :return: The filtered oligo database.
         :rtype: OligoDatabase
         """
@@ -936,7 +941,7 @@ class TargetProbeDesigner:
     def filter_by_specificity(
         self,
         oligo_database: OligoDatabase,
-        files_fasta_reference_database: List[str],
+        files_fasta_reference_database: list[str],
         specificity_blastn_search_parameters: dict,
         specificity_blastn_hit_parameters: dict,
         cross_hybridization_blastn_search_parameters: dict,
@@ -957,7 +962,7 @@ class TargetProbeDesigner:
         :param oligo_database: The OligoDatabase instance containing oligonucleotide sequences and their associated properties. This database stores oligo data organized by genomic regions and can be used for filtering, property calculations, set generation, and output operations.
         :type oligo_database: OligoDatabase
         :param files_fasta_reference_database: List of FASTA files to be used as the reference database for filtering.
-        :type files_fasta_reference_database: List[str]
+        :type files_fasta_reference_database: list[str]
         :param specificity_blastn_search_parameters: Parameters for the BLASTN search used in specificity filtering.
         :type specificity_blastn_search_parameters: dict
         :param specificity_blastn_hit_parameters: Parameters for processing BLASTN hits in specificity filtering.
@@ -998,18 +1003,16 @@ class TargetProbeDesigner:
 
         ##### calculate required probe properties #####
         # Calculate padlock arms and detection oligo
-        properties = [
-            PadlockArmsProperty(
-                arm_length_min=arm_length_min,
-                arm_Tm_dif_max=arm_Tm_dif_max,
-                arm_Tm_min=arm_Tm_min,
-                arm_Tm_max=arm_Tm_max,
-                Tm_parameters=Tm_parameters,
-                Tm_chem_correction_parameters=Tm_chem_correction_parameters,
-                Tm_salt_correction_parameters=Tm_salt_correction_parameters,
-            )
-        ]
-        calculator = PropertyCalculator(properties=properties)
+        padlock_arms_property = PadlockArmsProperty(
+            arm_length_min=arm_length_min,
+            arm_Tm_dif_max=arm_Tm_dif_max,
+            arm_Tm_min=arm_Tm_min,
+            arm_Tm_max=arm_Tm_max,
+            Tm_parameters=Tm_parameters,
+            Tm_chem_correction_parameters=Tm_chem_correction_parameters,
+            Tm_salt_correction_parameters=Tm_salt_correction_parameters,
+        )
+        calculator = PropertyCalculator(properties=[padlock_arms_property])
         oligo_database = calculator.apply(
             oligo_database=oligo_database, sequence_type="oligo", n_jobs=self.n_jobs
         )
@@ -1037,6 +1040,7 @@ class TargetProbeDesigner:
             dir_output=self.dir_output,
         )
 
+        specificity: AlignmentSpecificityFilter
         if ligation_region_size > 0:
             specificity = BlastNSeedregionSiteFilter(
                 seedregion_size=ligation_region_size,
@@ -1174,6 +1178,7 @@ class TargetProbeDesigner:
         # We change the processing dependent on the required number of probes in the probe sets
         # For small sets, we don't pre-filter and find the initial set by iterating
         # through all possible generated sets, which is faster than the max clique approximation.
+        selection_policy: OligoSelectionPolicy
         if set_size_opt < 10:
             pre_filter = False
             clique_init_approximation = False
@@ -1276,9 +1281,9 @@ class DetectionOligoDesigner:
         U_distance: int,
         Tm_opt: float,
         Tm_parameters: dict,
-        Tm_chem_correction_parameters: dict,
-        Tm_salt_correction_parameters: dict,
-    ) -> dict:
+        Tm_chem_correction_parameters: dict | None = None,
+        Tm_salt_correction_parameters: dict | None = None,
+    ) -> OligoDatabase:
         """
         Creates detection oligos for each probe in the oligo database.
 
@@ -1297,11 +1302,11 @@ class DetectionOligoDesigner:
         :param Tm_parameters: Parameters for calculating the melting temperature.
         :type Tm_parameters: dict
         :param Tm_chem_correction_parameters: Parameters for chemical corrections to melting temperature.
-        :type Tm_chem_correction_parameters: dict
+        :type Tm_chem_correction_parameters: dict | None
         :param Tm_salt_correction_parameters: Parameters for salt corrections to melting temperature.
-        :type Tm_salt_correction_parameters: dict
+        :type Tm_salt_correction_parameters: dict | None
         :return: The updated oligo database with detection oligos added.
-        :rtype: dict
+        :rtype: OligoDatabase
         """
         region_ids = list(oligo_database.database.keys())
 
@@ -1338,7 +1343,7 @@ class DetectionOligoDesigner:
         Tm_parameters: dict,
         Tm_chem_correction_parameters: dict,
         Tm_salt_correction_parameters: dict,
-    ) -> dict:
+    ) -> None:
         """
         Generates detection oligos for a specific region in the oligo database.
 
@@ -1363,7 +1368,7 @@ class DetectionOligoDesigner:
         :param Tm_salt_correction_parameters: Parameters for salt corrections to melting temperature.
         :type Tm_salt_correction_parameters: dict
         :return: Updates the detection oligo properties for the specified region.
-        :rtype: dict
+        :rtype: None
         """
         oligosets_region = oligo_database.oligosets[region_id]
         oligosets_oligo_columns = [col for col in oligosets_region.columns if col.startswith("oligo_")]
@@ -1380,6 +1385,8 @@ class DetectionOligoDesigner:
                 sequence_oligo = oligo_database.get_oligo_property_value(
                     property="oligo", region_id=region_id, oligo_id=oligo_id, flatten=True
                 )
+                if not isinstance(sequence_oligo, str) or not isinstance(ligation_site, int):
+                    continue
 
                 (
                     detect_oligo_even,
@@ -1466,7 +1473,7 @@ class DetectionOligoDesigner:
         Tm_parameters: dict,
         Tm_chem_correction_parameters: dict,
         Tm_salt_correction_parameters: dict,
-    ) -> int:
+    ) -> float:
         """
         Calculate the absolute difference between the melting temperature (Tm) of an oligo and the optimal Tm.
 
@@ -1481,7 +1488,7 @@ class DetectionOligoDesigner:
         :param Tm_salt_correction_parameters: Parameters for salt corrections to melting temperature.
         :type Tm_salt_correction_parameters: dict
         :return: The absolute difference between the calculated and optimal Tm.
-        :rtype: int
+        :rtype: float
         """
         Tm = calc_tm_nn(
             sequence=oligo,
@@ -1501,7 +1508,7 @@ class DetectionOligoDesigner:
         Tm_parameters: dict,
         Tm_chem_correction_parameters: dict,
         Tm_salt_correction_parameters: dict,
-    ) -> Tuple[list, list]:
+    ) -> tuple[list[str], list[float]]:
         """
         Iteratively find the best oligo by trimming the sequence from either end and optimizing
         for melting temperature (Tm) and other constraints.
@@ -1523,7 +1530,7 @@ class DetectionOligoDesigner:
         :param Tm_salt_correction_parameters: Parameters for salt corrections to melting temperature.
         :type Tm_salt_correction_parameters: dict
         :return: A tuple containing a list of oligos and their respective Tm differences from the optimal Tm.
-        :rtype: Tuple[list, list]
+        :rtype: tuple[list[str], list[float]]
         """
         oligos = [oligo]
         Tm_dif = [

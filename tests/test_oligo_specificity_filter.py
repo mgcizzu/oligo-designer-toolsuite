@@ -550,12 +550,13 @@ class TestHybridizationProbabilityBalstn(unittest.TestCase):
 
     def test_get_queries(self):
         self.alignment_filter.sequence_type = "target"
-        returned_queries = self.alignment_filter._get_queries(
-            oligo_database=self.database,
-            table_hits=self.table_hits,
-            region_id=self.region_id,
+        returned_queries = set(
+            self.alignment_filter._get_queries(
+                oligo_database=self.database,
+                table_hits=self.table_hits,
+                region_id=self.region_id,
+            )
         )
-        returned_queries = set(returned_queries)
         expected_queries = set(
             [
                 Seq("GCTCGGGCTTGTCCACAGGATGGACCCAGCTGAGCAAGCT"),
@@ -586,10 +587,11 @@ class TestHybridizationProbabilityBalstn(unittest.TestCase):
 
     def test_get_target_blastn(self):
         self.alignment_filter.sequence_type = "target"
-        returned_references = self.alignment_filter._get_references(
-            table_hits=self.table_hits, file_reference=self.file_reference, region_id=self.region_id
+        returned_references = set(
+            self.alignment_filter._get_references(
+                table_hits=self.table_hits, file_reference=self.file_reference, region_id=self.region_id
+            )
         )
-        returned_references = set(returned_references)
         expected_references = set(
             [
                 Seq("GCTCGGGCTTGTCCACAGGATGGACCCAGCTGAGCAAGCT"),
@@ -628,12 +630,12 @@ class TestHybridizationProbabilityBalstn(unittest.TestCase):
         references = self.alignment_filter._get_references(
             table_hits=self.table_hits, file_reference=self.file_reference, region_id=self.region_id
         )
-        gapped_queries, _ = self.alignment_filter._add_alignment_gaps(
+        gapped_queries_list, _ = self.alignment_filter._add_alignment_gaps(
             table_hits=self.table_hits,
             queries=queries,
             references=references,
         )
-        gapped_queries = set(gapped_queries)
+        gapped_queries = set(gapped_queries_list)
         expected_gapped_queries = set(
             [
                 Seq("GCTCGGGCTTGTCCACAGGATGGACCCAGCTGAGCAAGCT"),
@@ -672,12 +674,12 @@ class TestHybridizationProbabilityBalstn(unittest.TestCase):
         references = self.alignment_filter._get_references(
             table_hits=self.table_hits, file_reference=self.file_reference, region_id=self.region_id
         )
-        _, gapped_references = self.alignment_filter._add_alignment_gaps(
+        _, gapped_references_list = self.alignment_filter._add_alignment_gaps(
             table_hits=self.table_hits,
             queries=queries,
             references=references,
         )
-        gapped_references = set(gapped_references)
+        gapped_references = set(gapped_references_list)
         expected_gapped_references = set(
             [
                 Seq("GCTCGGGCTTGTCCACAGGATGGACCCAGCTGAGCAAGCT"),
@@ -756,12 +758,13 @@ class TestHybridizationProbabilityBowtie(unittest.TestCase):
 
     def test_get_queries(self):
         self.alignment_filter.sequence_type = "target"
-        returned_queries = self.alignment_filter._get_queries(
-            oligo_database=self.database,
-            table_hits=self.table_hits,
-            region_id=self.region_id,
+        returned_queries = set(
+            self.alignment_filter._get_queries(
+                oligo_database=self.database,
+                table_hits=self.table_hits,
+                region_id=self.region_id,
+            )
         )
-        returned_queries = set(returned_queries)
         expected_queries = set(
             [
                 Seq("GCTCGGGCTTGTCCACAGGATGGACCCAGCTGAGCAAGCT"),
@@ -775,10 +778,11 @@ class TestHybridizationProbabilityBowtie(unittest.TestCase):
         ), f"The Bowtie ai filter didn't return the expected queries. \n\nExpected:\n{expected_queries}\n\nGot:\n{returned_queries}"
 
     def test_get_target_bowtie(self):
-        returned_references = self.alignment_filter._get_references(
-            table_hits=self.table_hits, file_reference=self.file_reference, region_id=self.region_id
+        returned_references = set(
+            self.alignment_filter._get_references(
+                table_hits=self.table_hits, file_reference=self.file_reference, region_id=self.region_id
+            )
         )
-        returned_references = set(returned_references)
         expected_references = set(
             [
                 Seq("GCTCGGGCTTGTCCACAGGATGGACCCAGCTGAGCAAGCT"),

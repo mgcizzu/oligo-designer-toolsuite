@@ -65,9 +65,15 @@ class GenomicRegionGenerator:
         """
         ##### log parameters #####
         logging.info("Parameters Load Annotations:")
-        args, _, _, values = inspect.getargvalues(inspect.currentframe())
-        parameters = {i: values[i] for i in args}
-        base_log_parameters(parameters)
+        frame = inspect.currentframe()
+        if frame is not None:
+            args, _, _, values = inspect.getargvalues(frame)
+            parameters = {i: values[i] for i in args}
+            base_log_parameters(parameters)
+
+        region_generator: (
+            CustomGenomicRegionGenerator | NcbiGenomicRegionGenerator | EnsemblGenomicRegionGenerator | None
+        ) = None
 
         ##### loading annotations from different sources #####
         if source == "ncbi":

@@ -2,7 +2,6 @@
 # imports
 ############################################
 
-from oligo_designer_toolsuite._constants import _TYPES_SEQ
 from oligo_designer_toolsuite._exceptions import ConfigurationError
 from oligo_designer_toolsuite.database import OligoDatabase
 from oligo_designer_toolsuite.oligo_property_calculator import BaseProperty
@@ -38,9 +37,7 @@ class LengthProperty(BaseProperty):
         """Constructor for the LengthProperty class."""
         super().__init__()
 
-    def apply(
-        self, oligo_database: OligoDatabase, region_id: str, oligo_id: str, sequence_type: _TYPES_SEQ
-    ) -> dict:
+    def apply(self, oligo_database: OligoDatabase, region_id: str, oligo_id: str, sequence_type: str) -> dict:
         """
         Calculate the length of the oligonucleotide sequence.
 
@@ -50,8 +47,8 @@ class LengthProperty(BaseProperty):
         :type region_id: str
         :param oligo_id: The ID of the oligo for which the property is calculated.
         :type oligo_id: str
-        :param sequence_type: Type of sequence being processed. Must be one of the sequence types specified in `_constants._TYPES_SEQ`.
-        :type sequence_type: _TYPES_SEQ
+        :param sequence_type: Type of sequence being processed. Must use the `seq_` prefix naming convention (e.g., "seq_target", "seq_oligo").
+        :type sequence_type: str
         :return: A dictionary containing the calculated length property.
         :rtype: dict
         """
@@ -78,9 +75,7 @@ class GCContentProperty(BaseProperty):
         """Constructor for the GCContentProperty class."""
         super().__init__()
 
-    def apply(
-        self, oligo_database: OligoDatabase, region_id: str, oligo_id: str, sequence_type: _TYPES_SEQ
-    ) -> dict:
+    def apply(self, oligo_database: OligoDatabase, region_id: str, oligo_id: str, sequence_type: str) -> dict:
         """
         Calculate the GC content of the oligonucleotide sequence.
 
@@ -90,8 +85,8 @@ class GCContentProperty(BaseProperty):
         :type region_id: str
         :param oligo_id: The ID of the oligo for which the property is calculated.
         :type oligo_id: str
-        :param sequence_type: Type of sequence being processed. Must be one of the sequence types specified in `_constants._TYPES_SEQ`.
-        :type sequence_type: _TYPES_SEQ
+        :param sequence_type: Type of sequence being processed. Must use the `seq_` prefix naming convention (e.g., "seq_target", "seq_oligo").
+        :type sequence_type: str
         :return: A dictionary containing the calculated GC content property.
         :rtype: dict
         """
@@ -139,9 +134,7 @@ class TmNNProperty(BaseProperty):
         self.Tm_salt_correction_parameters = Tm_salt_correction_parameters
         self.Tm_chem_correction_parameters = Tm_chem_correction_parameters
 
-    def apply(
-        self, oligo_database: OligoDatabase, region_id: str, oligo_id: str, sequence_type: _TYPES_SEQ
-    ) -> dict:
+    def apply(self, oligo_database: OligoDatabase, region_id: str, oligo_id: str, sequence_type: str) -> dict:
         """
         Calculate the melting temperature (Tm) of the oligonucleotide sequence.
 
@@ -151,8 +144,8 @@ class TmNNProperty(BaseProperty):
         :type region_id: str
         :param oligo_id: The ID of the oligo for which the property is calculated.
         :type oligo_id: str
-        :param sequence_type: Type of sequence being processed. Must be one of the sequence types specified in `_constants._TYPES_SEQ`.
-        :type sequence_type: _TYPES_SEQ
+        :param sequence_type: Type of sequence being processed. Must use the `seq_` prefix naming convention (e.g., "seq_target", "seq_oligo").
+        :type sequence_type: str
         :return: A dictionary containing the calculated Tm property.
         :rtype: dict
         """
@@ -188,9 +181,7 @@ class DGSecondaryStructureProperty(BaseProperty):
         super().__init__()
         self.T = T
 
-    def apply(
-        self, oligo_database: OligoDatabase, region_id: str, oligo_id: str, sequence_type: _TYPES_SEQ
-    ) -> dict:
+    def apply(self, oligo_database: OligoDatabase, region_id: str, oligo_id: str, sequence_type: str) -> dict:
         """
         Calculate the Gibbs free energy (ΔG) of secondary structure formation.
 
@@ -200,8 +191,8 @@ class DGSecondaryStructureProperty(BaseProperty):
         :type region_id: str
         :param oligo_id: The ID of the oligo for which the property is calculated.
         :type oligo_id: str
-        :param sequence_type: Type of sequence being processed. Must be one of the sequence types specified in `_constants._TYPES_SEQ`.
-        :type sequence_type: _TYPES_SEQ
+        :param sequence_type: Type of sequence being processed. Must use the `seq_` prefix naming convention (e.g., "seq_target", "seq_oligo").
+        :type sequence_type: str
         :return: A dictionary containing the calculated ΔG property.
         :rtype: dict
         """
@@ -228,9 +219,7 @@ class LengthSelfComplementProperty(BaseProperty):
         """Constructor for the LengthSelfComplementProperty class."""
         super().__init__()
 
-    def apply(
-        self, oligo_database: OligoDatabase, region_id: str, oligo_id: str, sequence_type: _TYPES_SEQ
-    ) -> dict:
+    def apply(self, oligo_database: OligoDatabase, region_id: str, oligo_id: str, sequence_type: str) -> dict:
         """
         Calculate the length of the self-complementary region.
 
@@ -240,8 +229,8 @@ class LengthSelfComplementProperty(BaseProperty):
         :type region_id: str
         :param oligo_id: The ID of the oligo for which the property is calculated.
         :type oligo_id: str
-        :param sequence_type: Type of sequence being processed. Must be one of the sequence types specified in `_constants._TYPES_SEQ`.
-        :type sequence_type: _TYPES_SEQ
+        :param sequence_type: Type of sequence being processed. Must use the `seq_` prefix naming convention (e.g., "seq_target", "seq_oligo").
+        :type sequence_type: str
         :return: A dictionary containing the calculated self-complement length property.
         :rtype: dict
         """
@@ -272,9 +261,7 @@ class LengthComplementProperty(BaseProperty):
         super().__init__()
         self.comparison_sequence = comparison_sequence
 
-    def apply(
-        self, oligo_database: OligoDatabase, region_id: str, oligo_id: str, sequence_type: _TYPES_SEQ
-    ) -> dict:
+    def apply(self, oligo_database: OligoDatabase, region_id: str, oligo_id: str, sequence_type: str) -> dict:
         """
         Calculate the length of complementary overlap with the comparison sequence.
 
@@ -284,8 +271,8 @@ class LengthComplementProperty(BaseProperty):
         :type region_id: str
         :param oligo_id: The ID of the oligo for which the property is calculated.
         :type oligo_id: str
-        :param sequence_type: Type of sequence being processed. Must be one of the sequence types specified in `_constants._TYPES_SEQ`.
-        :type sequence_type: _TYPES_SEQ
+        :param sequence_type: Type of sequence being processed. Must use the `seq_` prefix naming convention (e.g., "seq_target", "seq_oligo").
+        :type sequence_type: str
         :return: A dictionary containing the calculated complement length property.
         :rtype: dict
         """
@@ -319,9 +306,7 @@ class ShortenedSequenceProperty(BaseProperty):
         self.sequence_length = sequence_length
         self.reverse = reverse
 
-    def apply(
-        self, oligo_database: OligoDatabase, region_id: str, oligo_id: str, sequence_type: _TYPES_SEQ
-    ) -> dict:
+    def apply(self, oligo_database: OligoDatabase, region_id: str, oligo_id: str, sequence_type: str) -> dict:
         """
         Calculate the shortened sequence.
 
@@ -331,8 +316,8 @@ class ShortenedSequenceProperty(BaseProperty):
         :type region_id: str
         :param oligo_id: The ID of the oligo for which the property is calculated.
         :type oligo_id: str
-        :param sequence_type: Type of sequence being processed. Must be one of the sequence types specified in `_constants._TYPES_SEQ`.
-        :type sequence_type: _TYPES_SEQ
+        :param sequence_type: Type of sequence being processed. Must use the `seq_` prefix naming convention (e.g., "seq_target", "seq_oligo").
+        :type sequence_type: str
         :return: A dictionary containing the calculated shortened sequence property.
         :rtype: dict
         """
@@ -349,7 +334,8 @@ class ShortenedSequenceProperty(BaseProperty):
                 sequence=sequence, sequence_length=self.sequence_length, reverse=self.reverse
             )
 
-        return {f"{sequence_type}_short": sequence_short}
+        new_sequence_type = f"short_{sequence_type}"
+        return {new_sequence_type: sequence_short}
 
 
 class ReverseComplementSequenceProperty(BaseProperty):
@@ -357,17 +343,15 @@ class ReverseComplementSequenceProperty(BaseProperty):
     A property class for calculating the reverse complement of oligonucleotide sequences.
 
     :param sequence_type_reverse_complement: The property name for storing the reverse complement sequence.
-    :type sequence_type_reverse_complement: _TYPES_SEQ["oligo", "target"]
+    :type sequence_type_reverse_complement: str
     """
 
-    def __init__(self, sequence_type_reverse_complement: _TYPES_SEQ) -> None:
+    def __init__(self, sequence_type_reverse_complement: str) -> None:
         """Constructor for the ReverseComplementSequenceProperty class."""
         super().__init__()
         self.sequence_type_reverse_complement = sequence_type_reverse_complement
 
-    def apply(
-        self, oligo_database: OligoDatabase, region_id: str, oligo_id: str, sequence_type: _TYPES_SEQ
-    ) -> dict:
+    def apply(self, oligo_database: OligoDatabase, region_id: str, oligo_id: str, sequence_type: str) -> dict:
         """
         Calculate the reverse complement sequence.
 
@@ -377,8 +361,8 @@ class ReverseComplementSequenceProperty(BaseProperty):
         :type region_id: str
         :param oligo_id: The ID of the oligo for which the property is calculated.
         :type oligo_id: str
-        :param sequence_type: Type of sequence being processed. Must be one of the sequence types specified in `_constants._TYPES_SEQ`.
-        :type sequence_type: _TYPES_SEQ
+        :param sequence_type: Type of sequence being processed. Must use the `seq_` prefix naming convention (e.g., "seq_target", "seq_oligo").
+        :type sequence_type: str
         :return: A dictionary containing the calculated reverse complement sequence property.
         :rtype: dict
         """
@@ -420,9 +404,7 @@ class SplitSequenceProperty(BaseProperty):
         self.split_start_end = split_start_end
         self.split_names = split_names
 
-    def apply(
-        self, oligo_database: OligoDatabase, region_id: str, oligo_id: str, sequence_type: _TYPES_SEQ
-    ) -> dict:
+    def apply(self, oligo_database: OligoDatabase, region_id: str, oligo_id: str, sequence_type: str) -> dict:
         """
         Calculate split sequences from the main sequence.
 
@@ -432,8 +414,8 @@ class SplitSequenceProperty(BaseProperty):
         :type region_id: str
         :param oligo_id: The ID of the oligo for which the property is calculated.
         :type oligo_id: str
-        :param sequence_type: Type of sequence being processed. Must be one of the sequence types specified in `_constants._TYPES_SEQ`.
-        :type sequence_type: _TYPES_SEQ
+        :param sequence_type: Type of sequence being processed. Must use the `seq_` prefix naming convention (e.g., "seq_target", "seq_oligo").
+        :type sequence_type: str
         :return: A dictionary containing the calculated split sequence properties.
         :rtype: dict
         """
@@ -467,9 +449,7 @@ class SeedregionProperty(BaseProperty):
         self.start = start
         self.end = end
 
-    def apply(
-        self, oligo_database: OligoDatabase, region_id: str, oligo_id: str, sequence_type: _TYPES_SEQ
-    ) -> dict:
+    def apply(self, oligo_database: OligoDatabase, region_id: str, oligo_id: str, sequence_type: str) -> dict:
         """
         Calculate the seed region positions.
 
@@ -479,8 +459,8 @@ class SeedregionProperty(BaseProperty):
         :type region_id: str
         :param oligo_id: The ID of the oligo for which the property is calculated.
         :type oligo_id: str
-        :param sequence_type: Type of sequence being processed. Must be one of the sequence types specified in `_constants._TYPES_SEQ`.
-        :type sequence_type: _TYPES_SEQ
+        :param sequence_type: Type of sequence being processed. Must use the `seq_` prefix naming convention (e.g., "seq_target", "seq_oligo").
+        :type sequence_type: str
         :return: A dictionary containing the calculated seedregion start and end positions.
         :rtype: dict
         """
@@ -524,9 +504,7 @@ class SeedregionSiteProperty(BaseProperty):
         self.seedregion_size = seedregion_size
         self.seedregion_site_name = seedregion_site_name
 
-    def apply(
-        self, oligo_database: OligoDatabase, region_id: str, oligo_id: str, sequence_type: _TYPES_SEQ
-    ) -> dict:
+    def apply(self, oligo_database: OligoDatabase, region_id: str, oligo_id: str, sequence_type: str) -> dict:
         """
         Calculate the seed region around the seed region site.
 
@@ -536,8 +514,8 @@ class SeedregionSiteProperty(BaseProperty):
         :type region_id: str
         :param oligo_id: The ID of the oligo for which the property is calculated.
         :type oligo_id: str
-        :param sequence_type: Type of sequence being processed. Must be one of the sequence types specified in `_constants._TYPES_SEQ`.
-        :type sequence_type: _TYPES_SEQ
+        :param sequence_type: Type of sequence being processed. Must use the `seq_` prefix naming convention (e.g., "seq_target", "seq_oligo").
+        :type sequence_type: str
         :return: A dictionary containing the calculated seedregion start and end positions.
         :rtype: dict
         """
@@ -606,9 +584,7 @@ class PadlockArmsProperty(BaseProperty):
         self.Tm_salt_correction_parameters = Tm_salt_correction_parameters
         self.Tm_chem_correction_parameters = Tm_chem_correction_parameters
 
-    def apply(
-        self, oligo_database: OligoDatabase, region_id: str, oligo_id: str, sequence_type: _TYPES_SEQ
-    ) -> dict:
+    def apply(self, oligo_database: OligoDatabase, region_id: str, oligo_id: str, sequence_type: str) -> dict:
         """
         Calculate the padlock probe arms and ligation site.
 
@@ -618,8 +594,8 @@ class PadlockArmsProperty(BaseProperty):
         :type region_id: str
         :param oligo_id: The ID of the oligo for which the property is calculated.
         :type oligo_id: str
-        :param sequence_type: Type of sequence being processed. Must be one of the sequence types specified in `_constants._TYPES_SEQ`.
-        :type sequence_type: _TYPES_SEQ
+        :param sequence_type: Type of sequence being processed. Must use the `seq_` prefix naming convention (e.g., "seq_target", "seq_oligo").
+        :type sequence_type: str
         :return: A dictionary containing the calculated arm temperatures and ligation site.
         :rtype: dict
         """
@@ -678,9 +654,7 @@ class DetectOligoProperty(BaseProperty):
         self.min_thymines = min_thymines
         self.ligation_site_name = ligation_site_name
 
-    def apply(
-        self, oligo_database: OligoDatabase, region_id: str, oligo_id: str, sequence_type: _TYPES_SEQ
-    ) -> dict:
+    def apply(self, oligo_database: OligoDatabase, region_id: str, oligo_id: str, sequence_type: str) -> dict:
         """
         Calculate the detection oligo sequences around the ligation site.
 
@@ -690,8 +664,8 @@ class DetectOligoProperty(BaseProperty):
         :type region_id: str
         :param oligo_id: The ID of the oligo for which the property is calculated.
         :type oligo_id: str
-        :param sequence_type: Type of sequence being processed. Must be one of the sequence types specified in `_constants._TYPES_SEQ`.
-        :type sequence_type: _TYPES_SEQ
+        :param sequence_type: Type of sequence being processed. Must use the `seq_` prefix naming convention (e.g., "seq_target", "seq_oligo").
+        :type sequence_type: str
         :return: A dictionary containing the calculated detection oligo sequences.
         :rtype: dict
         """

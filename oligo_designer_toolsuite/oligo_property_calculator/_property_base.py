@@ -4,7 +4,6 @@
 
 from abc import ABC, abstractmethod
 
-from oligo_designer_toolsuite._constants import _TYPES_SEQ
 from oligo_designer_toolsuite.database import OligoDatabase
 
 ############################################
@@ -25,9 +24,7 @@ class BaseProperty(ABC):
         """Constructor for the BaseProperty class."""
 
     @abstractmethod
-    def apply(
-        self, oligo_database: OligoDatabase, region_id: str, oligo_id: str, sequence_type: _TYPES_SEQ
-    ) -> dict:
+    def apply(self, oligo_database: OligoDatabase, region_id: str, oligo_id: str, sequence_type: str) -> dict:
         """
         Calculate the property for a specific oligo and return the result as a dictionary.
 
@@ -40,8 +37,8 @@ class BaseProperty(ABC):
         :type region_id: str
         :param oligo_id: The ID of the oligo for which the property is calculated.
         :type oligo_id: str
-        :param sequence_type: Type of sequence being processed. Must be one of the sequence types specified in `_constants._TYPES_SEQ`.
-        :type sequence_type: _TYPES_SEQ
+        :param sequence_type: Type of sequence being processed. Must use the `seq_` prefix naming convention (e.g., "seq_target", "seq_oligo").
+        :type sequence_type: str
         :return: A dictionary containing the calculated property(ies). Keys are property names, values are the calculated values.
         :rtype: dict
         """

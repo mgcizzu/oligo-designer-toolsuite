@@ -7,7 +7,6 @@ import os
 import shutil
 import warnings
 from pathlib import Path
-from typing import List
 
 import yaml
 from Bio.SeqUtils import MeltingTemp as mt
@@ -46,6 +45,7 @@ from oligo_designer_toolsuite.oligo_property_filter import (
 from oligo_designer_toolsuite.oligo_selection import (
     GraphBasedSelectionPolicy,
     GreedySelectionPolicy,
+    OligoSelectionPolicy,
     OligosetGeneratorIndependentSet,
 )
 from oligo_designer_toolsuite.oligo_specificity_filter import (
@@ -120,7 +120,7 @@ class OligoSeqProbeDesigner:
             "-v": 3,
             "--nofw": "",
         },
-        target_probe_hybridization_probability_bowtie_hit_parameters: dict = None,
+        target_probe_hybridization_probability_bowtie_hit_parameters: dict = {},
         target_probe_cross_hybridization_alignment_method: str = "blastn",
         target_probe_cross_hybridization_blastn_search_parameters: dict = {
             "-perc_identity": 80,
@@ -132,7 +132,7 @@ class OligoSeqProbeDesigner:
             "-v": 3,
             "--nofw": "",
         },
-        target_probe_cross_hybridization_bowtie_hit_parameters: dict = None,
+        target_probe_cross_hybridization_bowtie_hit_parameters: dict = {},
         max_graph_size: int = 5000,
         n_attempts: int = 100000,
         heuristic: bool = True,
@@ -164,7 +164,7 @@ class OligoSeqProbeDesigner:
             "fmdmethod": 1,
             "GC": None,
         },
-        target_probe_Tm_salt_correction_parameters: dict = None,
+        target_probe_Tm_salt_correction_parameters: dict | None = None,
     ):
         """
         Set developer-specific parameters for Oligo-Seq probe designer pipeline.
@@ -280,7 +280,7 @@ class OligoSeqProbeDesigner:
         files_fasta_target_probe_database: list,
         files_fasta_reference_database_target_probe: list,
         files_vcf_reference_database_target_probe: list,
-        gene_ids: list = None,
+        gene_ids: list | None = None,
         target_probe_length_min: int = 26,
         target_probe_length_max: int = 30,
         target_probe_split_region: int = 4,
@@ -375,7 +375,7 @@ class OligoSeqProbeDesigner:
         """
         target_probe_designer = TargetProbeDesigner(self.dir_output, self.n_jobs)
 
-        oligo_database = target_probe_designer.create_oligo_database(
+        oligo_database: OligoDatabase = target_probe_designer.create_oligo_database(
             gene_ids=gene_ids,
             oligo_length_min=target_probe_length_min,
             oligo_length_max=target_probe_length_max,
@@ -465,7 +465,7 @@ class OligoSeqProbeDesigner:
         self,
         oligo_database: OligoDatabase,
         top_n_sets: int = 3,
-        properties: List[str] = [
+        properties: list[str] = [
             "source",
             "species",
             "annotation_release",
@@ -503,21 +503,28 @@ class OligoSeqProbeDesigner:
         :return: None
         """
         # Calculate oligo length, GC content, Tm, num targeted transcripts, isoform consensus, and length self complement
-        properties = [
-            LengthProperty(),
-            GCContentProperty(),
-            TmNNProperty(
-                Tm_parameters=self.target_probe_Tm_parameters,
-                Tm_chem_correction_parameters=self.target_probe_Tm_chem_correction_parameters,
-                Tm_salt_correction_parameters=self.target_probe_Tm_salt_correction_parameters,
-            ),
-            NumTargetedTranscriptsProperty(),
-            IsoformConsensusProperty(),
-            LengthSelfComplementProperty(),
-        ]
-        calculator = PropertyCalculator(properties=properties)
+        length_property = LengthProperty()
+        gc_content_property = GCContentProperty()
+        TmNN_property = TmNNProperty(
+            Tm_parameters=self.target_probe_Tm_parameters,
+            Tm_chem_correction_parameters=self.target_probe_Tm_chem_correction_parameters,
+            Tm_salt_correction_parameters=self.target_probe_Tm_salt_correction_parameters,
+        )
+        num_targeted_transcripts_property = NumTargetedTranscriptsProperty()
+        isoform_consensus_property = IsoformConsensusProperty()
+        length_self_complement_property = LengthSelfComplementProperty()
+        calculator = PropertyCalculator(
+            properties=[
+                length_property,
+                gc_content_property,
+                TmNN_property,
+                num_targeted_transcripts_property,
+                isoform_consensus_property,
+                length_self_complement_property,
+            ]
+        )
         oligo_database = calculator.apply(
-            oligo_database=oligo_database, sequence_type="oligo", n_jobs=self.n_jobs
+            oligo_database=oligo_database, sequence_type="seq_oligo", n_jobs=self.n_jobs
         )
 
         oligo_database.write_oligosets_to_yaml(
@@ -615,19 +622,23 @@ class TargetProbeDesigner:
             database_overwrite=True,
             region_ids=gene_ids,
         )
+        # Set all sequence types that will be used in this pipeline
+        oligo_database.set_database_sequence_types(["target", "oligo", "oligo_short"])
         # Calculate reverse complement using new PropertyCalculator pattern
-        properties = [ReverseComplementSequenceProperty(sequence_type_reverse_complement="oligo")]
-        calculator = PropertyCalculator(properties=properties)
+        reverse_complement_sequence_property = ReverseComplementSequenceProperty(
+            sequence_type_reverse_complement="oligo"
+        )
+        calculator = PropertyCalculator(properties=[reverse_complement_sequence_property])
         oligo_database = calculator.apply(
             oligo_database=oligo_database, sequence_type="target", n_jobs=self.n_jobs
         )
 
         ##### pre-filter oligo database for certain properties #####
         # Calculate isoform consensus using new PropertyCalculator pattern
-        properties = [IsoformConsensusProperty()]
-        calculator = PropertyCalculator(properties=properties)
+        isoform_consensus_property = IsoformConsensusProperty()
+        calculator = PropertyCalculator(properties=[isoform_consensus_property])
         oligo_database = calculator.apply(
-            oligo_database=oligo_database, sequence_type="target", n_jobs=self.n_jobs
+            oligo_database=oligo_database, sequence_type="seq_target", n_jobs=self.n_jobs
         )
         oligo_database.filter_database_by_property_threshold(
             property_name="isoform_consensus",
@@ -653,7 +664,7 @@ class TargetProbeDesigner:
         Tm_max: int,
         secondary_structures_T: float,
         secondary_structures_threshold_deltaG: float,
-        homopolymeric_base_n: str,
+        homopolymeric_base_n: dict[str, int],
         max_len_selfcomplement: int,
         Tm_parameters: dict,
         Tm_chem_correction_parameters: dict,
@@ -677,7 +688,7 @@ class TargetProbeDesigner:
         :param secondary_structures_threshold_deltaG: Threshold for secondary structure deltaG.
         :type secondary_structures_threshold_deltaG: float
         :param homopolymeric_base_n: Threshold for homopolymeric runs for each base.
-        :type homopolymeric_base_n: str
+        :type homopolymeric_base_n: dict[str, int]
         :param max_len_selfcomplement: Maximum self-complementary length allowed.
         :type max_len_selfcomplement: int
         :param Tm_parameters: Parameters for melting temperature calculations.
@@ -740,8 +751,8 @@ class TargetProbeDesigner:
     def filter_by_specificity(
         self,
         oligo_database: OligoDatabase,
-        files_fasta_reference_database: List[str],
-        files_vcf_reference_database: List[str],
+        files_fasta_reference_database: list[str],
+        files_vcf_reference_database: list[str],
         cross_hybridization_alignment_method: str,
         cross_hybridization_search_parameters: dict,
         cross_hybridization_hit_parameters: dict,
@@ -758,9 +769,9 @@ class TargetProbeDesigner:
         :param oligo_database: The OligoDatabase instance containing oligonucleotide sequences and their associated properties. This database stores oligo data organized by genomic regions and can be used for filtering, property calculations, set generation, and output operations.
         :type oligo_database: OligoDatabase
         :param files_fasta_reference_database: List of FASTA files for the reference database.
-        :type files_fasta_reference_database: List[str]
+        :type files_fasta_reference_database: list[str]
         :param files_vcf_reference_database: List of VCF files for the reference database.
-        :type files_vcf_reference_database: List[str]
+        :type files_vcf_reference_database: list[str]
         :param cross_hybridization_alignment_method: Alignment method for cross-hybridization analysis.
         :type cross_hybridization_alignment_method: str
         :param cross_hybridization_search_parameters: Search parameters for cross-hybridization analysis.
@@ -827,10 +838,12 @@ class TargetProbeDesigner:
         # remove sequences that could cause read length biases because the first
         # <target_probe_read_length_bias> bases of both sequences match
         # Calculate shortened sequence using new PropertyCalculator pattern
-        properties = [ShortenedSequenceProperty(sequence_length=target_probe_read_length_bias, reverse=False)]
-        calculator = PropertyCalculator(properties=properties)
+        shortened_sequence_property = ShortenedSequenceProperty(
+            sequence_length=target_probe_read_length_bias, reverse=False
+        )
+        calculator = PropertyCalculator(properties=[shortened_sequence_property])
         oligo_database = calculator.apply(
-            oligo_database=oligo_database, sequence_type="oligo", n_jobs=self.n_jobs
+            oligo_database=oligo_database, sequence_type="seq_oligo", n_jobs=self.n_jobs
         )
 
         exact_matches_short = ExactMatchFilter(
@@ -1018,6 +1031,7 @@ class TargetProbeDesigner:
         # We change the processing dependent on the required number of probes in the probe sets
         # For small sets, we don't pre-filter and find the initial set by iterating
         # through all possible generated sets, which is faster than the max clique approximation.
+        selection_policy: OligoSelectionPolicy
         if set_size_opt < 10:
             pre_filter = False
             clique_init_approximation = False

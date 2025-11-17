@@ -215,17 +215,20 @@ class TestOligosetGeneratorIndependentSet(unittest.TestCase):
             oligo_database, region_id="region_1", sequence_type="oligo"
         )
         index = ["A_0", "A_1", "A_2", "A_3", "A_4"]
-        data = [
+        data_matrix = [
             [0, 1, 1, 0, 0],
             [1, 0, 1, 0, 0],
             [1, 1, 0, 1, 1],
             [0, 0, 1, 0, 1],
             [0, 0, 1, 1, 0],
         ]
-        overlapping_matrix = csr_matrix(data)
-        data = [[0, "A_0", "A_1", "A_2", 1.59, 2.36], [1, "A_4", "A_2", "A_3", 2.15, 4.93]]
+        overlapping_matrix = csr_matrix(data_matrix)
+        data_sets: list[list[int | str | float]] = [
+            [0, "A_0", "A_1", "A_2", 1.59, 2.36],
+            [1, "A_4", "A_2", "A_3", 2.15, 4.93],
+        ]
         true_sets = pd.DataFrame(
-            data=data,
+            data=data_sets,
             columns=[
                 "oligoset_id",
                 "oligo_0",
@@ -244,6 +247,8 @@ class TestOligosetGeneratorIndependentSet(unittest.TestCase):
             non_overlap_matrix=overlapping_matrix,
             non_overlap_matrix_ids=index,
         )
+        assert computed_sets is not None, "Selection policy returned None - no sets were generated"
+
         computed_sets["set_score_worst"] = computed_sets["set_score_worst"].round(2)
         computed_sets["set_score_sum"] = computed_sets["set_score_sum"].round(2)
 
@@ -344,8 +349,12 @@ class TestOligoSelectionPolicy(unittest.TestCase):
         # sort oligos by score
         self.oligos_scores.sort_values(ascending=True, inplace=True)
 
+        selection_policy = GraphBasedSelectionPolicy(
+            set_scoring=self.set_scoring, pre_filter=True
+        )  # just define something to avoid errors
+
         oligo_generator = OligosetGeneratorIndependentSet(
-            selection_policy=None, oligos_scoring=self.oligo_scoring, set_scoring=self.set_scoring
+            selection_policy=selection_policy, oligos_scoring=self.oligo_scoring, set_scoring=self.set_scoring
         )
         # create the overlapping matrix
         self.non_overlap_matrix, self.non_overlap_matrix_ids = oligo_generator._get_non_overlap_matrix(
@@ -364,8 +373,10 @@ class TestOligoSelectionPolicy(unittest.TestCase):
             set_size_opt=5,
             set_size_min=3,
             n_sets=2,
-        ).round(3)
+        )
+        assert oligosets is not None, "Selection policy returned None - no sets were generated"
 
+        oligosets = oligosets.round(3)
         true_oligosets_1 = pd.DataFrame(
             {
                 "oligoset_id": [0, 1],
@@ -407,8 +418,10 @@ class TestOligoSelectionPolicy(unittest.TestCase):
             set_size_opt=5,
             set_size_min=3,
             n_sets=2,
-        ).round(3)
+        )
+        assert oligosets is not None, "Selection policy returned None - no sets were generated"
 
+        oligosets = oligosets.round(3)
         true_oligosets_1 = pd.DataFrame(
             {
                 "oligoset_id": [0, 1],

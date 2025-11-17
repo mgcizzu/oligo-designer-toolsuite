@@ -2,7 +2,6 @@
 # imports
 ############################################
 
-from oligo_designer_toolsuite._constants import _TYPES_SEQ
 from oligo_designer_toolsuite.database import OligoDatabase
 from oligo_designer_toolsuite.oligo_efficiency_filter import BaseScorer
 from oligo_designer_toolsuite.oligo_property_calculator._property_functions import calc_isoform_consensus
@@ -32,7 +31,7 @@ class OverlapTargetedExonsScorer(BaseScorer):
         self.targeted_exons = sorted(targeted_exons)
         self.score_weight = score_weight
 
-    def apply(self, oligo_database: OligoDatabase, region_id: str, oligo_id: str, sequence_type: _TYPES_SEQ):
+    def apply(self, oligo_database: OligoDatabase, region_id: str, oligo_id: str, sequence_type: str):
         """
         Apply the targeted exon overlap scoring strategy to a given oligo.
 
@@ -42,8 +41,8 @@ class OverlapTargetedExonsScorer(BaseScorer):
         :type region_id: str
         :param oligo_id: The ID of the oligo for which the score is computed.
         :type oligo_id: str
-        :param sequence_type: Type of sequence being processed. Must be one of the sequence types specified in `_constants._TYPES_SEQ`. Note: This parameter is not used in this function.
-        :type sequence_type: _TYPES_SEQ
+        :param sequence_type: Type of sequence being processed. Must use the `seq_` prefix naming convention (e.g., "seq_target", "seq_oligo"). Note: This parameter is not used in this function.
+        :type sequence_type: str
         :return: Weighted score based on overlap with targeted exons.
         :rtype: float
         """
@@ -81,7 +80,7 @@ class OverlapUTRScorer(BaseScorer):
 
         self.score_weight = score_weight
 
-    def apply(self, oligo_database: OligoDatabase, region_id: str, oligo_id: str, sequence_type: _TYPES_SEQ):
+    def apply(self, oligo_database: OligoDatabase, region_id: str, oligo_id: str, sequence_type: str):
         """
         Apply the UTR overlap scoring strategy to a given oligo.
 
@@ -91,8 +90,8 @@ class OverlapUTRScorer(BaseScorer):
         :type region_id: str
         :param oligo_id: The ID of the oligo for which the score is computed.
         :type oligo_id: str
-        :param sequence_type: Type of sequence being processed. Must be one of the sequence types specified in `_constants._TYPES_SEQ`. Note: This parameter is not used in this function.
-        :type sequence_type: _TYPES_SEQ
+        :param sequence_type: Type of sequence being processed. Must use the `seq_` prefix naming convention (e.g., "seq_target", "seq_oligo"). Note: This parameter is not used in this function.
+        :type sequence_type: str
         :return: Weighted score based on UTR overlap.
         :rtype: float
         """
@@ -128,7 +127,7 @@ class IsoformConsensusScorer(BaseScorer):
         self.normalize = normalize
         self.score_weight = score_weight
 
-    def apply(self, oligo_database: OligoDatabase, region_id: str, oligo_id: str, sequence_type: _TYPES_SEQ):
+    def apply(self, oligo_database: OligoDatabase, region_id: str, oligo_id: str, sequence_type: str):
         """
         Apply the isoform consensus scoring strategy to a given oligo.
 
@@ -138,8 +137,8 @@ class IsoformConsensusScorer(BaseScorer):
         :type region_id: str
         :param oligo_id: The ID of the oligo for which the score is computed.
         :type oligo_id: str
-        :param sequence_type: Type of sequence being processed. Must be one of the sequence types specified in `_constants._TYPES_SEQ`. Note: This parameter is not used in this function.
-        :type sequence_type: _TYPES_SEQ
+        :param sequence_type: Type of sequence being processed. Must use the `seq_` prefix naming convention (e.g., "seq_target", "seq_oligo"). Note: This parameter is not used in this function.
+        :type sequence_type: str
         :return: Weighted score based on isoform consensus.
         :rtype: float
         """

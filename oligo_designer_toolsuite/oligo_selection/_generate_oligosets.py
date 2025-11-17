@@ -13,7 +13,6 @@ from joblib import Parallel, delayed
 from joblib_progress import joblib_progress
 from scipy.sparse import csr_matrix, lil_matrix
 
-from oligo_designer_toolsuite._constants import _TYPES_SEQ
 from oligo_designer_toolsuite._exceptions import DatabaseError
 from oligo_designer_toolsuite.database import OligoDatabase
 from oligo_designer_toolsuite.oligo_efficiency_filter import OligoScoring, SetScoringBase
@@ -61,7 +60,7 @@ class OligosetGeneratorIndependentSet:
     def apply(
         self,
         oligo_database: OligoDatabase,
-        sequence_type: _TYPES_SEQ,
+        sequence_type: str,
         set_size_opt: int,
         set_size_min: int,
         n_sets: int = 1,
@@ -83,8 +82,8 @@ class OligosetGeneratorIndependentSet:
 
         :param oligo_database: The OligoDatabase instance containing oligonucleotide sequences and their associated properties. This database stores oligo data organized by genomic regions and can be used for filtering, property calculations, set generation, and output operations.
         :type oligo_database: OligoDatabase
-        :param sequence_type: Type of sequence being processed. Must be one of the sequence types specified in `_constants._TYPES_SEQ`.
-        :type sequence_type: _TYPES_SEQ
+        :param sequence_type: Type of sequence being processed. Must use the `seq_` prefix naming convention (e.g., "seq_target", "seq_oligo").
+        :type sequence_type: str
         :param set_size_opt: The optimal size of each oligo set.
         :type set_size_opt: int
         :param set_size_min: The minimum allowed size of each oligo set.
@@ -114,7 +113,7 @@ class OligosetGeneratorIndependentSet:
         self,
         oligo_database: OligoDatabase,
         region_id: str,
-        sequence_type: _TYPES_SEQ,
+        sequence_type: str,
         set_size_opt: int,
         set_size_min: int,
         n_sets: int,
@@ -127,8 +126,8 @@ class OligosetGeneratorIndependentSet:
         :type oligo_database: OligoDatabase
         :param region_id: Region ID to process.
         :type region_id: str
-        :param sequence_type: Type of sequence being processed. Must be one of the sequence types specified in `_constants._TYPES_SEQ`.
-        :type sequence_type: _TYPES_SEQ
+        :param sequence_type: Type of sequence being processed. Must use the `seq_` prefix naming convention (e.g., "seq_target", "seq_oligo").
+        :type sequence_type: str
         :param set_size_opt: The optimal size of each oligo set.
         :type set_size_opt: int
         :param set_size_min: The minimum allowed size of each oligo set.
@@ -241,7 +240,7 @@ class OligosetGeneratorIndependentSet:
 
         # Create a sparse matrix containing only ones
         ones_matrix = lil_matrix((n_oligos, n_oligos), dtype=int)
-        ones_matrix[:, :] = 1  # type: ignore[index]
+        ones_matrix[:, :] = 1
 
         # Invert theoverlap matrix by subtracting the overlapping matrix from the ones matrix
         non_overlap_matrix = ones_matrix - non_overlap_matrix

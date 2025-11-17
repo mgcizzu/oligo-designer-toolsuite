@@ -6,7 +6,7 @@ import os
 import pickle
 import warnings
 from pathlib import Path
-from typing import Any, get_args
+from typing import Any
 
 import pandas as pd
 import yaml
@@ -17,11 +17,12 @@ from effidict import EffiDict, LRUReplacement, PickleBackend
 from joblib import Parallel, delayed
 from joblib_progress import joblib_progress
 
-from oligo_designer_toolsuite._constants import _TYPES_SEQ, SEPARATOR_OLIGO_ID
+from oligo_designer_toolsuite._constants import SEPARATOR_OLIGO_ID
 from oligo_designer_toolsuite._exceptions import DatabaseError, FileFormatError
 from oligo_designer_toolsuite.utils import (
     CustomYamlDumper,
     FastaParser,
+    check_if_key_in_database,
     check_if_list,
     check_if_list_of_lists,
     check_if_region_in_database,
@@ -98,6 +99,9 @@ class OligoDatabase:
         strategy = LRUReplacement(disk_backend=backend, max_in_memory=self._max_entries_in_memory)
         self.oligosets = EffiDict(disk_backend=backend, replacement_strategy=strategy)
 
+        # Database metadata
+        self.database_sequence_types: list[str] = []
+
         # Initialize the file for regions with insufficient oligos
         if self.write_regions_with_insufficient_oligos:
             self.file_removed_regions = os.path.join(
@@ -115,7 +119,7 @@ class OligoDatabase:
         self,
         files_fasta: str | list[str],
         database_overwrite: bool,
-        sequence_type: _TYPES_SEQ,
+        sequence_type: str,
         region_ids: str | list[str] | None = None,
     ) -> None:
         """
@@ -141,8 +145,8 @@ class OligoDatabase:
         :type files_fasta: str | list[str]
         :param database_overwrite: If True, the existing database will be overwritten.
         :type database_overwrite: bool
-        :param sequence_type: Type of sequence being processed. Must be one of the sequence types specified in `_constants._TYPES_SEQ`.
-        :type sequence_type: _TYPES_SEQ
+        :param sequence_type: Type of sequence being processed (without prefix, e.g., "target"). Will be stored with the `seq_` prefix in the database.
+        :type sequence_type: str
         :param region_ids: Region identifier(s) to process. Can be a single region ID (str) or a list of region IDs (list[str]). If None, all regions in the database are processed, defaults to None.
         :type region_ids: str | list[str] | None, optional
         """
@@ -166,12 +170,13 @@ class OligoDatabase:
                 for entry in fasta_sequences:
                     region, additional_info, coordinates = self.fasta_parser.parse_fasta_header(entry.id)
                     oligo_properties = coordinates | additional_info
-                    oligo_properties = format_oligo_properties(oligo_properties)
+                    oligo_properties = format_oligo_properties(oligo_properties, self.database_sequence_types)
                     if region in sequences:
                         if entry.seq in sequences[region]:
                             oligo_properties = collapse_properties_for_duplicated_sequences(
                                 oligo_properties1=sequences[region][entry.seq],
                                 oligo_properties2=oligo_properties,
+                                database_sequence_types=self.database_sequence_types,
                             )
                         sequences[region][str(entry.seq)] = oligo_properties
                     else:
@@ -192,6 +197,7 @@ class OligoDatabase:
                         database1=self.database,
                         database2=database_region,
                         sequence_type=sequence_type,
+                        database_sequence_types=self.database_sequence_types,
                         dir_cache_files=self._dir_cache_files,
                         max_entries_in_memory=self._max_entries_in_memory,
                     )
@@ -203,17 +209,17 @@ class OligoDatabase:
         region_ids = check_if_list(region_ids)
         files_fasta = check_if_list(files_fasta)
 
-        # Check if sequence type is correct
-        options = get_args(_TYPES_SEQ)
-        assert (
-            sequence_type in options
-        ), f"Sequence type not supported! '{sequence_type}' is not in {options}."
+        # Set database sequence types
+        self.set_database_sequence_types(sequence_type)
 
         # Clear database if it should be overwritten
         if database_overwrite:
             backend = PickleBackend(storage_path=self._dir_cache_files)
             strategy = LRUReplacement(disk_backend=backend, max_in_memory=self._max_entries_in_memory)
             self.database = EffiDict(disk_backend=backend, replacement_strategy=strategy)
+            # Reset metadata when overwriting
+            self.database_sequence_types = []
+            self.set_database_sequence_types(sequence_type)
 
         # Load files parallel into database
         with joblib_progress(description=f"Database Loading", total=len(files_fasta)):
@@ -234,7 +240,7 @@ class OligoDatabase:
         self,
         file_database: str,
         database_overwrite: bool,
-        merge_databases_on_sequence_type: _TYPES_SEQ,
+        merge_databases_on_sequence_type: str,
         region_ids: str | list[str] | None = None,
     ) -> None:
         """
@@ -253,7 +259,7 @@ class OligoDatabase:
         :type database_overwrite: bool
         :param merge_databases_on_sequence_type: The sequence type on which two databases should be merged on if database_overwrite = False,
                 must be one of the predefined sequence types, i.e. "oligo" or "target".
-        :type sequence_type: _TYPES_SEQ
+        :type sequence_type: str
         :param region_ids: Region identifier(s) to process. Can be a single region ID (str) or a list of region IDs (list[str]). If None, all regions in the database are processed, defaults to None.
         :type region_ids: str | list[str] | None, optional
         """
@@ -304,13 +310,16 @@ class OligoDatabase:
             if (not region_ids) or (region_ids and region_id in region_ids):
                 if region_id not in database_tmp2:
                     database_tmp2[region_id] = {}
-                database_tmp2[region_id][oligo_id] = format_oligo_properties(entry)
+                database_tmp2[region_id][oligo_id] = format_oligo_properties(
+                    entry, self.database_sequence_types
+                )
 
         if not database_overwrite and self.database:
             database_tmp2 = merge_databases(
                 database1=self.database,
                 database2=database_tmp2,
                 sequence_type=merge_databases_on_sequence_type,
+                database_sequence_types=self.database_sequence_types,
                 dir_cache_files=self._dir_cache_files,
                 max_entries_in_memory=self._max_entries_in_memory,
             )
@@ -330,7 +339,7 @@ class OligoDatabase:
         self,
         dir_database: str,
         database_overwrite: bool,
-        merge_databases_on_sequence_type: _TYPES_SEQ,
+        merge_databases_on_sequence_type: str,
         region_ids: str | list[str] | None = None,
     ) -> None:
         """
@@ -344,7 +353,7 @@ class OligoDatabase:
         :type database_overwrite: bool
         :param merge_databases_on_sequence_type: The sequence type on which two databases should be merged on (if database_overwrite = False),
                 must be one of the predefined sequence types, i.e. "oligo" or "target".
-        :type sequence_type: _TYPES_SEQ
+        :type sequence_type: str
         :param region_ids: Region identifier(s) to process. Can be a single region ID (str) or a list of region IDs (list[str]). If None, all regions in the database are processed, defaults to None.
         :type region_ids: str | list[str] | None, optional
         """
@@ -378,6 +387,7 @@ class OligoDatabase:
                         database1=self.database,
                         database2={region_id: database_region},
                         sequence_type=merge_databases_on_sequence_type,
+                        database_sequence_types=self.database_sequence_types,
                         dir_cache_files=self._dir_cache_files,
                         max_entries_in_memory=self._max_entries_in_memory,
                     )
@@ -468,7 +478,7 @@ class OligoDatabase:
 
     def write_database_to_fasta(
         self,
-        sequence_type: _TYPES_SEQ,
+        sequence_type: str,
         save_description: bool,
         filename: str = "db_oligo",
         dir_output: str | None = None,
@@ -477,8 +487,8 @@ class OligoDatabase:
         """
         Writes the current database to a FASTA file. Associated sequence properties can optionally be included in the sequence header.
 
-        :param sequence_type: Type of sequence being processed. Must be one of the sequence types specified in `_constants._TYPES_SEQ`.
-        :type sequence_type: _TYPES_SEQ
+        :param sequence_type: Type of sequence being processed (without prefix, e.g., "target"). Will be stored with the `seq_` prefix in the database.
+        :type sequence_type: str
         :param save_description: Whether to include the sequence properties in the sequence header.
         :type save_description: bool
         :param filename: The base name of the output FASTA file, defaults to "db_oligo".
@@ -490,11 +500,10 @@ class OligoDatabase:
         :return: The path to the saved FASTA file.
         :rtype: str
         """
-        # Check if sequence type is correct
-        options = get_args(_TYPES_SEQ)
-        assert (
-            sequence_type in options
-        ), f"Sequence type not supported! '{sequence_type}' is not in {options}."
+        # Check if sequence type exists in database
+        assert check_if_key_in_database(
+            self.database, sequence_type
+        ), f"Sequence type '{sequence_type}' not found in database."
 
         # Check formatting
         region_ids = check_if_list(region_ids) if region_ids else self.database.keys()
@@ -807,19 +816,18 @@ class OligoDatabase:
 
         return oligo_ids
 
-    def get_sequence_list(self, sequence_type: _TYPES_SEQ) -> list[str]:
+    def get_sequence_list(self, sequence_type: str) -> list[str]:
         """
         Retrieves a list of sequences of the specified type from the database.
 
-        :param sequence_type: Type of sequence being processed. Must be one of the sequence types specified in `_constants._TYPES_SEQ`.
-        :type sequence_type: _TYPES_SEQ
+        :param sequence_type: Type of sequence being processed (without prefix, e.g., "target"). Will be stored with the `seq_` prefix in the database.
+        :type sequence_type: str
         :return: A list of sequences corresponding to the specified sequence type from all regions in the database.
         :rtype: list[str]
         """
-        options = get_args(_TYPES_SEQ)
-        assert (
-            sequence_type in options
-        ), f"Sequence type not supported! '{sequence_type}' is not in {options}."
+        assert check_if_key_in_database(
+            self.database, sequence_type
+        ), f"Sequence type '{sequence_type}' not found in database."
         sequences = [
             str(oligo_properties[sequence_type])
             for region_id, database_region in self.database.items()
@@ -828,23 +836,20 @@ class OligoDatabase:
 
         return sequences
 
-    def get_oligoid_sequence_mapping(
-        self, sequence_type: _TYPES_SEQ, sequence_to_upper: bool = False
-    ) -> dict:
+    def get_oligoid_sequence_mapping(self, sequence_type: str, sequence_to_upper: bool = False) -> dict:
         """
         Generates a mapping of oligo IDs to their corresponding sequences of the specified type.
 
-        :param sequence_type: Type of sequence being processed. Must be one of the sequence types specified in `_constants._TYPES_SEQ`.
-        :type sequence_type: _TYPES_SEQ
+        :param sequence_type: Type of sequence being processed (without prefix, e.g., "target"). Will be stored with the `seq_` prefix in the database.
+        :type sequence_type: str
         :param sequence_to_upper: Whether to convert sequences to uppercase, defaults to False.
         :type sequence_to_upper: bool
         :return: A dictionary mapping oligo IDs to their corresponding sequences.
         :rtype: dict
         """
-        options = get_args(_TYPES_SEQ)
-        assert (
-            sequence_type in options
-        ), f"Sequence type not supported! '{sequence_type}' is not in {options}."
+        assert check_if_key_in_database(
+            self.database, sequence_type
+        ), f"Sequence type '{sequence_type}' not found in database."
 
         oligoid_sequence_mapping = {}
 
@@ -857,23 +862,20 @@ class OligoDatabase:
 
         return oligoid_sequence_mapping
 
-    def get_sequence_oligoid_mapping(
-        self, sequence_type: _TYPES_SEQ, sequence_to_upper: bool = False
-    ) -> dict:
+    def get_sequence_oligoid_mapping(self, sequence_type: str, sequence_to_upper: bool = False) -> dict:
         """
         Generates a mapping of sequences to their corresponding oligo IDs for the specified sequence type.
 
-        :param sequence_type: Type of sequence being processed. Must be one of the sequence types specified in `_constants._TYPES_SEQ`.
-        :type sequence_type: _TYPES_SEQ
+        :param sequence_type: Type of sequence being processed (without prefix, e.g., "target"). Will be stored with the `seq_` prefix in the database.
+        :type sequence_type: str
         :param sequence_to_upper: Whether to convert sequences to uppercase, defaults to False.
         :type sequence_to_upper: bool
         :return: A dictionary mapping sequences to their corresponding oligo IDs.
         :rtype: dict
         """
-        options = get_args(_TYPES_SEQ)
-        assert (
-            sequence_type in options
-        ), f"Sequence type not supported! '{sequence_type}' is not in {options}."
+        assert check_if_key_in_database(
+            self.database, sequence_type
+        ), f"Sequence type '{sequence_type}' not found in database."
 
         sequence_oligoids_mapping = {}
 
@@ -1000,6 +1002,18 @@ class OligoDatabase:
     # Manipulation Functions
     ############################################
 
+    def set_database_sequence_types(self, sequence_types: str | list[str]) -> None:
+        """
+        Sets or adds sequence types to the database metadata.
+
+        :param sequence_types: Sequence type(s) to add to the database metadata. Can be a single sequence type (str) or a list of sequence types (list[str]).
+        :type sequence_types: str | list[str]
+        """
+        sequence_types_list = check_if_list(sequence_types)
+        for seq_type in sequence_types_list:
+            if seq_type not in self.database_sequence_types:
+                self.database_sequence_types.append(seq_type)
+
     def update_oligo_properties(self, new_oligo_property: dict) -> None:
         """
         Updates the properties and properties of oligos in the database with the values provided in `new_oligo_property`.
@@ -1020,7 +1034,9 @@ class OligoDatabase:
         for region_id, database_region in self.database.items():
             for oligo_id, oligo_properties in database_region.items():
                 if oligo_id in new_oligo_property:
-                    oligo_properties.update(format_oligo_properties(new_oligo_property[oligo_id]))
+                    oligo_properties.update(
+                        format_oligo_properties(new_oligo_property[oligo_id], self.database_sequence_types)
+                    )
 
     def filter_database_by_region(self, remove_region: bool, region_ids: str | list[str]) -> None:
         """

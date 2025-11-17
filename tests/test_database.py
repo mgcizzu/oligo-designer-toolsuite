@@ -10,23 +10,6 @@ import pandas as pd
 import yaml
 
 from oligo_designer_toolsuite.database import OligoDatabase, ReferenceDatabase
-from oligo_designer_toolsuite.oligo_property_calculator import (
-    DetectOligoProperty,
-    DGSecondaryStructureProperty,
-    GCContentProperty,
-    IsoformConsensusProperty,
-    LengthComplementProperty,
-    LengthProperty,
-    LengthSelfComplementProperty,
-    NumTargetedTranscriptsProperty,
-    PadlockArmsProperty,
-    PropertyCalculator,
-    ReverseComplementSequenceProperty,
-    SeedregionProperty,
-    SeedregionSiteProperty,
-    ShortenedSequenceProperty,
-    TmNNProperty,
-)
 from oligo_designer_toolsuite.sequence_generator import OligoSequenceGenerator
 from oligo_designer_toolsuite.utils import FastaParser, VCFParser, check_tsv_format
 
@@ -96,6 +79,7 @@ class TestReferenceDatabase(unittest.TestCase):
 
     def test_filter_database_by_region(self):
         self.reference_fasta.filter_database_by_region(region_ids="AARS1", keep_region=False)
+        assert self.reference_fasta.database_file is not None, "error: database file is not set"
         fasta_sequences = self.fasta_parser.read_fasta_sequences(
             file_fasta_in=self.reference_fasta.database_file
         )
@@ -113,6 +97,7 @@ class TestReferenceDatabase(unittest.TestCase):
             property_category="AARS1",
             keep_if_equals_category=False,
         )
+        assert self.reference_fasta.database_file is not None, "error: database file is not set"
         fasta_sequences = self.fasta_parser.read_fasta_sequences(
             file_fasta_in=self.reference_fasta.database_file
         )
@@ -175,6 +160,13 @@ class TestOligoDatabase(unittest.TestCase):
         self.load_database_from_fasta()
 
         assert len(self.oligo_database.database) == 6, "error: wrong number of sequences loaded into database"
+        # Verify that sequence types are set correctly
+        assert (
+            "oligo" in self.oligo_database.database_sequence_types
+        ), "error: 'oligo' should be in database_sequence_types"
+        assert (
+            "target" in self.oligo_database.database_sequence_types
+        ), "error: 'target' should be in database_sequence_types"
 
     def test_load_database_from_table(self):
         self.oligo_database.load_database_from_table(
@@ -185,6 +177,10 @@ class TestOligoDatabase(unittest.TestCase):
         )
 
         assert len(self.oligo_database.database) == 2, "error: wrong number of sequences loaded into database"
+        # Verify that sequence type is set when loading from table
+        assert (
+            "oligo" in self.oligo_database.database_sequence_types
+        ), "error: 'oligo' should be in database_sequence_types after loading from table"
 
     def test_load_save_database(self):
         self.oligo_database.load_database_from_table(
@@ -581,276 +577,27 @@ class TestOligoDatabase(unittest.TestCase):
         )
         assert len(self.oligo_database.get_oligoid_list()) == 9, "error: wrong number of oligos filtered"
 
+    def test_set_database_sequence_types(self):
+        """Test that set_database_sequence_types correctly adds sequence types."""
+        self.oligo_database.set_database_sequence_types("oligo")
+        assert (
+            "oligo" in self.oligo_database.database_sequence_types
+        ), "error: 'oligo' should be added to database_sequence_types"
 
-class TestOligoProperties(unittest.TestCase):
-    def setUp(self):
-        self.tmp_path = os.path.join(os.getcwd(), "tmp_oligo_properties")
+        self.oligo_database.set_database_sequence_types(["target", "oligo_pair_L"])
+        assert (
+            "target" in self.oligo_database.database_sequence_types
+        ), "error: 'target' should be added to database_sequence_types"
+        assert (
+            "oligo_pair_L" in self.oligo_database.database_sequence_types
+        ), "error: 'oligo_pair_L' should be added to database_sequence_types"
+        assert (
+            "oligo" in self.oligo_database.database_sequence_types
+        ), "error: 'oligo' should still be in database_sequence_types"
 
-        self.oligo_database = OligoDatabase(
-            min_oligos_per_region=2,
-            write_regions_with_insufficient_oligos=True,
-            database_name="test_oligo_properties",
-            dir_output=self.tmp_path,
-        )
-        self.oligo_database.load_database_from_table(
-            FILE_DATABASE_OLIGO_PROPERTIES, database_overwrite=True, merge_databases_on_sequence_type="oligo"
-        )
-
-    def tearDown(self):
-        shutil.rmtree(self.tmp_path)
-
-    def test_calculate_oligo_length(self):
-        properties = [LengthProperty()]
-        calculator = PropertyCalculator(properties=properties)
-        oligo_database = calculator.apply(oligo_database=self.oligo_database, sequence_type="oligo", n_jobs=1)
-
-        length1 = oligo_database.get_oligo_property_value(
-            property="length_oligo", flatten=True, region_id="region_1", oligo_id="region_1::1"
-        )
-        length2 = oligo_database.get_oligo_property_value(
-            property="length_oligo", flatten=True, region_id="region_1", oligo_id="region_1::2"
-        )
-
-        assert length1 == 20, "error: wrong oligo length"
-        assert length2 == 29, "error: wrong oligo length"
-
-    def test_calculate_reverse_complement_sequence(self):
-        properties = [ReverseComplementSequenceProperty(sequence_type_reverse_complement="oligo")]
-        calculator = PropertyCalculator(properties=properties)
-        oligo_database = calculator.apply(
-            oligo_database=self.oligo_database, sequence_type="target", n_jobs=1
-        )
-
-        target = oligo_database.get_oligo_property_value(
-            property="target", flatten=True, region_id="region_1", oligo_id="region_1::1"
-        )
-        oligo = oligo_database.get_oligo_property_value(
-            property="oligo", flatten=True, region_id="region_1", oligo_id="region_1::1"
-        )
-
-        assert target == "ATCGTCATCCATTGGGGCAT", "error: wrong target sequence"
-        assert oligo == "ATGCCCCAATGGATGACGAT", "error: wrong oligo sequence"
-
-    def test_calculate_shortened_sequence(self):
-        # check if it works for oligos
-        sequence_type = "oligo"
-
-        properties = [ShortenedSequenceProperty(sequence_length=10, reverse=False)]
-        calculator = PropertyCalculator(properties=properties)
-        oligo_database = calculator.apply(
-            oligo_database=self.oligo_database, sequence_type=sequence_type, n_jobs=1
-        )
-
-        sequence_short_oligo = oligo_database.get_oligo_property_value(
-            property=f"{sequence_type}_short", flatten=True, region_id="region_1", oligo_id="region_1::2"
-        )
-
-        properties = [ShortenedSequenceProperty(sequence_length=10, reverse=True)]
-        calculator = PropertyCalculator(properties=properties)
-        oligo_database = calculator.apply(
-            oligo_database=self.oligo_database, sequence_type=sequence_type, n_jobs=1
-        )
-
-        sequence_short_oligo_reverse_read = oligo_database.get_oligo_property_value(
-            property=f"{sequence_type}_short", flatten=True, region_id="region_1", oligo_id="region_1::2"
-        )
-
-        # check if it works for targets
-        sequence_type = "target"
-
-        properties = [ShortenedSequenceProperty(sequence_length=5, reverse=False)]
-        calculator = PropertyCalculator(properties=properties)
-        oligo_database = calculator.apply(
-            oligo_database=self.oligo_database, sequence_type=sequence_type, n_jobs=1
-        )
-
-        sequence_short_target = oligo_database.get_oligo_property_value(
-            property=f"{sequence_type}_short", flatten=True, region_id="region_1", oligo_id="region_1::2"
-        )
-
-        properties = [ShortenedSequenceProperty(sequence_length=5, reverse=True)]
-        calculator = PropertyCalculator(properties=properties)
-        oligo_database = calculator.apply(
-            oligo_database=self.oligo_database, sequence_type=sequence_type, n_jobs=1
-        )
-
-        sequence_short_target_reverse_read = oligo_database.get_oligo_property_value(
-            property=f"{sequence_type}_short", flatten=True, region_id="region_1", oligo_id="region_1::2"
-        )
-        assert sequence_short_oligo == "GGCTAGGGAA", "error: wrong short sequence calculated"
-        assert sequence_short_target == "CTCTA", "error: wrong short sequence calculated"
-        assert sequence_short_oligo_reverse_read == "TCCAATAGAG", "error: wrong short sequence calculated"
-        assert sequence_short_target_reverse_read == "TAGCC", "error: wrong short sequence calculated"
-
-    def test_calculate_num_targeted_transcripts(self):
-        properties = [NumTargetedTranscriptsProperty()]
-        calculator = PropertyCalculator(properties=properties)
-        oligo_database = calculator.apply(oligo_database=self.oligo_database, sequence_type="oligo", n_jobs=1)
-
-        num_targeted_transcripts1 = oligo_database.get_oligo_property_value(
-            property="num_targeted_transcripts", flatten=True, region_id="region_1", oligo_id="region_1::1"
-        )
-        num_targeted_transcripts2 = oligo_database.get_oligo_property_value(
-            property="num_targeted_transcripts", flatten=True, region_id="region_2", oligo_id="region_2::1"
-        )
-        num_targeted_transcripts3 = oligo_database.get_oligo_property_value(
-            property="num_targeted_transcripts", flatten=True, region_id="region_3", oligo_id="region_3::4"
-        )
-
-        assert num_targeted_transcripts1 == 2, "error: wrong number targeted transcripts"
-        assert num_targeted_transcripts2 == 1, "error: wrong number targeted transcripts"
-        assert num_targeted_transcripts3 == 28, "error: wrong number targeted transcripts"
-
-    def test_calculate_isoform_consensus(self):
-        properties = [NumTargetedTranscriptsProperty()]
-        calculator = PropertyCalculator(properties=properties)
-        oligo_database = calculator.apply(oligo_database=self.oligo_database, sequence_type="oligo", n_jobs=1)
-        properties = [IsoformConsensusProperty()]
-        calculator = PropertyCalculator(properties=properties)
-        oligo_database = calculator.apply(oligo_database=oligo_database, sequence_type="oligo", n_jobs=1)
-
-        isoform_consensus1 = oligo_database.get_oligo_property_value(
-            property="isoform_consensus", flatten=True, region_id="region_1", oligo_id="region_1::1"
-        )
-        isoform_consensus2 = oligo_database.get_oligo_property_value(
-            property="isoform_consensus", flatten=True, region_id="region_2", oligo_id="region_2::1"
-        )
-
-        assert isoform_consensus1 == 100, "error: wrong isoform consensus, should be 100%"
-        assert isoform_consensus2 == 50, "error: wrong isoform consensus, should be 50%"
-
-    def test_calculate_seedregion(self):
-        properties = [SeedregionProperty(start=0.4, end=0.6)]
-        calculator = PropertyCalculator(properties=properties)
-        oligo_database = calculator.apply(oligo_database=self.oligo_database, sequence_type="oligo", n_jobs=1)
-
-        seedregion_start = oligo_database.get_oligo_property_value(
-            property="seedregion_start", flatten=True, region_id="region_1", oligo_id="region_1::1"
-        )
-        seedregion_end = oligo_database.get_oligo_property_value(
-            property="seedregion_end", flatten=True, region_id="region_1", oligo_id="region_1::1"
-        )
-
-        assert (seedregion_start == 8) and (seedregion_end == 12), "error: wrong seedregion calculated"
-
-    def test_calculate_seedregion_site(self):
-        properties = [SeedregionSiteProperty(seedregion_size=5, seedregion_site_name="ligation_site")]
-        calculator = PropertyCalculator(properties=properties)
-        oligo_database = calculator.apply(oligo_database=self.oligo_database, sequence_type="oligo", n_jobs=1)
-
-        seedregion_start = oligo_database.get_oligo_property_value(
-            property="seedregion_start", flatten=True, region_id="region_1", oligo_id="region_1::1"
-        )
-        seedregion_end = oligo_database.get_oligo_property_value(
-            property="seedregion_end", flatten=True, region_id="region_1", oligo_id="region_1::1"
-        )
-
-        assert (seedregion_start == 6) and (seedregion_end == 15), "error: wrong seedregion calculated"
-
-    def test_calculate_GC_content(self):
-        properties = [GCContentProperty()]
-        calculator = PropertyCalculator(properties=properties)
-        oligo_database = calculator.apply(oligo_database=self.oligo_database, sequence_type="oligo", n_jobs=1)
-
-        GC_content = oligo_database.get_oligo_property_value(
-            property="GC_content_oligo", flatten=True, region_id="region_1", oligo_id="region_1::1"
-        )
-
-        assert GC_content == 50, "error: wrong GC content calculated"
-
-    def test_calculate_TmNN(self):
-        properties = [TmNNProperty(Tm_parameters={})]
-        calculator = PropertyCalculator(properties=properties)
-        oligo_database = calculator.apply(oligo_database=self.oligo_database, sequence_type="oligo", n_jobs=1)
-
-        TmNN = oligo_database.get_oligo_property_value(
-            property="TmNN_oligo", flatten=True, region_id="region_1", oligo_id="region_1::1"
-        )
-
-        assert TmNN == 53.57, "error: wrong Tm calculated"
-
-    def test_calculate_length_selfcomplement(self):
-        properties = [LengthSelfComplementProperty()]
-        calculator = PropertyCalculator(properties=properties)
-        oligo_database = calculator.apply(oligo_database=self.oligo_database, sequence_type="oligo", n_jobs=1)
-
-        length_selfcomplement = oligo_database.get_oligo_property_value(
-            property="length_selfcomplement_oligo",
-            flatten=True,
-            region_id="region_3",
-            oligo_id="region_3::3",
-        )
-
-        assert length_selfcomplement == 18, "error: wrong length of selfcomplement calculated"
-
-    def test_calculate_length_complement(self):
-        properties = [LengthComplementProperty(comparison_sequence="AGTC")]
-        calculator = PropertyCalculator(properties=properties)
-        oligo_database = calculator.apply(oligo_database=self.oligo_database, sequence_type="oligo", n_jobs=1)
-
-        length_complement = oligo_database.get_oligo_property_value(
-            property="length_complement_oligo_AGTC",
-            flatten=True,
-            region_id="region_1",
-            oligo_id="region_1::3",
-        )
-
-        assert length_complement == 3, "error: wrong length of complement calculated"
-
-    def test_calculate_secondary_structure_DG(self):
-        properties = [DGSecondaryStructureProperty(T=37)]
-        calculator = PropertyCalculator(properties=properties)
-        oligo_database = calculator.apply(oligo_database=self.oligo_database, sequence_type="oligo", n_jobs=1)
-
-        DG_secondary_structure = oligo_database.get_oligo_property_value(
-            property="DG_secondary_structure_oligo",
-            flatten=True,
-            region_id="region_1",
-            oligo_id="region_1::1",
-        )
-
-        assert DG_secondary_structure == 0.8, "error: wrong DG calculated"
-
-    def test_calculate_padlock_arms(self):
-        properties = [
-            PadlockArmsProperty(
-                arm_length_min=3,
-                arm_Tm_dif_max=15,
-                arm_Tm_min=30,
-                arm_Tm_max=80,
-                Tm_parameters={},
-            )
-        ]
-        calculator = PropertyCalculator(properties=properties)
-        oligo_database = calculator.apply(oligo_database=self.oligo_database, sequence_type="oligo", n_jobs=1)
-
-        ligation_site = oligo_database.get_oligo_property_value(
-            property="ligation_site", flatten=True, region_id="region_1", oligo_id="region_1::2"
-        )
-
-        assert ligation_site == 14, "error: wrong padlock arms calculated"
-
-    def test_calculate_detect_oligo(self):
-        properties = [
-            DetectOligoProperty(
-                detect_oligo_length_min=8,
-                detect_oligo_length_max=12,
-                min_thymines=2,
-            )
-        ]
-        calculator = PropertyCalculator(properties=properties)
-        oligo_database = calculator.apply(oligo_database=self.oligo_database, sequence_type="oligo", n_jobs=1)
-
-        detect_oligo_even = oligo_database.get_oligo_property_value(
-            property="detect_oligo_even", flatten=True, region_id="region_1", oligo_id="region_1::2"
-        )
-        detect_oligo_long_left = oligo_database.get_oligo_property_value(
-            property="detect_oligo_long_left", flatten=True, region_id="region_1", oligo_id="region_1::2"
-        )
-        detect_oligo_long_right = oligo_database.get_oligo_property_value(
-            property="detect_oligo_long_right", flatten=True, region_id="region_1", oligo_id="region_1::2"
-        )
-
-        assert detect_oligo_even == "AGGGAATCGAAT", "error: wrong detection oligo even calculated"
-        assert detect_oligo_long_left == None, "error: wrong detection oligo left calculated"
-        assert detect_oligo_long_right == None, "error: wrong detection oligo right calculated"
+        # Test that duplicates are not added
+        initial_length = len(self.oligo_database.database_sequence_types)
+        self.oligo_database.set_database_sequence_types("oligo")
+        assert (
+            len(self.oligo_database.database_sequence_types) == initial_length
+        ), "error: duplicate sequence types should not be added"

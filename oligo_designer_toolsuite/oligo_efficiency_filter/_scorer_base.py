@@ -4,7 +4,6 @@
 
 from abc import ABC, abstractmethod
 
-from oligo_designer_toolsuite._constants import _TYPES_SEQ
 from oligo_designer_toolsuite.database import OligoDatabase
 
 ############################################
@@ -25,7 +24,7 @@ class BaseScorer(ABC):
 
     @abstractmethod
     def apply(
-        self, oligo_database: OligoDatabase, region_id: str, oligo_id: str, sequence_type: _TYPES_SEQ
+        self, oligo_database: OligoDatabase, region_id: str, oligo_id: str, sequence_type: str
     ) -> float:
         """
         Evaluate a single oligonucleotide and return a score based on a specific scoring strategy.
@@ -39,8 +38,8 @@ class BaseScorer(ABC):
         :type region_id: str
         :param oligo_id: The ID of the oligo for which the score is computed.
         :type oligo_id: str
-        :param sequence_type: Type of sequence being processed. Must be one of the sequence types specified in `_constants._TYPES_SEQ`.
-        :type sequence_type: _TYPES_SEQ
+        :param sequence_type: Type of sequence being processed. Must use the `seq_` prefix naming convention (e.g., "seq_target", "seq_oligo").
+        :type sequence_type: str
         :return: A float value representing the computed score for the specified oligo.
         :rtype: float
         """

@@ -2,12 +2,12 @@
 # imports
 ############################################
 
-from typing import List, Tuple, get_args
+from typing import List, Tuple
 
 import pandas as pd
 
-from oligo_designer_toolsuite._constants import _TYPES_SEQ
 from oligo_designer_toolsuite.database import OligoDatabase
+from oligo_designer_toolsuite.utils import check_if_key_in_database
 
 from ._scorer_base import BaseScorer
 
@@ -33,7 +33,7 @@ class OligoScoring:
         self.scorers = scorers
 
     def apply(
-        self, oligo_database: OligoDatabase, region_id: str, sequence_type: _TYPES_SEQ
+        self, oligo_database: OligoDatabase, region_id: str, sequence_type: str
     ) -> Tuple[OligoDatabase, pd.Series]:
         """
         Apply all configured scorers to the oligonucleotides within a given region and sequence type.
@@ -46,16 +46,15 @@ class OligoScoring:
         :type oligo_database: OligoDatabase
         :param region_id: Region ID to process.
         :type region_id: str
-        :param sequence_type: Type of sequence being processed. Must be one of the sequence types specified in `_constants._TYPES_SEQ`.
-        :type sequence_type: _TYPES_SEQ
+        :param sequence_type: Type of sequence being processed. Must use the `seq_` prefix naming convention (e.g., "seq_target", "seq_oligo").
+        :type sequence_type: str
         :return: A tuple containing the updated OligoDatabase and a pandas Series of scores indexed by oligo ID.
         :rtype: Tuple[OligoDatabase, pd.Series]
         """
 
-        options = get_args(_TYPES_SEQ)
-        assert (
-            sequence_type in options
-        ), f"Sequence type not supported! '{sequence_type}' is not in {options}."
+        assert check_if_key_in_database(
+            oligo_database.database, sequence_type
+        ), f"Sequence type '{sequence_type}' not found in database."
 
         oligos_ids = list(oligo_database.database[region_id].keys())
         oligos_scores = pd.Series(index=oligos_ids, dtype=float)

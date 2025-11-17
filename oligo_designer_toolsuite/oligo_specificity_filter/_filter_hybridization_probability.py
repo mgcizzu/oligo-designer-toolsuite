@@ -6,7 +6,6 @@ from joblib import Parallel, delayed
 from joblib_progress import joblib_progress
 from oligo_designer_toolsuite_ai_filters.api import APIHybridizationProbability
 
-from oligo_designer_toolsuite._constants import _TYPES_SEQ
 from oligo_designer_toolsuite._exceptions import ConfigurationError
 from oligo_designer_toolsuite.database import OligoDatabase
 from oligo_designer_toolsuite.oligo_specificity_filter import (
@@ -86,7 +85,7 @@ class HybridizationProbabilityFilter(ReferenceSpecificityFilter):
     def apply(
         self,
         oligo_database: OligoDatabase,
-        sequence_type: _TYPES_SEQ | None,
+        sequence_type: str | None,
         n_jobs: int = 1,
     ) -> OligoDatabase:
         """
@@ -98,8 +97,8 @@ class HybridizationProbabilityFilter(ReferenceSpecificityFilter):
 
         :param oligo_database: The OligoDatabase instance containing oligonucleotide sequences and their associated properties. This database stores oligo data organized by genomic regions and can be used for filtering, property calculations, set generation, and output operations.
         :type oligo_database: OligoDatabase
-        :param sequence_type: Type of sequence being processed. Must be one of the sequence types specified in `_constants._TYPES_SEQ`.
-        :type sequence_type: _TYPES_SEQ | None
+        :param sequence_type: Type of sequence being processed. Must use the `seq_` prefix naming convention (e.g., "seq_target", "seq_oligo").
+        :type sequence_type: str | None
         :param n_jobs: Number of parallel jobs to use for processing.
         :type n_jobs: int
         :return: The filtered OligoDatabase with off-targets removed.

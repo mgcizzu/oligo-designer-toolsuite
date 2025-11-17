@@ -6,6 +6,7 @@ import os
 import shutil
 import unittest
 from pathlib import Path
+from typing import Any
 
 import pandas as pd
 from effidict import EffiDict, LRUReplacement, PickleBackend
@@ -194,6 +195,7 @@ class TestDatabaseProcessor(unittest.TestCase):
             self.oligo_database1.database,
             self.oligo_database2.database,
             sequence_type="oligo",
+            database_sequence_types=["oligo"],
             dir_cache_files=self.oligo_database1._dir_cache_files,
             max_entries_in_memory=self.oligo_database1._max_entries_in_memory,
         )
@@ -211,7 +213,7 @@ class TestDatabaseProcessor(unittest.TestCase):
         dict1 = {"chromosome": [["10"]], "start": [[1000]], "end": [[2000]], "strand": [["+"]]}
         dict2 = {"chromosome": [["10"]], "start": [[1000]], "end": [[2000]], "strand": [["+"]]}
 
-        dict_merged = collapse_properties_for_duplicated_sequences(dict1, dict2)
+        dict_merged = collapse_properties_for_duplicated_sequences(dict1, dict2, database_sequence_types=[])
 
         assert dict_merged == dict1, "error: identical dict should not have duplicated elements"
 
@@ -219,7 +221,7 @@ class TestDatabaseProcessor(unittest.TestCase):
         dict1 = {"chromosome": [["10"]], "start": [[1000]], "end": [[2000]], "strand": [["+"]]}
         dict2 = {"chromosome": [["11"]], "start": [[1020]], "end": [[2020]], "strand": [["-"]]}
 
-        dict_merged = collapse_properties_for_duplicated_sequences(dict1, dict2)
+        dict_merged = collapse_properties_for_duplicated_sequences(dict1, dict2, database_sequence_types=[])
 
         assert dict_merged["chromosome"] == [["10"], ["11"]], "error: different dicts should have been merged"
         assert dict_merged["start"] == [[1000], [1020]], "error: different dicts should have been merged"
@@ -229,12 +231,54 @@ class TestDatabaseProcessor(unittest.TestCase):
     def test_format_oligo_properties(self):
         oligo_properties = {"chromosome": "10", "start": [1000], "end": [[2000]], "strand": [["+"], ["-"]]}
 
-        oligo_properties = format_oligo_properties(oligo_properties=oligo_properties)
+        oligo_properties = format_oligo_properties(
+            oligo_properties=oligo_properties, database_sequence_types=[]
+        )
 
         assert oligo_properties["chromosome"] == [["10"]], "error: oligo property not correctly formatted"
         assert oligo_properties["start"] == [[1000]], "error: oligo property not correctly formatted"
         assert oligo_properties["end"] == [[2000]], "error: oligo property not correctly formatted"
         assert oligo_properties["strand"] == [["+"], ["-"]], "error: oligo property not correctly formatted"
+
+    def test_collapse_properties_for_duplicated_sequences_with_sequence_type(self):
+        """Test that sequence types are handled correctly in collapse_properties_for_duplicated_sequences."""
+        dict1 = {"oligo": "ATCG", "chromosome": [["10"]], "start": [[1000]]}
+        dict2 = {"oligo": "ATCG", "chromosome": [["11"]], "start": [[1020]]}
+
+        dict_merged = collapse_properties_for_duplicated_sequences(
+            dict1, dict2, database_sequence_types=["oligo"]
+        )
+
+        # Sequence type should warn if different, but here they're the same
+        assert dict_merged["oligo"] == "ATCG", "error: sequence type should be preserved"
+        assert dict_merged["chromosome"] == [
+            ["10"],
+            ["11"],
+        ], "error: non-sequence properties should be merged"
+
+    def test_format_oligo_properties_with_sequence_type(self):
+        """Test that sequence types are not formatted in format_oligo_properties."""
+        oligo_properties = {"oligo": "ATCG", "chromosome": "10", "start": [1000]}
+
+        oligo_properties = format_oligo_properties(
+            oligo_properties=oligo_properties, database_sequence_types=["oligo"]
+        )
+
+        assert oligo_properties["oligo"] == "ATCG", "error: sequence type should not be formatted"
+        assert oligo_properties["chromosome"] == [["10"]], "error: non-sequence property should be formatted"
+        assert oligo_properties["start"] == [[1000]], "error: non-sequence property should be formatted"
+
+    def test_merge_databases_sequence_type_validation(self):
+        """Test that merge_databases validates sequence_type is in database_sequence_types."""
+        with self.assertRaises(ValueError):
+            merge_databases(
+                self.oligo_database1.database,
+                self.oligo_database2.database,
+                sequence_type="invalid_type",
+                database_sequence_types=["oligo"],
+                dir_cache_files=self.oligo_database1._dir_cache_files,
+                max_entries_in_memory=self.oligo_database1._max_entries_in_memory,
+            )
 
     def test_check_if_region_in_database(self):
         file_removed_regions = os.path.join(self.tmp_path, "removed_regions.tsv")
@@ -251,7 +295,7 @@ class TestDatabaseProcessor(unittest.TestCase):
         assert removed_regions.region[0] == "no_region1", "error: region was not removed"
 
     def test_flatten_property_list(self):
-        oligo_properties = {
+        oligo_properties: dict[str, list[list[Any]]] = {
             "chromosome": [["10"]],
             "start": [[1000], [1020]],
             "end": [[2000]],
@@ -292,17 +336,17 @@ class TestGffParser(unittest.TestCase):
 
     def test_parse_annotation_from_gff(self):
         """Test parsing GFF annotation."""
-        result = self.parser.parse_annotation_from_gff(FILE_GFF, target_lines=10)
+        result: pd.DataFrame = self.parser.parse_annotation_from_gff(FILE_GFF, target_lines=10)
         assert result.shape[1] == 23, "error: GFF3 dataframe not correctly loaded"
 
     def test_parse_annotation_from_gtf(self):
         """Test parsing GTF annotation."""
-        result = self.parser.parse_annotation_from_gff(FILE_GTF, target_lines=10)
+        result: pd.DataFrame = self.parser.parse_annotation_from_gff(FILE_GTF, target_lines=10)
         assert result.shape[1] == 20, "error: GTF dataframe not correctly loaded"
 
     def test_parse_annotation_from_gtf_no_duplicates(self):
         """Test when parsing GTF annotation chromosomes are not read in as both integers and strings."""
-        result = self.parser.parse_annotation_from_gff(FILE_GTF_COMPLEX)
+        result: pd.DataFrame = self.parser.parse_annotation_from_gff(FILE_GTF_COMPLEX)
         self.assertListEqual(
             result["seqid"].unique().tolist(),
             ["16", "KI270728.1"],

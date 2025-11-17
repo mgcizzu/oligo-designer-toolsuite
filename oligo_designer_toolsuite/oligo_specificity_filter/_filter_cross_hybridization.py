@@ -4,7 +4,6 @@
 
 import os
 
-from oligo_designer_toolsuite._constants import _TYPES_SEQ
 from oligo_designer_toolsuite._exceptions import ConfigurationError
 from oligo_designer_toolsuite.database import OligoDatabase, ReferenceDatabase
 from oligo_designer_toolsuite.oligo_specificity_filter import (
@@ -41,7 +40,7 @@ class CrossHybridizationFilter(BaseSpecificityFilter):
         self,
         policy: BaseFilterPolicy,
         alignment_method: AlignmentSpecificityFilter,
-        sequence_type_reference: _TYPES_SEQ | None = None,
+        sequence_type_reference: str | None = None,
         filter_name: str = "cross_hybridization_filter",
         dir_output: str = "output",
     ) -> None:
@@ -50,7 +49,7 @@ class CrossHybridizationFilter(BaseSpecificityFilter):
 
         self.policy = policy
         self.alignment_method = alignment_method
-        self.sequence_type_reference: _TYPES_SEQ | None = sequence_type_reference
+        self.sequence_type_reference: str | None = sequence_type_reference
 
     def set_reference_database(self, oligo_database: OligoDatabase) -> ReferenceDatabase:
         """
@@ -91,7 +90,7 @@ class CrossHybridizationFilter(BaseSpecificityFilter):
     def apply(
         self,
         oligo_database: OligoDatabase,
-        sequence_type: _TYPES_SEQ | None,
+        sequence_type: str | None,
         n_jobs: int = 1,
     ) -> OligoDatabase:
         """
@@ -102,8 +101,8 @@ class CrossHybridizationFilter(BaseSpecificityFilter):
 
         :param oligo_database: The OligoDatabase instance containing oligonucleotide sequences and their associated properties. This database stores oligo data organized by genomic regions and can be used for filtering, property calculations, set generation, and output operations.
         :type oligo_database: OligoDatabase
-        :param sequence_type: Type of sequence being processed. Must be one of the sequence types specified in `_constants._TYPES_SEQ`.
-        :type sequence_type: _TYPES_SEQ | None
+        :param sequence_type: Type of sequence being processed. Must use the `seq_` prefix naming convention (e.g., "seq_target", "seq_oligo").
+        :type sequence_type: str | None
         :param n_jobs: Number of parallel jobs to use for processing.
         :type n_jobs: int
         :return: The filtered OligoDatabase with potential cross-hybridizing sequences removed.
