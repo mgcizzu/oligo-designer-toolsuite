@@ -33,18 +33,19 @@ class NumTargetedTranscriptsProperty(BaseProperty):
         :type region_id: str
         :param oligo_id: The ID of the oligo for which the property is calculated.
         :type oligo_id: str
-        :param sequence_type: Type of sequence being processed. Must use the `seq_` prefix naming convention (e.g., "seq_target", "seq_oligo"). Note: This parameter is not used for this property.
+        :param sequence_type: Type of sequence being processed.  Note: This parameter is not used for this property.
         :type sequence_type: str
         :return: A dictionary containing the calculated number of targeted transcripts property.
         :rtype: dict
         """
-        transcript_id = check_if_list(
-            oligo_database.get_oligo_property_value(
-                property="transcript_id", region_id=region_id, oligo_id=oligo_id, flatten=True
-            )
+        transcript_id = oligo_database.get_oligo_property_value(
+            property="transcript_id", region_id=region_id, oligo_id=oligo_id, flatten=True
         )
+
         if transcript_id:
-            num_targeted_transcripts = calc_num_targeted_transcripts(transcript_id=transcript_id)
+            num_targeted_transcripts = calc_num_targeted_transcripts(
+                transcript_id=check_if_list(transcript_id)
+            )
         else:
             num_targeted_transcripts = None
 
@@ -72,25 +73,23 @@ class IsoformConsensusProperty(BaseProperty):
         :type region_id: str
         :param oligo_id: The ID of the oligo for which the property is calculated.
         :type oligo_id: str
-        :param sequence_type: Type of sequence being processed. Must use the `seq_` prefix naming convention (e.g., "seq_target", "seq_oligo"). Note: This parameter is not used for this property.
+        :param sequence_type: Type of sequence being processed.  Note: This parameter is not used for this property.
         :type sequence_type: str
         :return: A dictionary containing the calculated isoform consensus property.
         :rtype: dict
         """
-        number_total_transcripts = check_if_list(
-            oligo_database.get_oligo_property_value(
-                property="number_total_transcripts", region_id=region_id, oligo_id=oligo_id, flatten=True
-            )
+        number_total_transcripts = oligo_database.get_oligo_property_value(
+            property="number_total_transcripts", region_id=region_id, oligo_id=oligo_id, flatten=True
         )
-        transcript_id = check_if_list(
-            oligo_database.get_oligo_property_value(
-                property="transcript_id", region_id=region_id, oligo_id=oligo_id, flatten=True
-            )
+
+        transcript_id = oligo_database.get_oligo_property_value(
+            property="transcript_id", region_id=region_id, oligo_id=oligo_id, flatten=True
         )
 
         if transcript_id and number_total_transcripts:
             isoform_consensus = calc_isoform_consensus(
-                transcript_id=transcript_id, number_total_transcripts=number_total_transcripts
+                transcript_id=check_if_list(transcript_id),
+                number_total_transcripts=check_if_list(number_total_transcripts),
             )
         else:
             isoform_consensus = None

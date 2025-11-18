@@ -7,6 +7,7 @@ import shutil
 import unittest
 from abc import abstractmethod
 from pathlib import Path
+from typing import cast
 
 from oligo_designer_toolsuite.database import OligoDatabase
 from oligo_designer_toolsuite.oligo_property_calculator import (
@@ -57,24 +58,24 @@ FILE_NCBI_EXON_EXON_JUNCTIONS_SHORT = (
 
 
 class FTPLoaderDownloadBase:
-    def setUp(self):
+    def setUp(self) -> None:
         self.tmp_path = os.path.join(os.getcwd(), "tmp_ftp_loader")
         os.makedirs(self.tmp_path, exist_ok=True)
         self.loader = self.setup_ftp_loader()
 
-    def tearDown(self):
+    def tearDown(self) -> None:
         shutil.rmtree(self.tmp_path)
 
     @abstractmethod
-    def setup_ftp_loader(self):
+    def setup_ftp_loader(self) -> FtpLoaderNCBI | FtpLoaderEnsembl:
         pass
 
-    def test_download(self):
+    def test_download(self) -> None:
         _, _, _ = self.loader.download_files("fasta")
 
 
 class TestFTPLoaderNCBICurrent(FTPLoaderDownloadBase, unittest.TestCase):
-    def setup_ftp_loader(self):
+    def setup_ftp_loader(self) -> FtpLoaderNCBI:
         # Parameters
         taxon = "vertebrate_mammalian"  # taxon the species belongs to
         species = "Homo_sapiens"
@@ -84,7 +85,7 @@ class TestFTPLoaderNCBICurrent(FTPLoaderDownloadBase, unittest.TestCase):
 
 
 class TestFTPLoaderEnsemblCurrent(FTPLoaderDownloadBase, unittest.TestCase):
-    def setup_ftp_loader(self):
+    def setup_ftp_loader(self) -> FtpLoaderEnsembl:
         # Parameters
         species = "homo_sapiens"
         annotation_release = "current"
@@ -93,61 +94,61 @@ class TestFTPLoaderEnsemblCurrent(FTPLoaderDownloadBase, unittest.TestCase):
 
 
 class FTPLoaderFilesBase:
-    def setUp(self):
+    def setUp(self) -> None:
         self.tmp_path = os.path.join(os.getcwd(), "tmp_ftp_loader")
         self.loader = self.setup_ftp_loader()
 
-    def tearDown(self):
+    def tearDown(self) -> None:
         try:
             shutil.rmtree(self.tmp_path)
         except:
             pass
 
     @abstractmethod
-    def setup_ftp_loader(self):
+    def setup_ftp_loader(self) -> FtpLoaderNCBI | FtpLoaderEnsembl:
         pass
 
     @abstractmethod
-    def get_correct_metadata(self):
+    def get_correct_metadata(self) -> tuple[str, str]:
         pass
 
     @abstractmethod
-    def get_correct_gff(self):
+    def get_correct_gff(self) -> str:
         pass
 
     @abstractmethod
-    def get_correct_gtf(self):
+    def get_correct_gtf(self) -> str:
         pass
 
     @abstractmethod
-    def get_correct_fasta(self):
+    def get_correct_fasta(self) -> str:
         pass
 
     @abstractmethod
-    def get_true_asserts(self):
+    def get_true_asserts(self) -> bool:
         pass
 
-    def test_metadata_loader(self):
+    def test_metadata_loader(self) -> None:
         _, annotation_release, assembly_name = self.loader.download_files("fasta")
         self.annotation_release, self.assembly_name = self.get_correct_metadata()
         assert annotation_release == self.annotation_release, "error: wrong annotation release retrieved"
         assert assembly_name == self.assembly_name, "error: wrong assembly name retrieved"
 
-    def test_gff_loader(self):
+    def test_gff_loader(self) -> None:
         file_gff, _, _ = self.loader.download_files("gff")
         assert Path(file_gff).name == self.get_correct_gff(), "error: wrong file downloaded"
 
-    def test_gtf_loader(self):
+    def test_gtf_loader(self) -> None:
         file_gtf, _, _ = self.loader.download_files("gtf")
         assert Path(file_gtf).name == self.get_correct_gtf(), "error: wrong file downloaded"
 
-    def test_fasta_loader(self):
+    def test_fasta_loader(self) -> None:
         file_fasta, _, _ = self.loader.download_files("fasta")
         assert Path(file_fasta).name == self.get_correct_fasta(), "error: wrong file downloaded"
 
 
 class TestFTPLoaderNCBIOldAnnotations(FTPLoaderFilesBase, unittest.TestCase):
-    def setup_ftp_loader(self):
+    def setup_ftp_loader(self) -> FtpLoaderNCBI:
         # Parameters
         taxon = "vertebrate_mammalian"  # taxon the species belongs to
         species = "Homo_sapiens"
@@ -155,99 +156,100 @@ class TestFTPLoaderNCBIOldAnnotations(FTPLoaderFilesBase, unittest.TestCase):
 
         return FtpLoaderNCBI(self.tmp_path, taxon, species, annotation_release)
 
-    def get_correct_metadata(self):
+    def get_correct_metadata(self) -> tuple[str, str]:
         annotation_release = "110"
         assembly_name = "GRCh38.p14"
 
         return annotation_release, assembly_name
 
-    def get_correct_gff(self):
+    def get_correct_gff(self) -> str:
         return "GCF_000001405.40_GRCh38.p14_genomic.gff"
 
-    def get_correct_gtf(self):
+    def get_correct_gtf(self) -> str:
         return "GCF_000001405.40_GRCh38.p14_genomic.gtf"
 
-    def get_correct_fasta(self):
+    def get_correct_fasta(self) -> str:
         return "GCF_000001405.40_GRCh38.p14_genomic.fna"
 
 
 class TestFTPLoaderEnsemblOldAnnotations(FTPLoaderFilesBase, unittest.TestCase):
-    def setup_ftp_loader(self):
+    def setup_ftp_loader(self) -> FtpLoaderEnsembl:
         # Parameters
         species = "homo_sapiens"
         annotation_release = "108"
 
         return FtpLoaderEnsembl(self.tmp_path, species, annotation_release)
 
-    def get_correct_metadata(self):
+    def get_correct_metadata(self) -> tuple[str, str]:
         annotation_release = "108"
         assembly_name = "GRCh38"
 
         return annotation_release, assembly_name
 
-    def get_correct_gff(self):
+    def get_correct_gff(self) -> str:
         return "Homo_sapiens.GRCh38.108.gff3"
 
-    def get_correct_gtf(self):
+    def get_correct_gtf(self) -> str:
         return "Homo_sapiens.GRCh38.108.gtf"
 
-    def get_correct_fasta(self):
+    def get_correct_fasta(self) -> str:
         return "Homo_sapiens.GRCh38.dna_sm.primary_assembly.fa"
 
-    def test_download_ncrna_file(self):
-        file_fasta, _, _ = self.loader.download_files("fasta", sequence_nature="ncrna")
+    def test_download_ncrna_file(self) -> None:
+        ensembl_loader = cast(FtpLoaderEnsembl, self.loader)
+        file_fasta, _, _ = ensembl_loader.download_files("fasta", sequence_nature="ncrna")
         assert Path(file_fasta).name == "Homo_sapiens.GRCh38.ncrna.fa", "error: wrong file downloaded"
 
 
 class GenomicRegionGeneratorBase:
-    def setUp(self):
+    def setUp(self) -> None:
         self.tmp_path = os.path.join(os.getcwd(), "tmp_genomic_region_generator")
         self.fasta_parser = FastaParser()
         self.region_generator = self.setup_region_generator()
 
-    def tearDown(self):
+    def tearDown(self) -> None:
         try:
             shutil.rmtree(self.tmp_path)
         except:
             pass
 
     @abstractmethod
-    def setup_region_generator(self):
+    def setup_region_generator(self) -> CustomGenomicRegionGenerator:
         pass
 
-    def test_gene(self):
+    def test_gene(self) -> None:
         genes = self.region_generator.get_sequence_gene()
         assert (
             self.fasta_parser.check_fasta_format(genes) == True
         ), f"error: wrong file format for file: {genes}"
 
-    def test_exon(self):
+    def test_exon(self) -> None:
         exon = self.region_generator.get_sequence_exon()
         assert (
             self.fasta_parser.check_fasta_format(exon) == True
         ), f"error: wrong file format for file: {exon}"
 
-    def test_exon_exon_junction(self):
+    def test_exon_exon_junction(self) -> None:
         exon_exon_junction = self.region_generator.get_sequence_exon_exon_junction(block_size=50)
         assert (
             self.fasta_parser.check_fasta_format(exon_exon_junction) == True
         ), f"error: wrong file format for file: {exon_exon_junction}"
 
-    def test_CDS(self):
+    def test_CDS(self) -> None:
         cds = self.region_generator.get_sequence_CDS()
         assert self.fasta_parser.check_fasta_format(cds) == True, f"error: wrong file format for file: {cds}"
 
-    def test_UTR(self):
+    def test_UTR(self) -> None:
         utr = self.region_generator.get_sequence_UTR(five_prime=True, three_prime=True)
         assert self.fasta_parser.check_fasta_format(utr) == True, f"error: wrong file format for file: {utr}"
 
-    def test_intergenic(self):
+    def test_intergenic(self) -> None:
         intergenic = self.region_generator.get_sequence_intergenic()
         assert (
             self.fasta_parser.check_fasta_format(intergenic) == True
         ), f"error: wrong file format for file: {intergenic}"
 
-    def test_introns(self):
+    def test_introns(self) -> None:
         introns = self.region_generator.get_sequence_intron()
         assert (
             self.fasta_parser.check_fasta_format(introns) == True
@@ -255,7 +257,7 @@ class GenomicRegionGeneratorBase:
 
 
 class TestGenomicRegionGeneratorNCBI(GenomicRegionGeneratorBase, unittest.TestCase):
-    def setup_region_generator(self):
+    def setup_region_generator(self) -> CustomGenomicRegionGenerator:
 
         return CustomGenomicRegionGenerator(
             FILE_ANNOTATION_NCBI,
@@ -269,7 +271,7 @@ class TestGenomicRegionGeneratorNCBI(GenomicRegionGeneratorBase, unittest.TestCa
 
 
 class TestGenomicRegionGeneratorEnsembl(GenomicRegionGeneratorBase, unittest.TestCase):
-    def setup_region_generator(self):
+    def setup_region_generator(self) -> CustomGenomicRegionGenerator:
 
         return CustomGenomicRegionGenerator(
             FILE_ANNOTATION_ENSEMBL,
@@ -283,7 +285,7 @@ class TestGenomicRegionGeneratorEnsembl(GenomicRegionGeneratorBase, unittest.Tes
 
 
 class TestOligoSequenceGenerator(unittest.TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.tmp_path = os.path.join(os.getcwd(), "tmp_oligo_sequence_generator")
 
         self.oligo_database_1 = OligoDatabase(dir_output=self.tmp_path, database_name="db1")
@@ -293,10 +295,10 @@ class TestOligoSequenceGenerator(unittest.TestCase):
 
         self.sequence_type = "oligo"
 
-    def tearDown(self):
+    def tearDown(self) -> None:
         shutil.rmtree(self.tmp_path)
 
-    def test_create_sequences_random(self):
+    def test_create_sequences_random(self) -> None:
         file_fasta_random_seqs1 = self.oligo_sequence_generator.create_sequences_random(
             filename_out="random_sequences1",
             length_sequences=30,
@@ -336,7 +338,7 @@ class TestOligoSequenceGenerator(unittest.TestCase):
             self.oligo_database_1.database["random_sequences1"]["random_sequences1::50"]["oligo"]
         ), "error: the craeted sequence is not a DNA seuqnece"
 
-    def test_create_sequences_sliding_window(self):
+    def test_create_sequences_sliding_window(self) -> None:
 
         # test if warning is raised if no oligos can be created because of too short
         # exon-exon-junction sequences

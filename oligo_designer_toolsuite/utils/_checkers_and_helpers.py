@@ -102,12 +102,11 @@ def check_if_list(obj: Any) -> list[Any]:
 
     :param obj: The object to check and possibly convert.
     :type obj: Any
-    :return: The object wrapped in a list if it wasn't already a list, or None if obj is falsy.
-    :rtype: Any
+    :return: The object wrapped in a list if it wasn't already a list.
+    :rtype: list[Any]
     """
-    if obj:
-        obj_list = [obj] if not isinstance(obj, list) else obj
-    return obj_list
+
+    return [obj] if not isinstance(obj, list) else obj
 
 
 def check_if_list_of_lists(obj: Any) -> list[list[Any]]:

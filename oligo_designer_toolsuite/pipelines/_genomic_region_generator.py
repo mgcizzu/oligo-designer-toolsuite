@@ -171,7 +171,7 @@ class GenomicRegionGenerator:
 ############################################
 
 
-def main():
+def main() -> None:
     """
     Main function to execute the genomic region generation pipeline.
 

@@ -244,7 +244,7 @@ class MerfishProbeDesigner:
         n_attempts: int = 100000,
         heuristic: bool = True,
         heuristic_n_attempts: int = 100,
-    ):
+    ) -> None:
         """
         Set developer-specific parameters for Merfish probe designer pipeline.
         These parameters can be used to customize and fine-tune the pipeline.
@@ -441,7 +441,7 @@ class MerfishProbeDesigner:
         target_probe_Tm_min: float = 66,
         target_probe_Tm_opt: float = 72,
         target_probe_Tm_max: float = 76,
-        target_probe_homopolymeric_base_n: dict[str, int] | None = {"A": 5, "T": 5, "C": 5, "G": 5},
+        target_probe_homopolymeric_base_n: dict[str, int] = {"A": 5, "T": 5, "C": 5, "G": 5},
         target_probe_T_secondary_structure: float = 76,
         target_probe_secondary_structures_threshold_deltaG: float = 0,
         target_probe_GC_weight: float = 1,
@@ -588,7 +588,7 @@ class MerfishProbeDesigner:
         n_genes: int,
         files_fasta_reference_database_readout_probe: list[str],
         readout_probe_length: int = 20,
-        readout_probe_base_probabilities: dict[str, float] | None = {
+        readout_probe_base_probabilities: dict[str, float] = {
             "A": 0.25,
             "C": 0.00,
             "G": 0.50,
@@ -596,9 +596,9 @@ class MerfishProbeDesigner:
         },
         readout_probe_GC_content_min: float = 40,
         readout_probe_GC_content_max: float = 50,
-        readout_probe_homopolymeric_base_n: dict[str, int] | None = {"G": 3},
+        readout_probe_homopolymeric_base_n: dict[str, int] = {"G": 3},
         readout_probe_set_size: int = 16,
-        readout_probe_homogeneous_properties_weights: dict[str, int] | None = {"TmNN": 1, "GC_content": 1},
+        readout_probe_homogeneous_properties_weights: dict[str, int] = {"TmNN": 1, "GC_content": 1},
         n_bits: int = 16,
         min_hamming_dist: int = 4,
         hamming_weight: int = 4,
@@ -782,12 +782,12 @@ class MerfishProbeDesigner:
         files_fasta_reference_database_primer: list[str],
         reverse_primer_sequence: str = "CCCTATAGTGAGTCGTATTA",
         primer_length: int = 20,
-        primer_base_probabilities: dict[str, float] | None = {"A": 0.25, "C": 0.25, "G": 0.25, "T": 0.25},
+        primer_base_probabilities: dict[str, float] = {"A": 0.25, "C": 0.25, "G": 0.25, "T": 0.25},
         primer_GC_content_min: float = 50,
         primer_GC_content_max: float = 65,
         primer_number_GC_GCclamp: int = 1,
         primer_number_three_prime_base_GCclamp: int = 2,
-        primer_homopolymeric_base_n: dict[str, int] | None = {"A": 4, "T": 4, "C": 4, "G": 4},
+        primer_homopolymeric_base_n: dict[str, int] = {"A": 4, "T": 4, "C": 4, "G": 4},
         primer_max_len_selfcomplement: int = 6,
         primer_max_len_complement_reverse_primer: int = 5,
         primer_Tm_min: float = 60,
@@ -1074,7 +1074,7 @@ class TargetProbeDesigner:
     @pipeline_step_basic(step_name="Target Probe Generation - Create Database")
     def create_oligo_database(
         self,
-        gene_ids: list[str],
+        gene_ids: list[str] | None,
         oligo_length_min: int,
         oligo_length_max: int,
         files_fasta_oligo_database: list[str],
@@ -1087,7 +1087,7 @@ class TargetProbeDesigner:
 
         :param gene_ids: List of gene identifiers for which oligos should be generated.
                         If None, all genes in the input fasta file are used.
-        :type gene_ids: list
+        :type gene_ids: list[str] | None
         :param oligo_length_min: Minimum length of the oligos.
         :type oligo_length_min: int
         :param oligo_length_max: Maximum length of the oligos.
@@ -1165,8 +1165,8 @@ class TargetProbeDesigner:
         T_secondary_structure: float,
         secondary_structures_threshold_deltaG: float,
         Tm_parameters: dict,
-        Tm_chem_correction_parameters: dict,
-        Tm_salt_correction_parameters: dict,
+        Tm_chem_correction_parameters: dict | None,
+        Tm_salt_correction_parameters: dict | None,
     ) -> OligoDatabase:
         """
         Filter the oligo database based on various sequence properties.
@@ -1190,9 +1190,9 @@ class TargetProbeDesigner:
         :param Tm_parameters: Parameters for melting temperature calculation.
         :type Tm_parameters: dict
         :param Tm_chem_correction_parameters: Parameters for chemical correction in Tm calculation.
-        :type Tm_chem_correction_parameters: dict
+        :type Tm_chem_correction_parameters: dict | None
         :param Tm_salt_correction_parameters: Parameters for salt correction in Tm calculation.
-        :type Tm_salt_correction_parameters: dict
+        :type Tm_salt_correction_parameters: dict | None
         :return: The filtered oligo database.
         :rtype: OligoDatabase
         """
@@ -1339,8 +1339,8 @@ class TargetProbeDesigner:
         Tm_max: float,
         Tm_weight: float,
         Tm_parameters: dict,
-        Tm_chem_correction_parameters: dict,
-        Tm_salt_correction_parameters: dict,
+        Tm_chem_correction_parameters: dict | None,
+        Tm_salt_correction_parameters: dict | None,
         set_size_opt: int,
         set_size_min: int,
         distance_between_oligos: int,
@@ -1376,9 +1376,9 @@ class TargetProbeDesigner:
         :param Tm_parameters: Parameters for Tm calculation.
         :type Tm_parameters: dict
         :param Tm_chem_correction_parameters: Parameters for chemical correction in Tm calculation.
-        :type Tm_chem_correction_parameters: dict
+        :type Tm_chem_correction_parameters: dict | None
         :param Tm_salt_correction_parameters: Parameters for salt correction in Tm calculation.
-        :type Tm_salt_correction_parameters: dict
+        :type Tm_salt_correction_parameters: dict | None
         :param set_size_opt: Optimal size for oligo sets.
         :type set_size_opt: int
         :param set_size_min: Minimum size for oligo sets.
@@ -1727,9 +1727,9 @@ class ReadoutProbeDesigner:
         set_size: int,
         homogeneous_properties_weights: dict,
         n_combinations: int,
-        Tm_parameters,
-        Tm_chem_correction_parameters,
-        Tm_salt_correction_parameters,
+        Tm_parameters: dict,
+        Tm_chem_correction_parameters: dict | None,
+        Tm_salt_correction_parameters: dict | None,
     ) -> OligoDatabase:
         """
         Create optimal oligo sets with homogeneous GC content and melting temperature (Tm).
@@ -1745,9 +1745,9 @@ class ReadoutProbeDesigner:
         :param Tm_parameters: Parameters for melting temperature calculation.
         :type Tm_parameters: dict
         :param Tm_chem_correction_parameters: Parameters for chemical correction in Tm calculation.
-        :type Tm_chem_correction_parameters: dict
+        :type Tm_chem_correction_parameters: dict | None
         :param Tm_salt_correction_parameters: Parameters for salt correction in Tm calculation.
-        :type Tm_salt_correction_parameters: dict
+        :type Tm_salt_correction_parameters: dict | None
         :return: The updated oligo database with the generated oligo sets.
         :rtype: OligoDatabase
         """
@@ -1762,7 +1762,7 @@ class ReadoutProbeDesigner:
         ]
         calculator = PropertyCalculator(properties=properties)
         oligo_database = calculator.apply(
-            oligo_database=oligo_database, sequence_type="seq_oligo", n_jobs=self.n_jobs
+            oligo_database=oligo_database, sequence_type="oligo", n_jobs=self.n_jobs
         )
 
         set_generator = HomogeneousPropertyOligoSetGenerator(
@@ -1987,8 +1987,8 @@ class PrimerDesigner:
         Tm_min: float,
         Tm_max: float,
         Tm_parameters: dict,
-        Tm_chem_correction_parameters: dict,
-        Tm_salt_correction_parameters: dict,
+        Tm_chem_correction_parameters: dict | None,
+        Tm_salt_correction_parameters: dict | None,
         T_secondary_structure: float,
         secondary_structures_threshold_deltaG: float,
     ) -> OligoDatabase:
@@ -2020,9 +2020,9 @@ class PrimerDesigner:
         :param Tm_parameters: Parameters for melting temperature calculation.
         :type Tm_parameters: dict
         :param Tm_chem_correction_parameters: Parameters for chemical correction in Tm calculation.
-        :type Tm_chem_correction_parameters: dict
+        :type Tm_chem_correction_parameters: dict | None
         :param Tm_salt_correction_parameters: Parameters for salt correction in Tm calculation.
-        :type Tm_salt_correction_parameters: dict
+        :type Tm_salt_correction_parameters: dict | None
         :param T_secondary_structure: Temperature for secondary structure analysis.
         :type T_secondary_structure: float
         :param secondary_structures_threshold_deltaG: Threshold for secondary structure deltaG.
@@ -2167,7 +2167,7 @@ class PrimerDesigner:
 ############################################
 
 
-def main():
+def main() -> None:
     """
     Main function for running the MerfishProbeDesigner pipeline. This function reads the configuration file,
     processes gene IDs, initializes the probe designer, sets developer parameters, and executes probe design

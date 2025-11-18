@@ -156,7 +156,7 @@ class OligoSeqProbeDesigner:
             "Mg": 0,
             "dNTPs": 0,
         },
-        target_probe_Tm_chem_correction_parameters: dict = {
+        target_probe_Tm_chem_correction_parameters: dict | None = {
             "DMSO": 0,
             "fmd": 20,
             "DMSOfactor": 0.75,
@@ -165,7 +165,7 @@ class OligoSeqProbeDesigner:
             "GC": None,
         },
         target_probe_Tm_salt_correction_parameters: dict | None = None,
-    ):
+    ) -> None:
         """
         Set developer-specific parameters for Oligo-Seq probe designer pipeline.
         These parameters can be used to customize and fine-tune the pipeline.
@@ -207,11 +207,11 @@ class OligoSeqProbeDesigner:
         :param target_probe_Tm_chem_correction_parameters: Chemical correction parameters for melting temperature.
             For using Bio.SeqUtils.MeltingTemp default parameters set to ``{}``. For more information on parameters,
             see: https://biopython.org/docs/1.75/api/Bio.SeqUtils.MeltingTemp.html#Bio.SeqUtils.MeltingTemp.salt_correction
-        :type target_probe_Tm_chem_correction_parameters: dict
+        :type target_probe_Tm_chem_correction_parameters: dict | None
         :param target_probe_Tm_salt_correction_parameters: Salt correction parameters for melting temperature.
             For using Bio.SeqUtils.MeltingTemp default parameters set to ``{}``. For more information on parameters,
             see: https://biopython.org/docs/1.75/api/Bio.SeqUtils.MeltingTemp.html#Bio.SeqUtils.MeltingTemp.chem_correction
-        :type target_probe_Tm_salt_correction_parameters: dict
+        :type target_probe_Tm_salt_correction_parameters: dict | None
         """
         ### Parameters for the specificity filters
         self.target_probe_hybridization_probability_alignment_method = (
@@ -288,12 +288,12 @@ class OligoSeqProbeDesigner:
         target_probe_targeted_exons_weight: float = 1,
         target_probe_isoform_consensus: float = 0,
         target_probe_isoform_weight: float = 1,
-        target_probe_GC_content_min: float = 45,
-        target_probe_GC_content_opt: float = 55,
-        target_probe_GC_content_max: float = 65,
-        target_probe_Tm_min: float = 50,
-        target_probe_Tm_opt: float = 60,
-        target_probe_Tm_max: float = 70,
+        target_probe_GC_content_min: int = 45,
+        target_probe_GC_content_opt: int = 55,
+        target_probe_GC_content_max: int = 65,
+        target_probe_Tm_min: int = 50,
+        target_probe_Tm_opt: int = 60,
+        target_probe_Tm_max: int = 70,
         target_probe_secondary_structures_T: int = 37,
         target_probe_secondary_structures_threshold_deltaG: int = 0,
         target_probe_homopolymeric_base_n: dict = {"A": 6, "T": 6, "C": 6, "G": 6},
@@ -306,7 +306,7 @@ class OligoSeqProbeDesigner:
         set_size_opt: int = 5,
         distance_between_target_probes: int = 0,
         n_sets: int = 100,
-    ):
+    ) -> OligoDatabase:
         """
         Design target probes based on specified parameters, including property and specificity filters.
         The designed probes are organized into sets based on customizable constraints.
@@ -334,17 +334,17 @@ class OligoSeqProbeDesigner:
         :param target_probe_isoform_consensus: Minimum isoform consensus, defaults to 0.
         :type target_probe_isoform_consensus: float, optional
         :param target_probe_GC_content_min: Minimum GC content for probes, defaults to 45.
-        :type target_probe_GC_content_min: float, optional
+        :type target_probe_GC_content_min: int, optional
         :param target_probe_GC_content_opt: Optimal GC content for probes, defaults to 55.
-        :type target_probe_GC_content_opt: float, optional
+        :type target_probe_GC_content_opt: int, optional
         :param target_probe_GC_content_max: Maximum GC content for probes, defaults to 65.
-        :type target_probe_GC_content_max: float, optional
+        :type target_probe_GC_content_max: int, optional
         :param target_probe_Tm_min: Minimum melting temperature for probes, defaults to 50.
-        :type target_probe_Tm_min: float, optional
+        :type target_probe_Tm_min: int, optional
         :param target_probe_Tm_opt: Optimal melting temperature for probes, defaults to 60.
-        :type target_probe_Tm_opt: float, optional
+        :type target_probe_Tm_opt: int, optional
         :param target_probe_Tm_max: Maximum melting temperature for probes, defaults to 70.
-        :type target_probe_Tm_max: float, optional
+        :type target_probe_Tm_max: int, optional
         :param target_probe_secondary_structures_T: Temperature for secondary structure evaluation, defaults to 37.
         :type target_probe_secondary_structures_T: int, optional
         :param target_probe_secondary_structures_threshold_deltaG: Threshold delta G for secondary structures, defaults to 0.
@@ -524,7 +524,7 @@ class OligoSeqProbeDesigner:
             ]
         )
         oligo_database = calculator.apply(
-            oligo_database=oligo_database, sequence_type="seq_oligo", n_jobs=self.n_jobs
+            oligo_database=oligo_database, sequence_type="oligo", n_jobs=self.n_jobs
         )
 
         oligo_database.write_oligosets_to_yaml(
@@ -567,7 +567,7 @@ class TargetProbeDesigner:
     @pipeline_step_basic(step_name="Create Database")
     def create_oligo_database(
         self,
-        gene_ids: list,
+        gene_ids: list | None,
         oligo_length_min: int,
         oligo_length_max: int,
         split_region: int,
@@ -581,7 +581,7 @@ class TargetProbeDesigner:
 
         :param gene_ids: List of gene identifiers for which oligos should be generated.
                         If None, all genes in the input fasta file are used.
-        :type gene_ids: list
+        :type gene_ids: list | None
         :param oligo_length_min: Minimum length of oligos to generate.
         :type oligo_length_min: int
         :param oligo_length_max: Maximum length of oligos to generate.
@@ -638,7 +638,7 @@ class TargetProbeDesigner:
         isoform_consensus_property = IsoformConsensusProperty()
         calculator = PropertyCalculator(properties=[isoform_consensus_property])
         oligo_database = calculator.apply(
-            oligo_database=oligo_database, sequence_type="seq_target", n_jobs=self.n_jobs
+            oligo_database=oligo_database, sequence_type="target", n_jobs=self.n_jobs
         )
         oligo_database.filter_database_by_property_threshold(
             property_name="isoform_consensus",
@@ -667,8 +667,8 @@ class TargetProbeDesigner:
         homopolymeric_base_n: dict[str, int],
         max_len_selfcomplement: int,
         Tm_parameters: dict,
-        Tm_chem_correction_parameters: dict,
-        Tm_salt_correction_parameters: dict,
+        Tm_chem_correction_parameters: dict | None,
+        Tm_salt_correction_parameters: dict | None,
     ) -> OligoDatabase:
         """
         Filter the oligo database based on various sequence properties.
@@ -694,9 +694,9 @@ class TargetProbeDesigner:
         :param Tm_parameters: Parameters for melting temperature calculations.
         :type Tm_parameters: dict
         :param Tm_chem_correction_parameters: Parameters for chemical corrections in Tm calculations.
-        :type Tm_chem_correction_parameters: dict
+        :type Tm_chem_correction_parameters: dict | None
         :param Tm_salt_correction_parameters: Parameters for salt corrections in Tm calculations.
-        :type Tm_salt_correction_parameters: dict
+        :type Tm_salt_correction_parameters: dict | None
         :return: The filtered oligo database.
         :rtype: OligoDatabase
         """
@@ -799,7 +799,7 @@ class TargetProbeDesigner:
             hit_parameters: dict,
             filter_name: str,
             dir_output: str,
-        ):
+        ) -> BlastNFilter | BowtieFilter:
             if alignment_method == "blastn":
                 return BlastNFilter(
                     search_parameters=search_parameters,
@@ -843,7 +843,7 @@ class TargetProbeDesigner:
         )
         calculator = PropertyCalculator(properties=[shortened_sequence_property])
         oligo_database = calculator.apply(
-            oligo_database=oligo_database, sequence_type="seq_oligo", n_jobs=self.n_jobs
+            oligo_database=oligo_database, sequence_type="oligo", n_jobs=self.n_jobs
         )
 
         exact_matches_short = ExactMatchFilter(
@@ -941,8 +941,8 @@ class TargetProbeDesigner:
         Tm_max: float,
         Tm_weight: float,
         Tm_parameters: dict,
-        Tm_chem_correction_parameters: dict,
-        Tm_salt_correction_parameters: dict,
+        Tm_chem_correction_parameters: dict | None,
+        Tm_salt_correction_parameters: dict | None,
         set_size_opt: int,
         set_size_min: int,
         distance_between_oligos: int,
@@ -982,9 +982,9 @@ class TargetProbeDesigner:
         :param Tm_parameters: Parameters for melting temperature calculations.
         :type Tm_parameters: dict
         :param Tm_chem_correction_parameters: Parameters for chemical corrections in Tm calculations.
-        :type Tm_chem_correction_parameters: dict
+        :type Tm_chem_correction_parameters: dict | None
         :param Tm_salt_correction_parameters: Parameters for salt corrections in Tm calculations.
-        :type Tm_salt_correction_parameters: dict
+        :type Tm_salt_correction_parameters: dict | None
         :param set_size_opt: Optimal size for oligo sets.
         :type set_size_opt: int
         :param set_size_min: Minimum size for oligo sets.
@@ -1112,7 +1112,7 @@ class TargetProbeDesigner:
 ############################################
 
 
-def main():
+def main() -> None:
     """
     Main function for running the OligoSeqProbeDesigner pipeline. This function reads the configuration file,
     processes gene IDs, initializes the probe designer, sets developer parameters, and executes probe design

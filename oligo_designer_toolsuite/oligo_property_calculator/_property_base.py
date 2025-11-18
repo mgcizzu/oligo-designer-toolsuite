@@ -37,7 +37,7 @@ class BaseProperty(ABC):
         :type region_id: str
         :param oligo_id: The ID of the oligo for which the property is calculated.
         :type oligo_id: str
-        :param sequence_type: Type of sequence being processed. Must use the `seq_` prefix naming convention (e.g., "seq_target", "seq_oligo").
+        :param sequence_type: Type of sequence being processed.
         :type sequence_type: str
         :return: A dictionary containing the calculated property(ies). Keys are property names, values are the calculated values.
         :rtype: dict

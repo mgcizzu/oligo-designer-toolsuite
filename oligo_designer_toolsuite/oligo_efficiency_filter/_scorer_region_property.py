@@ -31,7 +31,9 @@ class OverlapTargetedExonsScorer(BaseScorer):
         self.targeted_exons = sorted(targeted_exons)
         self.score_weight = score_weight
 
-    def apply(self, oligo_database: OligoDatabase, region_id: str, oligo_id: str, sequence_type: str):
+    def apply(
+        self, oligo_database: OligoDatabase, region_id: str, oligo_id: str, sequence_type: str
+    ) -> float:
         """
         Apply the targeted exon overlap scoring strategy to a given oligo.
 
@@ -41,7 +43,7 @@ class OverlapTargetedExonsScorer(BaseScorer):
         :type region_id: str
         :param oligo_id: The ID of the oligo for which the score is computed.
         :type oligo_id: str
-        :param sequence_type: Type of sequence being processed. Must use the `seq_` prefix naming convention (e.g., "seq_target", "seq_oligo"). Note: This parameter is not used in this function.
+        :param sequence_type: Type of sequence being processed.  Note: This parameter is not used in this function.
         :type sequence_type: str
         :return: Weighted score based on overlap with targeted exons.
         :rtype: float
@@ -49,7 +51,7 @@ class OverlapTargetedExonsScorer(BaseScorer):
         exon_numbers = oligo_database.get_oligo_property_value(
             "exon_number", flatten=True, region_id=region_id, oligo_id=oligo_id
         )
-        exon_numbers = check_if_list(exon_numbers)
+        exon_numbers = check_if_list(exon_numbers) if exon_numbers else None
 
         if exon_numbers is None:
             in_targeted_exons = False
@@ -75,12 +77,14 @@ class OverlapUTRScorer(BaseScorer):
     :type score_weight: float
     """
 
-    def __init__(self, score_weight: float):
+    def __init__(self, score_weight: float) -> None:
         """Constructor for the OverlapUTRScorer class."""
 
         self.score_weight = score_weight
 
-    def apply(self, oligo_database: OligoDatabase, region_id: str, oligo_id: str, sequence_type: str):
+    def apply(
+        self, oligo_database: OligoDatabase, region_id: str, oligo_id: str, sequence_type: str
+    ) -> float:
         """
         Apply the UTR overlap scoring strategy to a given oligo.
 
@@ -90,7 +94,7 @@ class OverlapUTRScorer(BaseScorer):
         :type region_id: str
         :param oligo_id: The ID of the oligo for which the score is computed.
         :type oligo_id: str
-        :param sequence_type: Type of sequence being processed. Must use the `seq_` prefix naming convention (e.g., "seq_target", "seq_oligo"). Note: This parameter is not used in this function.
+        :param sequence_type: Type of sequence being processed.  Note: This parameter is not used in this function.
         :type sequence_type: str
         :return: Weighted score based on UTR overlap.
         :rtype: float
@@ -121,13 +125,15 @@ class IsoformConsensusScorer(BaseScorer):
     :type score_weight: float
     """
 
-    def __init__(self, normalize: bool, score_weight: float):
+    def __init__(self, normalize: bool, score_weight: float) -> None:
         """Constructor for the IsoformConsensusScorer class."""
 
         self.normalize = normalize
         self.score_weight = score_weight
 
-    def apply(self, oligo_database: OligoDatabase, region_id: str, oligo_id: str, sequence_type: str):
+    def apply(
+        self, oligo_database: OligoDatabase, region_id: str, oligo_id: str, sequence_type: str
+    ) -> float:
         """
         Apply the isoform consensus scoring strategy to a given oligo.
 
@@ -137,7 +143,7 @@ class IsoformConsensusScorer(BaseScorer):
         :type region_id: str
         :param oligo_id: The ID of the oligo for which the score is computed.
         :type oligo_id: str
-        :param sequence_type: Type of sequence being processed. Must use the `seq_` prefix naming convention (e.g., "seq_target", "seq_oligo"). Note: This parameter is not used in this function.
+        :param sequence_type: Type of sequence being processed.  Note: This parameter is not used in this function.
         :type sequence_type: str
         :return: Weighted score based on isoform consensus.
         :rtype: float
@@ -145,18 +151,15 @@ class IsoformConsensusScorer(BaseScorer):
         transcript_id = oligo_database.get_oligo_property_value(
             property="transcript_id", region_id=region_id, oligo_id=oligo_id, flatten=True
         )
-        if not isinstance(transcript_id, list):
-            raise TypeError(f"Transcript ID must be a list, got {type(transcript_id)}")
 
         number_transcripts = oligo_database.get_oligo_property_value(
             property="number_total_transcripts", region_id=region_id, oligo_id=oligo_id, flatten=True
         )
-        if not isinstance(number_transcripts, list):
-            raise TypeError(f"Number of transcripts must be a list, got {type(number_transcripts)}")
 
         if transcript_id and number_transcripts:
             isoform_consensus = calc_isoform_consensus(
-                transcript_id=transcript_id, number_total_transcripts=number_transcripts
+                transcript_id=check_if_list(transcript_id),
+                number_total_transcripts=check_if_list(number_transcripts),
             )
             if self.normalize:
                 # isoform consensus is given in % (0-100), hence we devide by 100

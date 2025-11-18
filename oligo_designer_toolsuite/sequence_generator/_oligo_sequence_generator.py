@@ -178,6 +178,7 @@ class OligoSequenceGenerator:
             region, additional_info, coordinates = self.fasta_parser.parse_fasta_header(
                 header=entry.id, parse_additional_info=False
             )
+
             # chromosome and strand information is the same for an entry but parsed as
             # list in the parse_fasta_header, hence, we take only the first element for each
             # if no information provided in fasta file, those entries are None

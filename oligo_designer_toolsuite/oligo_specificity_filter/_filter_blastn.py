@@ -449,18 +449,18 @@ class BlastNFilter(AlignmentSpecificityFilter):
         :rtype: tuple[list, list]
         """
 
-        def add_gaps(seq, gaps):
+        def add_gaps(seq: str, gaps: list) -> str:
             for gap in gaps:
                 seq = seq[:gap] + "-" + seq[gap:]
             return seq
 
         table_hits["query_gaps"] = (
-            table_hits["query_sequence"].apply(lambda x: np.where(np.array(list(x)) == "-")[0].tolist())
+            table_hits["query_sequence"].apply(lambda x: np.where(np.array(list(x)) == "-")[0])
             + table_hits["query_start"]
             - 1  # blastn has 1-based indices
         )
         table_hits["reference_gaps"] = (
-            table_hits["reference_sequence"].apply(lambda x: np.where(np.array(list(x)) == "-")[0].tolist())
+            table_hits["reference_sequence"].apply(lambda x: np.where(np.array(list(x)) == "-")[0])
             + table_hits["query_start"]
             - 1
         )

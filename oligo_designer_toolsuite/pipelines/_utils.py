@@ -156,9 +156,18 @@ def get_oligo_length_min_max_from_database(oligo_database: OligoDatabase) -> tup
     return oligo_length_min, oligo_length_max
 
 
-def pipeline_step_basic(step_name: str):
-    def decorator(function):
-        def wrapper(*args, **kwargs):
+def pipeline_step_basic(step_name: str) -> Callable[[F], F]:
+    """
+    Decorator for basic pipeline steps that logs parameters and tracks database info.
+
+    :param step_name: Name of the pipeline step.
+    :type step_name: str
+    :return: Decorator function.
+    :rtype: Callable[[F], F]
+    """
+
+    def decorator(function: F) -> F:
+        def wrapper(*args: Any, **kwargs: Any) -> Any:
             logging.info(f"Parameters {step_name}:")
             log_parameters_and_get_db(function, args, kwargs)
 
@@ -171,7 +180,7 @@ def pipeline_step_basic(step_name: str):
 
             return oligo_database
 
-        return wrapper
+        return cast(F, wrapper)
 
     return decorator
 

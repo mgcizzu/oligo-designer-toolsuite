@@ -19,7 +19,7 @@ class BaseScorer(ABC):
     oligonucleotide based on a specific criterion (e.g., GC content, melting temperature, etc.).
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Constructor for the BaseScorer class."""
 
     @abstractmethod
@@ -38,7 +38,7 @@ class BaseScorer(ABC):
         :type region_id: str
         :param oligo_id: The ID of the oligo for which the score is computed.
         :type oligo_id: str
-        :param sequence_type: Type of sequence being processed. Must use the `seq_` prefix naming convention (e.g., "seq_target", "seq_oligo").
+        :param sequence_type: Type of sequence being processed.
         :type sequence_type: str
         :return: A float value representing the computed score for the specified oligo.
         :rtype: float

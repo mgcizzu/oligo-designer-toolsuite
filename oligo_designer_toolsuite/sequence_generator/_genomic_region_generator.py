@@ -219,7 +219,9 @@ class CustomGenomicRegionGenerator:
 
             return file_chromosome_length
 
-        def _compute_intergenic_annotation(annotation, file_chromosome_length) -> pd.DataFrame:
+        def _compute_intergenic_annotation(
+            annotation: pd.DataFrame, file_chromosome_length: str
+        ) -> pd.DataFrame:
             """
             Computes the intergenic regions based on gene annotations for each chromosome and for both positive and negative strands.
             It uses chromosome length data to determine the regions between annotated genes.
@@ -264,7 +266,7 @@ class CustomGenomicRegionGenerator:
             return intergenic_annotation_df
 
         def _compute_intergenic_annotation_strand(
-            seqid, gene_annotatio, strand, file_chromosome_length
+            seqid: str, gene_annotatio: pd.DataFrame, strand: str, file_chromosome_length: str
         ) -> pd.DataFrame:
             """
             Computes the intergenic regions for a given chromosome and strand based on gene annotations.
@@ -473,7 +475,7 @@ class CustomGenomicRegionGenerator:
         :rtype: str
         """
 
-        def _compute_intron_annotation(annotation) -> pd.DataFrame:
+        def _compute_intron_annotation(annotation: pd.DataFrame) -> pd.DataFrame:
             """
             Computes intron annotations based on exon annotations for each transcript.
 

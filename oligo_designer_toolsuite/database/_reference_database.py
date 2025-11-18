@@ -38,7 +38,7 @@ class ReferenceDatabase:
         self.fasta_parser = FastaParser()
         self.vcf_parser = VCFParser()
 
-    def __del__(self):
+    def __del__(self) -> None:
         """Destructor for the ReferenceDatabase class."""
         if self.database_file is not None and os.path.exists(self.database_file):
             os.remove(self.database_file)
@@ -211,7 +211,7 @@ class ReferenceDatabase:
         self,
         region_ids: str | list[str],
         keep_region: bool,
-    ):
+    ) -> str:
         """
         Filter a FASTA database to retain or exclude specific regions.
         Therefore, merge fasta files and load fasta content for filtering.
@@ -248,7 +248,7 @@ class ReferenceDatabase:
         property_name: str,
         property_category: str | list[str],
         keep_if_equals_category: bool,
-    ):
+    ) -> str:
         """
         Filter a FASTA database based on property categories in sequence headers.
         Therefore, merge fasta files, load fasta content and process header for filtering.
@@ -271,6 +271,8 @@ class ReferenceDatabase:
 
         for entry in fasta_sequences:
             _, properties, _ = self.fasta_parser.parse_fasta_header(entry.id, parse_additional_info=True)
+            if isinstance(properties, str):
+                continue
             if property_name in properties:
                 property_values = check_if_list(properties[property_name])
                 if keep_if_equals_category and any(item in property_category for item in property_values):

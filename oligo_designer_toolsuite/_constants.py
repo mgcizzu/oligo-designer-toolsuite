@@ -16,7 +16,6 @@ _TYPES_FILE_SEQ = Literal["dna", "ncrna"]
 # constants
 ############################################
 
-SEQUENCE_TYPE_PREFIX = "seq_"
 SEPARATOR_OLIGO_ID = "::"
 SEPARATOR_FASTA_HEADER_FIELDS = "::"
 SEPARATOR_FASTA_HEADER_FIELDS_LIST = ";"

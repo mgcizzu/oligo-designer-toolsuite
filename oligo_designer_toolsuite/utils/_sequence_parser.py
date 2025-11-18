@@ -61,7 +61,7 @@ class GffParser:
         :rtype: bool
         """
 
-        def _check_gff_content(file):
+        def _check_gff_content(file: str) -> bool:
             gtf = self.parse_annotation_from_gff(file, target_lines=100)
             return any(gtf)
 
@@ -77,7 +77,7 @@ class GffParser:
         annotation_file: str,
         file_pickle: str | None = None,
         chunk_size: int = 10000,
-        target_lines: int | None = None,
+        target_lines: int = 10000000,
     ) -> str | pd.DataFrame:
         """
         Parses the GFF annotation file and converts it into a DataFrame. Optionally, saves the DataFrame to a pickle file.
@@ -89,7 +89,7 @@ class GffParser:
         :param chunk_size: The number of lines to process at a time from the GFF file.
         :type chunk_size: int
         :param target_lines: The number of lines to parse before stopping (useful for sampling).
-        :type target_lines: int | None
+        :type target_lines: int
         :return: The parsed annotation as a DataFrame or the path to the pickle file if specified.
         :rtype: str | pd.DataFrame
         """
@@ -130,9 +130,7 @@ class GffParser:
 
         return dataframe_gff
 
-    def _split_annotation(
-        self, annotation_file: str, chunk_size: int, target_lines: int | None = None
-    ) -> tuple[str, str]:
+    def _split_annotation(self, annotation_file: str, chunk_size: int, target_lines: int) -> tuple[str, str]:
         """
         Splits the GFF annotation file into two separate files: one containing the standard GFF columns and the other containing the extra information.
 
@@ -141,9 +139,9 @@ class GffParser:
         :param chunk_size: The number of lines to read at a time from the annotation file.
         :type chunk_size: int
         :param target_lines: The maximum number of lines to process from the annotation file.
-        :type target_lines: int | None
+        :type target_lines: int
         :return: A tuple containing the paths to the CSV file with the main GFF content and the text file with extra information.
-        :rtype: tuple[str, str]
+        :rtype: Tuple[str, str]
         """
         csv_file = ".".join(annotation_file.split(".")[:-1]) + ".csv"
         extra_info_file = ".".join(annotation_file.split(".")[:-1]) + ".txt"
@@ -152,17 +150,15 @@ class GffParser:
         lines_read = 0
 
         fn_open: Any = gzip.open if annotation_file.endswith(".gz") else open
-        mode: str = "rt" if annotation_file.endswith(".gz") else "r"
-
-        with fn_open(annotation_file, mode) as input_file:
+        with fn_open(annotation_file, "r") as input_file:
             with open(csv_file, "w") as out_csv:
                 with open(extra_info_file, "w") as out_extra_info:
-                    while not finished and (target_lines is None or lines_read < target_lines):
+                    while not finished and lines_read < target_lines:
                         csv_content_chunck = ""
                         extra_info_content_chunck = ""
                         for _ in range(chunk_size):
                             lines_read += 1
-                            if target_lines is None or lines_read > target_lines:
+                            if lines_read > target_lines:
                                 break
                             try:
                                 line = next(input_file)
@@ -294,7 +290,7 @@ class FastaParser:
         :rtype: bool
         """
 
-        def _check_fasta_content(file) -> bool:
+        def _check_fasta_content(file: str) -> bool:
             fasta = SeqIO.index(file, "fasta")
             return any(fasta)  # False when `fasta` is empty, i.e. wasn't a FASTA file
 
@@ -406,7 +402,7 @@ class FastaParser:
 
     def parse_fasta_header(
         self, header: str, parse_coordinates: bool = True, parse_additional_info: bool = True
-    ) -> tuple[str, dict[str, list[Any]], dict[str, list[Any]]]:
+    ) -> tuple[str, dict[str, list[Any]] | str, dict[str, list[Any]]]:
         """
         Parses the header of a FASTA sequence to extract region, coordinates, and additional information.
 
@@ -423,7 +419,7 @@ class FastaParser:
         :rtype: tuple[str, dict[str, list[Any]], dict[str, list[Any]]]
         """
         region: str = ""
-        additional_info: dict[str, list[Any]] = {}
+        additional_info: dict[str, list[Any]] | str = {}
         coordinates: dict[str, list[Any]] = {
             "chromosome": [None],
             "start": [None],
@@ -433,8 +429,9 @@ class FastaParser:
 
         for header_entry in header.split(SEPARATOR_FASTA_HEADER_FIELDS):
             header_entry = header_entry.strip()
-            if not region:
+            if region == "":
                 region = header_entry
+
             elif self.is_coordinate(header_entry):
                 if parse_coordinates:
                     header_coordinates = header_entry.split(SEPARATOR_FASTA_HEADER_FIELDS_LIST)
@@ -455,13 +452,12 @@ class FastaParser:
                 info = header_entry
                 # the additional info field should be parsed, save information in dict
                 if parse_additional_info:
+                    additional_info = {}
                     if SEPARATOR_FASTA_HEADER_FIELDS_LIST in info:
                         info_list = info.split(SEPARATOR_FASTA_HEADER_FIELDS_LIST)
-
                         for infos in info_list:
                             key, value = infos.split("=")
                             value_parsed = self.parse_number(value)
-
                             if key in additional_info:
                                 additional_info[key].append(value_parsed)
                             else:
@@ -472,7 +468,7 @@ class FastaParser:
                         value_parsed = self.parse_number(value)
                         additional_info[key] = [value_parsed]
                 else:
-                    additional_info = {"additional_info": [info]}
+                    additional_info = str(info)
 
         return region, additional_info, coordinates
 
@@ -536,7 +532,7 @@ class VCFParser:
         :raises ValueError: If the file is missing or has an incorrect VCF format.
         """
 
-        def _check_vcf_content(file) -> bool:
+        def _check_vcf_content(file: str) -> bool:
             vcf = VCF(file)
             return any(vcf)  # False when `vcf` is empty, i.e. wasn't a vcf file
 

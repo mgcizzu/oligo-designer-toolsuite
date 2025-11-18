@@ -153,7 +153,7 @@ class CycleHCRProbeDesigner:
         n_attempts: int = 100000,
         heuristic: bool = True,
         heuristic_n_attempts: int = 100,
-    ):
+    ) -> None:
         """
         Set developer-specific parameters for CycleHCR probe designer pipeline.
         These parameters can be used to customize and fine-tune the pipeline.
@@ -676,11 +676,11 @@ class CycleHCRProbeDesigner:
         )
         calculator = PropertyCalculator(properties=[tm_nn_property])
         encoding_probe_database = calculator.apply(
-            oligo_database=encoding_probe_database, sequence_type="seq_oligo_pair_L", n_jobs=self.n_jobs
+            oligo_database=encoding_probe_database, sequence_type="oligo_pair_L", n_jobs=self.n_jobs
         )
         # Calculate Tm for oligo_pair_R
         encoding_probe_database = calculator.apply(
-            oligo_database=encoding_probe_database, sequence_type="seq_oligo_pair_R", n_jobs=self.n_jobs
+            oligo_database=encoding_probe_database, sequence_type="oligo_pair_R", n_jobs=self.n_jobs
         )
         # Calculate num targeted transcripts and isoform consensus
         num_targeted_transcripts_property: BaseProperty = NumTargetedTranscriptsProperty()
@@ -689,7 +689,7 @@ class CycleHCRProbeDesigner:
             properties=[num_targeted_transcripts_property, isoform_consensus_property]
         )
         encoding_probe_database = calculator.apply(
-            oligo_database=encoding_probe_database, sequence_type="seq_oligo", n_jobs=self.n_jobs
+            oligo_database=encoding_probe_database, sequence_type="oligo", n_jobs=self.n_jobs
         )
 
         encoding_probe_database.write_oligosets_to_yaml(
@@ -780,7 +780,7 @@ class TargetProbeDesigner:
     @pipeline_step_basic(step_name="Target Probe Generation - Create Database")
     def create_oligo_database(
         self,
-        gene_ids: list,
+        gene_ids: list | None,
         target_probe_L_probe_sequence_length: int,
         target_probe_gap_sequence_length: int,
         target_probe_R_probe_sequence_length: int,
@@ -794,7 +794,7 @@ class TargetProbeDesigner:
 
         :param gene_ids: List of gene identifiers for which oligos should be generated.
                         If None, all genes in the input fasta file are used.
-        :type gene_ids: list
+        :type gene_ids: list | None
         :param target_probe_L_probe_sequence_length: Length of the left probe sequence.
         :type target_probe_L_probe_sequence_length: int
         :param target_probe_gap_sequence_length: Length of the gap sequence.
@@ -869,7 +869,7 @@ class TargetProbeDesigner:
         isoform_consensus_property: BaseProperty = IsoformConsensusProperty()
         calculator = PropertyCalculator(properties=[isoform_consensus_property])
         oligo_database = calculator.apply(
-            oligo_database=oligo_database, sequence_type="seq_oligo", n_jobs=self.n_jobs
+            oligo_database=oligo_database, sequence_type="oligo", n_jobs=self.n_jobs
         )
         oligo_database.filter_database_by_property_threshold(
             property_name="isoform_consensus",
@@ -897,8 +897,8 @@ class TargetProbeDesigner:
         T_secondary_structure: float,
         secondary_structures_threshold_deltaG: float,
         Tm_parameters: dict,
-        Tm_chem_correction_parameters: dict,
-        Tm_salt_correction_parameters: dict,
+        Tm_chem_correction_parameters: dict | None,
+        Tm_salt_correction_parameters: dict | None,
     ) -> OligoDatabase:
         """
         Filter the oligo database based on various sequence properties.
@@ -922,9 +922,9 @@ class TargetProbeDesigner:
         :param Tm_parameters: Parameters for melting temperature calculation.
         :type Tm_parameters: dict
         :param Tm_chem_correction_parameters: Parameters for chemical correction in Tm calculation.
-        :type Tm_chem_correction_parameters: dict
+        :type Tm_chem_correction_parameters: dict | None
         :param Tm_salt_correction_parameters: Parameters for salt correction in Tm calculation.
-        :type Tm_salt_correction_parameters: dict
+        :type Tm_salt_correction_parameters: dict | None
         :return: The filtered oligo database.
         :rtype: OligoDatabase
         """
@@ -1121,8 +1121,8 @@ class TargetProbeDesigner:
         Tm_max: float,
         Tm_weight: float,
         Tm_parameters: dict,
-        Tm_chem_correction_parameters: dict,
-        Tm_salt_correction_parameters: dict,
+        Tm_chem_correction_parameters: dict | None,
+        Tm_salt_correction_parameters: dict | None,
         set_size_opt: int,
         set_size_min: int,
         distance_between_oligos: int,
@@ -1146,9 +1146,9 @@ class TargetProbeDesigner:
         :param Tm_parameters: Parameters for Tm calculation.
         :type Tm_parameters: dict
         :param Tm_chem_correction_parameters: Parameters for chemical correction in Tm calculation.
-        :type Tm_chem_correction_parameters: dict
+        :type Tm_chem_correction_parameters: dict | None
         :param Tm_salt_correction_parameters: Parameters for salt correction in Tm calculation.
-        :type Tm_salt_correction_parameters: dict
+        :type Tm_salt_correction_parameters: dict | None
         :param set_size_opt: Optimal size for oligo sets.
         :type set_size_opt: int
         :param set_size_min: Minimum size for oligo sets.
@@ -1346,7 +1346,7 @@ class ReadoutProbeDesigner:
 
         return codebook_df
 
-    def load_readout_probe_table(self, file_readout_probe_table: str):
+    def load_readout_probe_table(self, file_readout_probe_table: str) -> tuple[pd.DataFrame, int, int]:
         """
         Load and validate a table containing readout probe information.
 
@@ -1423,7 +1423,7 @@ class PrimerDesigner:
 ############################################
 
 
-def main():
+def main() -> None:
     """
     Main function for running the CycleHCRProbeDesigner pipeline. This function reads the configuration file,
     processes gene IDs, initializes the probe designer, sets developer parameters, and executes probe design
@@ -1431,7 +1431,7 @@ def main():
 
     :param args: Command-line arguments parsed using the base parser. The arguments include:
         - config: Path to the configuration YAML file containing parameters for the pipeline.
-    :type args: dict
+    :type args: argparse.Namespace
     """
     print("--------------START PIPELINE--------------")
 

@@ -155,7 +155,7 @@ class ScrinshotProbeDesigner:
             "Mg": 10,
             "dNTPs": 0,
         },
-        target_probe_Tm_chem_correction_parameters: dict = {
+        target_probe_Tm_chem_correction_parameters: dict | None = {
             "DMSO": 0,
             "fmd": 20,
             "DMSOfactor": 0.75,
@@ -183,7 +183,7 @@ class ScrinshotProbeDesigner:
             "Mg": 0,
             "dNTPs": 0,
         },
-        detection_oligo_Tm_chem_correction_parameters: dict = {
+        detection_oligo_Tm_chem_correction_parameters: dict | None = {
             "DMSO": 0,
             "fmd": 30,
             "DMSOfactor": 0.75,
@@ -192,7 +192,7 @@ class ScrinshotProbeDesigner:
             "GC": None,
         },
         detection_oligo_Tm_salt_correction_parameters: dict | None = None,
-    ):
+    ) -> None:
         """
         Set developer-specific parameters for scrinshot probe designer pipeline.
         These parameters can be used to customize and fine-tune the pipeline.
@@ -216,27 +216,27 @@ class ScrinshotProbeDesigner:
         :param target_probe_Tm_parameters: Parameters for calculating melting temperature (Tm) of target probes.
             For using Bio.SeqUtils.MeltingTemp default parameters set to ``{}``. For more information on parameters,
             see: https://biopython.org/docs/1.75/api/Bio.SeqUtils.MeltingTemp.html#Bio.SeqUtils.MeltingTemp.Tm_NN
-        :type target_probe_Tm_parameters: dict
+        :type target_probe_Tm_parameters: dict | None
         :param target_probe_Tm_chem_correction_parameters: Chemical correction parameters for Tm calculation of target probes.
             For using Bio.SeqUtils.MeltingTemp default parameters set to ``{}``. For more information on parameters,
             see: https://biopython.org/docs/1.75/api/Bio.SeqUtils.MeltingTemp.html#Bio.SeqUtils.MeltingTemp.salt_correction
-        :type target_probe_Tm_chem_correction_parameters: dict
+        :type target_probe_Tm_chem_correction_parameters: dict | None
         :param target_probe_Tm_salt_correction_parameters: Salt correction parameters for Tm calculation of target probes.
             For using Bio.SeqUtils.MeltingTemp default parameters set to ``{}``. For more information on parameters,
             see: https://biopython.org/docs/1.75/api/Bio.SeqUtils.MeltingTemp.html#Bio.SeqUtils.MeltingTemp.chem_correction
-        :type target_probe_Tm_salt_correction_parameters: dict
+        :type target_probe_Tm_salt_correction_parameters: dict | None
         :param detection_oligo_Tm_parameters: Parameters for calculating Tm of detection oligos.
             For using Bio.SeqUtils.MeltingTemp default parameters set to ``{}``. For more information on parameters,
             see: https://biopython.org/docs/1.75/api/Bio.SeqUtils.MeltingTemp.html#Bio.SeqUtils.MeltingTemp.Tm_NN
-        :type detection_oligo_Tm_parameters: dict
+        :type detection_oligo_Tm_parameters: dict | None
         :param detection_oligo_Tm_chem_correction_parameters: Chemical correction parameters for Tm calculation of detection oligos.
             For using Bio.SeqUtils.MeltingTemp default parameters set to ``{}``. For more information on parameters,
             see: https://biopython.org/docs/1.75/api/Bio.SeqUtils.MeltingTemp.html#Bio.SeqUtils.MeltingTemp.salt_correction
-        :type detection_oligo_Tm_chem_correction_parameters: dict
+        :type detection_oligo_Tm_chem_correction_parameters: dict | None
         :param detection_oligo_Tm_salt_correction_parameters: Salt correction parameters for Tm calculation of detection oligos.
             For using Bio.SeqUtils.MeltingTemp default parameters set to ``{}``. For more information on parameters,
             see: https://biopython.org/docs/1.75/api/Bio.SeqUtils.MeltingTemp.html#Bio.SeqUtils.MeltingTemp.chem_correction
-        :type detection_oligo_Tm_salt_correction_parameters: dict
+        :type detection_oligo_Tm_salt_correction_parameters: dict | None
         """
         ### Parameters for the specificity filters
         # Specificity filter with BlastN
@@ -293,22 +293,22 @@ class ScrinshotProbeDesigner:
         target_probe_length_max: int = 45,
         target_probe_isoform_consensus: float = 50,
         target_probe_isoform_weight: float = 2,
-        target_probe_GC_content_min: float = 40,
-        target_probe_GC_content_opt: float = 50,
-        target_probe_GC_content_max: float = 60,
+        target_probe_GC_content_min: int = 40,
+        target_probe_GC_content_opt: int = 50,
+        target_probe_GC_content_max: int = 60,
         target_probe_GC_weight: float = 1,
-        target_probe_Tm_min: float = 65,
-        target_probe_Tm_opt: float = 70,
-        target_probe_Tm_max: float = 75,
+        target_probe_Tm_min: int = 65,
+        target_probe_Tm_opt: int = 70,
+        target_probe_Tm_max: int = 75,
         target_probe_Tm_weight: float = 1,
         target_probe_homopolymeric_base_n: dict = {"A": 5, "T": 5, "C": 5, "G": 5},
         detection_oligo_min_thymines: int = 2,
         detection_oligo_length_min: int = 15,
         detection_oligo_length_max: int = 40,
         target_probe_padlock_arm_length_min: int = 10,
-        target_probe_padlock_arm_Tm_dif_max: float = 2,
-        target_probe_padlock_arm_Tm_min: float = 50,
-        target_probe_padlock_arm_Tm_max: float = 60,
+        target_probe_padlock_arm_Tm_dif_max: int = 2,
+        target_probe_padlock_arm_Tm_min: int = 50,
+        target_probe_padlock_arm_Tm_max: int = 60,
         target_probe_ligation_region_size: int = 5,
         set_size_min: int = 3,
         set_size_opt: int = 5,
@@ -324,7 +324,7 @@ class ScrinshotProbeDesigner:
         :param files_fasta_reference_database_target_probe: List of FASTA files for the reference database used in specificity filtering.
         :type files_fasta_reference_database_target_probe: list
         :param gene_ids: List of gene IDs to target, or None to target all genes.
-        :type gene_ids: list, optional
+        :type gene_ids: list | None
         :param target_probe_length_min: Minimum length for target probes, defaults to 40.
         :type target_probe_length_min: int
         :param target_probe_length_max: Maximum length for target probes, defaults to 45.
@@ -334,19 +334,19 @@ class ScrinshotProbeDesigner:
         :param target_probe_isoform_weight: Weight for isoform consensus in probe scoring, defaults to 2.
         :type target_probe_isoform_weight: float
         :param target_probe_GC_content_min: Minimum GC content percentage for probes, defaults to 40.
-        :type target_probe_GC_content_min: float
+        :type target_probe_GC_content_min: int
         :param target_probe_GC_content_opt: Optimal GC content percentage for probes, defaults to 50.
-        :type target_probe_GC_content_opt: float
+        :type target_probe_GC_content_opt: int
         :param target_probe_GC_content_max: Maximum GC content percentage for probes, defaults to 60.
-        :type target_probe_GC_content_max: float
+        :type target_probe_GC_content_max: int
         :param target_probe_GC_weight: Weight for GC content in probe scoring, defaults to 1.
         :type target_probe_GC_weight: float
         :param target_probe_Tm_min: Minimum melting temperature (Tm) for probes, defaults to 65.
-        :type target_probe_Tm_min: float
+        :type target_probe_Tm_min: int
         :param target_probe_Tm_opt: Optimal melting temperature (Tm) for probes, defaults to 70.
-        :type target_probe_Tm_opt: float
+        :type target_probe_Tm_opt: int
         :param target_probe_Tm_max: Maximum melting temperature (Tm) for probes, defaults to 75.
-        :type target_probe_Tm_max: float
+        :type target_probe_Tm_max: int
         :param target_probe_Tm_weight: Weight for Tm in probe scoring, defaults to 1.
         :type target_probe_Tm_weight: float
         :param target_probe_homopolymeric_base_n: Maximum allowed homopolymeric run lengths for each nucleotide, defaults to {"A": 5, "T": 5, "C": 5, "G": 5}.
@@ -360,11 +360,11 @@ class ScrinshotProbeDesigner:
         :param target_probe_padlock_arm_length_min: Minimum length for padlock arms, defaults to 10.
         :type target_probe_padlock_arm_length_min: int
         :param target_probe_padlock_arm_Tm_dif_max: Maximum allowed Tm difference between padlock arms, defaults to 2.
-        :type target_probe_padlock_arm_Tm_dif_max: float
+        :type target_probe_padlock_arm_Tm_dif_max: int
         :param target_probe_padlock_arm_Tm_min: Minimum Tm for padlock arms, defaults to 50.
-        :type target_probe_padlock_arm_Tm_min: float
+        :type target_probe_padlock_arm_Tm_min: int
         :param target_probe_padlock_arm_Tm_max: Maximum Tm for padlock arms, defaults to 60.
-        :type target_probe_padlock_arm_Tm_max: float
+        :type target_probe_padlock_arm_Tm_max: int
         :param target_probe_ligation_region_size: Size of the ligation region for padlock probes, defaults to 5.
         :type target_probe_ligation_region_size: int
         :param set_size_min: Minimum size of probe sets, defaults to 3.
@@ -751,7 +751,7 @@ class TargetProbeDesigner:
     @pipeline_step_basic(step_name="Create Database")
     def create_oligo_database(
         self,
-        gene_ids: list,
+        gene_ids: list | None,
         oligo_length_min: int,
         oligo_length_max: int,
         files_fasta_oligo_database: list[str],
@@ -764,6 +764,7 @@ class TargetProbeDesigner:
 
         :param gene_ids: List of gene identifiers for which oligos should be generated.
                         If None, all genes in the input fasta file are used.
+        :type gene_ids: list | None
         :param oligo_length_min: Minimum length of oligos to generate.
         :type oligo_length_min: int
         :param oligo_length_max: Maximum length of oligos to generate.
@@ -845,8 +846,8 @@ class TargetProbeDesigner:
         arm_Tm_max: float,
         homopolymeric_base_n: dict[str, int],
         Tm_parameters: dict,
-        Tm_chem_correction_parameters: dict | None = None,
-        Tm_salt_correction_parameters: dict | None = None,
+        Tm_chem_correction_parameters: dict | None,
+        Tm_salt_correction_parameters: dict | None,
     ) -> OligoDatabase:
         """
         Filter the oligo database based on various sequence properties.
@@ -952,8 +953,8 @@ class TargetProbeDesigner:
         arm_Tm_min: float,
         arm_Tm_max: float,
         Tm_parameters: dict,
-        Tm_chem_correction_parameters: dict,
-        Tm_salt_correction_parameters: dict,
+        Tm_chem_correction_parameters: dict | None,
+        Tm_salt_correction_parameters: dict | None,
     ) -> OligoDatabase:
         """
         Filter the oligo database based on sequence specificity to remove sequences that
@@ -984,9 +985,9 @@ class TargetProbeDesigner:
         :param Tm_parameters: Parameters for calculating melting temperature.
         :type Tm_parameters: dict
         :param Tm_chem_correction_parameters: Parameters for chemical corrections to melting temperature.
-        :type Tm_chem_correction_parameters: dict
+        :type Tm_chem_correction_parameters: dict | None
         :param Tm_salt_correction_parameters: Parameters for salt corrections to melting temperature.
-        :type Tm_salt_correction_parameters: dict
+        :type Tm_salt_correction_parameters: dict | None
         :return: The filtered oligo database.
         :rtype: OligoDatabase
         """
@@ -1095,8 +1096,8 @@ class TargetProbeDesigner:
         Tm_max: float,
         Tm_weight: float,
         Tm_parameters: dict,
-        Tm_chem_correction_parameters: dict,
-        Tm_salt_correction_parameters: dict,
+        Tm_chem_correction_parameters: dict | None,
+        Tm_salt_correction_parameters: dict | None,
         set_size_opt: int,
         set_size_min: int,
         distance_between_oligos: int,
@@ -1132,9 +1133,9 @@ class TargetProbeDesigner:
         :param Tm_parameters: Parameters for calculating melting temperature.
         :type Tm_parameters: dict
         :param Tm_chem_correction_parameters: Parameters for chemical corrections to melting temperature.
-        :type Tm_chem_correction_parameters: dict
+        :type Tm_chem_correction_parameters: dict | None
         :param Tm_salt_correction_parameters: Parameters for salt corrections to melting temperature.
-        :type Tm_salt_correction_parameters: dict
+        :type Tm_salt_correction_parameters: dict | None
         :param set_size_opt: Optimal size of oligo sets.
         :type set_size_opt: int
         :param set_size_min: Minimum size of oligo sets.
@@ -1281,8 +1282,8 @@ class DetectionOligoDesigner:
         U_distance: int,
         Tm_opt: float,
         Tm_parameters: dict,
-        Tm_chem_correction_parameters: dict | None = None,
-        Tm_salt_correction_parameters: dict | None = None,
+        Tm_chem_correction_parameters: dict | None,
+        Tm_salt_correction_parameters: dict | None,
     ) -> OligoDatabase:
         """
         Creates detection oligos for each probe in the oligo database.
@@ -1341,8 +1342,8 @@ class DetectionOligoDesigner:
         U_distance: int,
         Tm_opt: float,
         Tm_parameters: dict,
-        Tm_chem_correction_parameters: dict,
-        Tm_salt_correction_parameters: dict,
+        Tm_chem_correction_parameters: dict | None,
+        Tm_salt_correction_parameters: dict | None,
     ) -> None:
         """
         Generates detection oligos for a specific region in the oligo database.
@@ -1364,9 +1365,9 @@ class DetectionOligoDesigner:
         :param Tm_parameters: Parameters for calculating the melting temperature.
         :type Tm_parameters: dict
         :param Tm_chem_correction_parameters: Parameters for chemical corrections to melting temperature.
-        :type Tm_chem_correction_parameters: dict
+        :type Tm_chem_correction_parameters: dict | None
         :param Tm_salt_correction_parameters: Parameters for salt corrections to melting temperature.
-        :type Tm_salt_correction_parameters: dict
+        :type Tm_salt_correction_parameters: dict | None
         :return: Updates the detection oligo properties for the specified region.
         :rtype: None
         """
@@ -1471,8 +1472,8 @@ class DetectionOligoDesigner:
         oligo: str,
         Tm_opt: float,
         Tm_parameters: dict,
-        Tm_chem_correction_parameters: dict,
-        Tm_salt_correction_parameters: dict,
+        Tm_chem_correction_parameters: dict | None,
+        Tm_salt_correction_parameters: dict | None,
     ) -> float:
         """
         Calculate the absolute difference between the melting temperature (Tm) of an oligo and the optimal Tm.
@@ -1484,9 +1485,9 @@ class DetectionOligoDesigner:
         :param Tm_parameters: Parameters for calculating the melting temperature.
         :type Tm_parameters: dict
         :param Tm_chem_correction_parameters: Parameters for chemical corrections to melting temperature.
-        :type Tm_chem_correction_parameters: dict
+        :type Tm_chem_correction_parameters: dict | None
         :param Tm_salt_correction_parameters: Parameters for salt corrections to melting temperature.
-        :type Tm_salt_correction_parameters: dict
+        :type Tm_salt_correction_parameters: dict | None
         :return: The absolute difference between the calculated and optimal Tm.
         :rtype: float
         """
@@ -1506,8 +1507,8 @@ class DetectionOligoDesigner:
         min_thymines: int,
         Tm_opt: float,
         Tm_parameters: dict,
-        Tm_chem_correction_parameters: dict,
-        Tm_salt_correction_parameters: dict,
+        Tm_chem_correction_parameters: dict | None,
+        Tm_salt_correction_parameters: dict | None,
     ) -> tuple[list[str], list[float]]:
         """
         Iteratively find the best oligo by trimming the sequence from either end and optimizing
@@ -1526,9 +1527,9 @@ class DetectionOligoDesigner:
         :param Tm_parameters: Parameters for calculating the melting temperature.
         :type Tm_parameters: dict
         :param Tm_chem_correction_parameters: Parameters for chemical corrections to melting temperature.
-        :type Tm_chem_correction_parameters: dict
+        :type Tm_chem_correction_parameters: dict | None
         :param Tm_salt_correction_parameters: Parameters for salt corrections to melting temperature.
-        :type Tm_salt_correction_parameters: dict
+        :type Tm_salt_correction_parameters: dict | None
         :return: A tuple containing a list of oligos and their respective Tm differences from the optimal Tm.
         :rtype: tuple[list[str], list[float]]
         """
@@ -1608,7 +1609,7 @@ class DetectionOligoDesigner:
 ############################################
 
 
-def main():
+def main() -> None:
     """
     Main function for running the ScrinshotProbeDesigner pipeline. This function reads the configuration file,
     processes gene IDs, initializes the probe designer, sets developer parameters, and executes probe design

@@ -145,7 +145,7 @@ class OligoDatabase:
         :type files_fasta: str | list[str]
         :param database_overwrite: If True, the existing database will be overwritten.
         :type database_overwrite: bool
-        :param sequence_type: Type of sequence being processed (without prefix, e.g., "target"). Will be stored with the `seq_` prefix in the database.
+        :param sequence_type: Type of sequence being processed.
         :type sequence_type: str
         :param region_ids: Region identifier(s) to process. Can be a single region ID (str) or a list of region IDs (list[str]). If None, all regions in the database are processed, defaults to None.
         :type region_ids: str | list[str] | None, optional
@@ -165,11 +165,13 @@ class OligoDatabase:
             """
             if self.fasta_parser.check_fasta_format(file):
                 fasta_sequences = self.fasta_parser.read_fasta_sequences(file, region_ids)
-
                 sequences: dict[str, dict[str, Any]] = {}
                 for entry in fasta_sequences:
                     region, additional_info, coordinates = self.fasta_parser.parse_fasta_header(entry.id)
-                    oligo_properties = coordinates | additional_info
+                    if isinstance(additional_info, str):
+                        oligo_properties = coordinates
+                    else:
+                        oligo_properties = coordinates | additional_info
                     oligo_properties = format_oligo_properties(oligo_properties, self.database_sequence_types)
                     if region in sequences:
                         if entry.seq in sequences[region]:
@@ -206,7 +208,7 @@ class OligoDatabase:
                         self.database[region] = database_region[region]
 
         # Check formatting
-        region_ids = check_if_list(region_ids)
+        region_ids = check_if_list(region_ids) if region_ids else None
         files_fasta = check_if_list(files_fasta)
 
         # Set database sequence types
@@ -217,9 +219,6 @@ class OligoDatabase:
             backend = PickleBackend(storage_path=self._dir_cache_files)
             strategy = LRUReplacement(disk_backend=backend, max_in_memory=self._max_entries_in_memory)
             self.database = EffiDict(disk_backend=backend, replacement_strategy=strategy)
-            # Reset metadata when overwriting
-            self.database_sequence_types = []
-            self.set_database_sequence_types(sequence_type)
 
         # Load files parallel into database
         with joblib_progress(description=f"Database Loading", total=len(files_fasta)):
@@ -264,7 +263,7 @@ class OligoDatabase:
         :type region_ids: str | list[str] | None, optional
         """
         # Check formatting
-        region_ids = check_if_list(region_ids)
+        region_ids = check_if_list(region_ids) if region_ids else None
 
         # Check if file exists and has correct format
         if os.path.exists(file_database):
@@ -397,7 +396,7 @@ class OligoDatabase:
                     self.oligosets[region_id] = oligoset_region
 
         # Check formatting
-        region_ids = check_if_list(region_ids)
+        region_ids = check_if_list(region_ids) if region_ids else None
 
         if not os.path.isdir(dir_database):
             raise DatabaseError(f"Database directory '{dir_database}' does not exist.")
@@ -487,7 +486,7 @@ class OligoDatabase:
         """
         Writes the current database to a FASTA file. Associated sequence properties can optionally be included in the sequence header.
 
-        :param sequence_type: Type of sequence being processed (without prefix, e.g., "target"). Will be stored with the `seq_` prefix in the database.
+        :param sequence_type: Type of sequence being processed.
         :type sequence_type: str
         :param save_description: Whether to include the sequence properties in the sequence header.
         :type save_description: bool
@@ -808,10 +807,7 @@ class OligoDatabase:
         :return: A list of oligo IDs from all regions in the database.
         :rtype: list[str]
         """
-        if region_ids:
-            region_ids = check_if_list(region_ids)
-        else:
-            region_ids = list(self.database.keys())
+        region_ids = check_if_list(region_ids) if region_ids else list(self.database.keys())
         oligo_ids = [oligo_id for region_id in region_ids for oligo_id in self.database[region_id].keys()]
 
         return oligo_ids
@@ -820,7 +816,7 @@ class OligoDatabase:
         """
         Retrieves a list of sequences of the specified type from the database.
 
-        :param sequence_type: Type of sequence being processed (without prefix, e.g., "target"). Will be stored with the `seq_` prefix in the database.
+        :param sequence_type: Type of sequence being processed.
         :type sequence_type: str
         :return: A list of sequences corresponding to the specified sequence type from all regions in the database.
         :rtype: list[str]
@@ -840,7 +836,7 @@ class OligoDatabase:
         """
         Generates a mapping of oligo IDs to their corresponding sequences of the specified type.
 
-        :param sequence_type: Type of sequence being processed (without prefix, e.g., "target"). Will be stored with the `seq_` prefix in the database.
+        :param sequence_type: Type of sequence being processed.
         :type sequence_type: str
         :param sequence_to_upper: Whether to convert sequences to uppercase, defaults to False.
         :type sequence_to_upper: bool
@@ -866,7 +862,7 @@ class OligoDatabase:
         """
         Generates a mapping of sequences to their corresponding oligo IDs for the specified sequence type.
 
-        :param sequence_type: Type of sequence being processed (without prefix, e.g., "target"). Will be stored with the `seq_` prefix in the database.
+        :param sequence_type: Type of sequence being processed.
         :type sequence_type: str
         :param sequence_to_upper: Whether to convert sequences to uppercase, defaults to False.
         :type sequence_to_upper: bool
@@ -913,7 +909,7 @@ class OligoDatabase:
         :rtype: pd.DataFrame
         """
 
-        def _flatten_if_one(x):
+        def _flatten_if_one(x: Any) -> Any:
             """
             Flatten lists with only one element, i.e. if x is a list of length 1, return that single element.
             If x is an empty list, return None.
@@ -1106,12 +1102,11 @@ class OligoDatabase:
         oligos_to_delete = []
         for region_id in self.database.keys():
             for oligo_id in self.database[region_id].keys():
-                property_values = check_if_list(
-                    self.get_oligo_property_value(
-                        property=property_name, region_id=region_id, oligo_id=oligo_id, flatten=True
-                    )
+                property_values = self.get_oligo_property_value(
+                    property=property_name, region_id=region_id, oligo_id=oligo_id, flatten=True
                 )
                 if property_values:
+                    property_values = check_if_list(property_values)
                     if (
                         remove_if_smaller_threshold and any(item < property_thr for item in property_values)
                     ) or (

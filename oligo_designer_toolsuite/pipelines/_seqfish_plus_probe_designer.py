@@ -200,7 +200,7 @@ class SeqFishPlusProbeDesigner:
         n_attempts: int = 100000,
         heuristic: bool = True,
         heuristic_n_attempts: int = 100,
-    ):
+    ) -> None:
         """
         Set developer-specific parameters for SeqFish+ probe designer pipeline.
         These parameters can be used to customize and fine-tune the pipeline.
@@ -252,11 +252,11 @@ class SeqFishPlusProbeDesigner:
         :param primer_Tm_chem_correction_parameters: Chemical correction parameters for Tm calculation of readout probes.
             For using Bio.SeqUtils.MeltingTemp default parameters set to ``{}``. For more information on parameters,
             see: https://biopython.org/docs/1.75/api/Bio.SeqUtils.MeltingTemp.html#Bio.SeqUtils.MeltingTemp.salt_correction
-        :type primer_Tm_chem_correction_parameters: dict, optional
+        :type primer_Tm_chem_correction_parameters: dict | None
         :param primer_Tm_salt_correction_parameters: Salt correction parameters for Tm calculation of readout probes.
             For using Bio.SeqUtils.MeltingTemp default parameters set to ``{}``. For more information on parameters,
             see: https://biopython.org/docs/1.75/api/Bio.SeqUtils.MeltingTemp.html#Bio.SeqUtils.MeltingTemp.chem_correction
-        :type primer_Tm_salt_correction_parameters: dict, optional
+        :type primer_Tm_salt_correction_parameters: dict | None
         :param max_graph_size: Maximum size of the graph used in set selection, defaults to 5000.
         :type max_graph_size: int
         :param n_attempts: Maximum number of attempts for selecting oligo sets, defaults to 100000.
@@ -347,7 +347,7 @@ class SeqFishPlusProbeDesigner:
         target_probe_GC_content_min: float = 45,
         target_probe_GC_content_opt: float = 55,
         target_probe_GC_content_max: float = 65,
-        target_probe_homopolymeric_base_n: dict[str, int] | None = {"A": 5, "T": 5, "C": 5, "G": 5},
+        target_probe_homopolymeric_base_n: dict[str, int] = {"A": 5, "T": 5, "C": 5, "G": 5},
         target_probe_T_secondary_structure: float = 76,
         target_probe_secondary_structures_threshold_deltaG: float = 0,
         target_probe_GC_weight: float = 1,
@@ -470,7 +470,7 @@ class SeqFishPlusProbeDesigner:
         n_genes: int,
         files_fasta_reference_database_readout_probe: list[str],
         readout_probe_length: int = 15,
-        readout_probe_base_probabilities: dict[str, float] | None = {
+        readout_probe_base_probabilities: dict[str, float] = {
             "A": 0.25,
             "C": 0.25,
             "G": 0.25,
@@ -478,7 +478,7 @@ class SeqFishPlusProbeDesigner:
         },
         readout_probe_GC_content_min: float = 40,
         readout_probe_GC_content_max: float = 60,
-        readout_probe_homopolymeric_base_n: dict[str, int] | None = {"G": 3},
+        readout_probe_homopolymeric_base_n: dict[str, int] = {"G": 3},
         n_barcode_rounds: int = 4,
         n_pseudocolors: int = 20,
         channels_ids: list = ["Alexa488", "Cy3b", "Alexa647"],
@@ -649,12 +649,12 @@ class SeqFishPlusProbeDesigner:
         files_fasta_reference_database_primer: list[str],
         reverse_primer_sequence: str = "CCCTATAGTGAGTCGTATTA",
         primer_length: int = 20,
-        primer_base_probabilities: dict[str, float] | None = {"A": 0.25, "C": 0.25, "G": 0.25, "T": 0.25},
+        primer_base_probabilities: dict[str, float] = {"A": 0.25, "C": 0.25, "G": 0.25, "T": 0.25},
         primer_GC_content_min: float = 50,
         primer_GC_content_max: float = 65,
         primer_number_GC_GCclamp: int = 1,
         primer_number_three_prime_base_GCclamp: int = 2,
-        primer_homopolymeric_base_n: dict[str, int] | None = {"A": 4, "T": 4, "C": 4, "G": 4},
+        primer_homopolymeric_base_n: dict[str, int] = {"A": 4, "T": 4, "C": 4, "G": 4},
         primer_max_len_selfcomplement: int = 6,
         primer_max_len_complement_reverse_primer: int = 5,
         primer_Tm_min: float = 60,
@@ -872,7 +872,7 @@ class SeqFishPlusProbeDesigner:
             ]
         )
         encoding_probe_database = calculator.apply(
-            oligo_database=encoding_probe_database, sequence_type="seq_oligo", n_jobs=self.n_jobs
+            oligo_database=encoding_probe_database, sequence_type="oligo", n_jobs=self.n_jobs
         )
 
         encoding_probe_database.write_oligosets_to_yaml(
@@ -969,7 +969,7 @@ class TargetProbeDesigner:
     @pipeline_step_basic(step_name="Target Probe Generation - Create Database")
     def create_oligo_database(
         self,
-        gene_ids: list,
+        gene_ids: list | None,
         oligo_length_min: int,
         oligo_length_max: int,
         files_fasta_oligo_database: list[str],
@@ -982,7 +982,7 @@ class TargetProbeDesigner:
 
         :param gene_ids: List of gene identifiers for which oligos should be generated.
                         If None, all genes in the input fasta file are used.
-        :type gene_ids: list
+        :type gene_ids: list | None
         :param oligo_length_min: Minimum length of the oligos.
         :type oligo_length_min: int
         :param oligo_length_max: Maximum length of the oligos.
@@ -1777,8 +1777,8 @@ class PrimerDesigner:
         Tm_min: float,
         Tm_max: float,
         Tm_parameters: dict,
-        Tm_chem_correction_parameters: dict,
-        Tm_salt_correction_parameters: dict,
+        Tm_chem_correction_parameters: dict | None,
+        Tm_salt_correction_parameters: dict | None,
         T_secondary_structure: float,
         secondary_structures_threshold_deltaG: float,
     ) -> OligoDatabase:
@@ -1810,9 +1810,9 @@ class PrimerDesigner:
         :param Tm_parameters: Parameters for melting temperature calculation.
         :type Tm_parameters: dict
         :param Tm_chem_correction_parameters: Parameters for chemical correction in Tm calculation.
-        :type Tm_chem_correction_parameters: dict
+        :type Tm_chem_correction_parameters: dict | None
         :param Tm_salt_correction_parameters: Parameters for salt correction in Tm calculation.
-        :type Tm_salt_correction_parameters: dict
+        :type Tm_salt_correction_parameters: dict | None
         :param T_secondary_structure: Temperature for secondary structure analysis.
         :type T_secondary_structure: float
         :param secondary_structures_threshold_deltaG: Threshold for secondary structure deltaG.
@@ -1956,7 +1956,7 @@ class PrimerDesigner:
 ############################################
 
 
-def main():
+def main() -> None:
     """
     Main function for running the SeqFishPlusProbeDesigner pipeline. This function reads the configuration file,
     processes gene IDs, initializes the probe designer, sets developer parameters, and executes probe design

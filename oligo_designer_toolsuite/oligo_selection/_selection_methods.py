@@ -327,7 +327,7 @@ class GraphBasedSelectionPolicy(OligoSelectionPolicy):
         n_attempts: int = 1000,
         heuristic: bool = True,
         heuristic_n_attempts: int = 1000,
-        clique_init_approximation=False,
+        clique_init_approximation: bool = False,
     ) -> None:
         """Constructor for the GraphBasedSelectionPolicy class."""
         super().__init__(set_scoring=set_scoring, pre_filter=pre_filter)
@@ -440,7 +440,7 @@ class GraphBasedSelectionPolicy(OligoSelectionPolicy):
         non_overlap_matrix_ids: list,
         oligoset_size: int,
         heuristic_n_attempts: int,
-    ):
+    ) -> tuple[list[str], pd.Series]:
         """
         A heuristic approach to improve the selection of oligo sets by iteratively selecting non-overlapping oligos that maximize the
         score. This method selects the best set of oligos based on the score while ensuring that there is no overlap between the oligos.

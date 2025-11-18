@@ -38,7 +38,7 @@ FILE_DATABASE_OLIGO_PROPERTIES = "tests/data/databases/database_oligo_properties
 
 
 class TestOligoProperties(unittest.TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.tmp_path = os.path.join(os.getcwd(), "tmp_oligo_properties")
 
         self.oligo_database = OligoDatabase(
@@ -51,10 +51,10 @@ class TestOligoProperties(unittest.TestCase):
             FILE_DATABASE_OLIGO_PROPERTIES, database_overwrite=True, merge_databases_on_sequence_type="oligo"
         )
 
-    def tearDown(self):
+    def tearDown(self) -> None:
         shutil.rmtree(self.tmp_path)
 
-    def test_calculate_oligo_length(self):
+    def test_calculate_oligo_length(self) -> None:
         length_property = LengthProperty()
         calculator = PropertyCalculator(properties=[length_property])
         oligo_database = calculator.apply(oligo_database=self.oligo_database, sequence_type="oligo", n_jobs=1)
@@ -69,7 +69,7 @@ class TestOligoProperties(unittest.TestCase):
         assert length1 == 20, "error: wrong oligo length"
         assert length2 == 29, "error: wrong oligo length"
 
-    def test_calculate_reverse_complement_sequence(self):
+    def test_calculate_reverse_complement_sequence(self) -> None:
         reverse_complement_property = ReverseComplementSequenceProperty(
             sequence_type_reverse_complement="oligo"
         )
@@ -88,7 +88,7 @@ class TestOligoProperties(unittest.TestCase):
         assert target == "ATCGTCATCCATTGGGGCAT", "error: wrong target sequence"
         assert oligo == "ATGCCCCAATGGATGACGAT", "error: wrong oligo sequence"
 
-    def test_calculate_shortened_sequence(self):
+    def test_calculate_shortened_sequence(self) -> None:
         # check if it works for oligos
         sequence_type = "oligo"
 
@@ -139,7 +139,7 @@ class TestOligoProperties(unittest.TestCase):
         assert sequence_short_oligo_reverse_read == "TCCAATAGAG", "error: wrong short sequence calculated"
         assert sequence_short_target_reverse_read == "TAGCC", "error: wrong short sequence calculated"
 
-    def test_calculate_num_targeted_transcripts(self):
+    def test_calculate_num_targeted_transcripts(self) -> None:
         num_targeted_transcripts_property = NumTargetedTranscriptsProperty()
         calculator = PropertyCalculator(properties=[num_targeted_transcripts_property])
         oligo_database = calculator.apply(oligo_database=self.oligo_database, sequence_type="oligo", n_jobs=1)
@@ -158,7 +158,7 @@ class TestOligoProperties(unittest.TestCase):
         assert num_targeted_transcripts2 == 1, "error: wrong number targeted transcripts"
         assert num_targeted_transcripts3 == 28, "error: wrong number targeted transcripts"
 
-    def test_calculate_isoform_consensus(self):
+    def test_calculate_isoform_consensus(self) -> None:
         num_targeted_transcripts_property = NumTargetedTranscriptsProperty()
         calculator = PropertyCalculator(properties=[num_targeted_transcripts_property])
         oligo_database = calculator.apply(oligo_database=self.oligo_database, sequence_type="oligo", n_jobs=1)
@@ -176,7 +176,7 @@ class TestOligoProperties(unittest.TestCase):
         assert isoform_consensus1 == 100, "error: wrong isoform consensus, should be 100%"
         assert isoform_consensus2 == 50, "error: wrong isoform consensus, should be 50%"
 
-    def test_calculate_seedregion(self):
+    def test_calculate_seedregion(self) -> None:
         seedregion_property = SeedregionProperty(start=0.4, end=0.6)
         calculator = PropertyCalculator(properties=[seedregion_property])
         oligo_database = calculator.apply(oligo_database=self.oligo_database, sequence_type="oligo", n_jobs=1)
@@ -190,7 +190,7 @@ class TestOligoProperties(unittest.TestCase):
 
         assert (seedregion_start == 8) and (seedregion_end == 12), "error: wrong seedregion calculated"
 
-    def test_calculate_seedregion_site(self):
+    def test_calculate_seedregion_site(self) -> None:
         seedregion_site_property = SeedregionSiteProperty(
             seedregion_size=5, seedregion_site_name="ligation_site"
         )
@@ -206,7 +206,7 @@ class TestOligoProperties(unittest.TestCase):
 
         assert (seedregion_start == 6) and (seedregion_end == 15), "error: wrong seedregion calculated"
 
-    def test_calculate_GC_content(self):
+    def test_calculate_GC_content(self) -> None:
         gc_content_property = GCContentProperty()
         calculator = PropertyCalculator(properties=[gc_content_property])
         oligo_database = calculator.apply(oligo_database=self.oligo_database, sequence_type="oligo", n_jobs=1)
@@ -217,7 +217,7 @@ class TestOligoProperties(unittest.TestCase):
 
         assert GC_content == 50, "error: wrong GC content calculated"
 
-    def test_calculate_TmNN(self):
+    def test_calculate_TmNN(self) -> None:
         tm_nn_property = TmNNProperty(Tm_parameters={})
         calculator = PropertyCalculator(properties=[tm_nn_property])
         oligo_database = calculator.apply(oligo_database=self.oligo_database, sequence_type="oligo", n_jobs=1)
@@ -228,7 +228,7 @@ class TestOligoProperties(unittest.TestCase):
 
         assert TmNN == 53.57, "error: wrong Tm calculated"
 
-    def test_calculate_length_selfcomplement(self):
+    def test_calculate_length_selfcomplement(self) -> None:
         length_selfcomplement_property = LengthSelfComplementProperty()
         calculator = PropertyCalculator(properties=[length_selfcomplement_property])
         oligo_database = calculator.apply(oligo_database=self.oligo_database, sequence_type="oligo", n_jobs=1)
@@ -242,7 +242,7 @@ class TestOligoProperties(unittest.TestCase):
 
         assert length_selfcomplement == 18, "error: wrong length of selfcomplement calculated"
 
-    def test_calculate_length_complement(self):
+    def test_calculate_length_complement(self) -> None:
         length_complement_property = LengthComplementProperty(comparison_sequence="AGTC")
         calculator = PropertyCalculator(properties=[length_complement_property])
         oligo_database = calculator.apply(oligo_database=self.oligo_database, sequence_type="oligo", n_jobs=1)
@@ -256,7 +256,7 @@ class TestOligoProperties(unittest.TestCase):
 
         assert length_complement == 3, "error: wrong length of complement calculated"
 
-    def test_calculate_secondary_structure_DG(self):
+    def test_calculate_secondary_structure_DG(self) -> None:
         dg_secondary_structure_property = DGSecondaryStructureProperty(T=37)
         calculator = PropertyCalculator(properties=[dg_secondary_structure_property])
         oligo_database = calculator.apply(oligo_database=self.oligo_database, sequence_type="oligo", n_jobs=1)
@@ -270,7 +270,7 @@ class TestOligoProperties(unittest.TestCase):
 
         assert DG_secondary_structure == 0.8, "error: wrong DG calculated"
 
-    def test_calculate_padlock_arms(self):
+    def test_calculate_padlock_arms(self) -> None:
         padlock_arms_property = PadlockArmsProperty(
             arm_length_min=3,
             arm_Tm_dif_max=15,
@@ -287,7 +287,7 @@ class TestOligoProperties(unittest.TestCase):
 
         assert ligation_site == 14, "error: wrong padlock arms calculated"
 
-    def test_calculate_detect_oligo(self):
+    def test_calculate_detect_oligo(self) -> None:
         detect_oligo_property = DetectOligoProperty(
             detect_oligo_length_min=8,
             detect_oligo_length_max=12,

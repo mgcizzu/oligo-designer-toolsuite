@@ -43,3 +43,5 @@ repos:
           "types-networkx",
         ]
         args: [--ignore-missing-imports, --follow-imports=silent]
+
+# run all hooks: pre-commit run --all-files

@@ -38,7 +38,7 @@ class PropertyCalculator:
 
         :param oligo_database: The OligoDatabase instance containing oligonucleotide sequences and their associated properties. This database stores oligo data organized by genomic regions and can be used for filtering, property calculations, set generation, and output operations.
         :type oligo_database: OligoDatabase
-        :param sequence_type: Type of sequence being processed. Must use the `seq_` prefix naming convention (e.g., "seq_target", "seq_oligo").
+        :param sequence_type: Type of sequence being processed.
         :type sequence_type: str
         :param n_jobs: Number of parallel jobs to use for processing. Defaults to 1.
         :type n_jobs: int
@@ -69,7 +69,7 @@ class PropertyCalculator:
         :type oligo_database: OligoDatabase
         :param region_id: Region ID to process.
         :type region_id: str
-        :param sequence_type: Type of sequence being processed. Must use the `seq_` prefix naming convention (e.g., "seq_target", "seq_oligo").
+        :param sequence_type: Type of sequence being processed.
         :type sequence_type: str
         """
         new_oligo_property: dict[str, dict[str, Any]] = {}
