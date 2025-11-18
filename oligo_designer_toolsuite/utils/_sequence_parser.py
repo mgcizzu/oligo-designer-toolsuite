@@ -77,7 +77,7 @@ class GffParser:
         annotation_file: str,
         file_pickle: str | None = None,
         chunk_size: int = 10000,
-        target_lines: int = 10000000,
+        target_lines: int = 100000000,
     ) -> str | pd.DataFrame:
         """
         Parses the GFF annotation file and converts it into a DataFrame. Optionally, saves the DataFrame to a pickle file.

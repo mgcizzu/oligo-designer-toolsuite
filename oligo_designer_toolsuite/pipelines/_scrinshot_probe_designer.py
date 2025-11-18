@@ -391,7 +391,7 @@ class ScrinshotProbeDesigner:
 
         if self.write_intermediate_steps:
             dir_database = oligo_database.save_database(name_database="1_db_probes_initial")
-            print(f"Saved probe database for step 1 (Create Database) in directory {dir_database}")
+            logging.info(f"Saved probe database for step 1 (Create Database) in directory {dir_database}")
 
         oligo_database = target_probe_designer.filter_by_property(
             oligo_database=oligo_database,
@@ -414,7 +414,7 @@ class ScrinshotProbeDesigner:
 
         if self.write_intermediate_steps:
             dir_database = oligo_database.save_database(name_database="2_db_probes_property_filter")
-            print(f"Saved probe database for step 2 (Property Filters) in directory {dir_database}")
+            logging.info(f"Saved probe database for step 2 (Property Filters) in directory {dir_database}")
 
         oligo_database = target_probe_designer.filter_by_specificity(
             oligo_database=oligo_database,
@@ -435,7 +435,7 @@ class ScrinshotProbeDesigner:
 
         if self.write_intermediate_steps:
             dir_database = oligo_database.save_database(name_database="3_db_probes_specificity_filter")
-            print(f"Saved probe database for step 3 (Specificity Filters) in directory {dir_database}")
+            logging.info(f"Saved probe database for step 3 (Specificity Filters) in directory {dir_database}")
 
         oligo_database = target_probe_designer.create_oligo_sets(
             oligo_database=oligo_database,
@@ -464,7 +464,7 @@ class ScrinshotProbeDesigner:
         if self.write_intermediate_steps:
             dir_database = oligo_database.save_database(name_database="4_db_probes_probesets")
             dir_probesets = oligo_database.write_oligosets_to_table()
-            print(
+            logging.info(
                 f"Saved probe database for step 4 (Specificity Filters) in directory {dir_database} and probeset table in directory {dir_probesets}"
             )
 
@@ -1619,7 +1619,7 @@ def main() -> None:
         - config: Path to the configuration YAML file containing parameters for the pipeline.
     :type args: dict
     """
-    print("--------------START PIPELINE--------------")
+    logging.info("--------------START PIPELINE--------------")
 
     args = base_parser()
 
@@ -1717,7 +1717,7 @@ def main() -> None:
 
     pipeline.generate_output(oligo_database=oligo_database, top_n_sets=config["top_n_sets"])
 
-    print("--------------END PIPELINE--------------")
+    logging.info("--------------END PIPELINE--------------")
 
 
 if __name__ == "__main__":

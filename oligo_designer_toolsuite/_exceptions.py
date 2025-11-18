@@ -43,7 +43,7 @@ class FileFormatError(OligoDesignerError):
     """
 
 
-class NotImplementedError(OligoDesignerError):
+class FeatureNotImplementedError(OligoDesignerError):
     """
     Raised when a feature or functionality is not yet implemented.
 

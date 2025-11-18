@@ -4,12 +4,16 @@
 
 import os
 import subprocess
-from typing import Tuple
 
 import pandas as pd
 from Bio import SeqIO
 
-from oligo_designer_toolsuite._exceptions import ConfigurationError, DatabaseError, FileFormatError
+from oligo_designer_toolsuite._exceptions import (
+    ConfigurationError,
+    DatabaseError,
+    FeatureNotImplementedError,
+    FileFormatError,
+)
 from oligo_designer_toolsuite.database import OligoDatabase
 from oligo_designer_toolsuite.oligo_specificity_filter import AlignmentSpecificityFilter
 
@@ -262,7 +266,7 @@ class BowtieFilter(AlignmentSpecificityFilter):
 
     def _add_alignment_gaps(
         self, table_hits: pd.DataFrame, queries: list, references: list
-    ) -> Tuple[list, list]:
+    ) -> tuple[list, list]:
         """
         Handles the addition of alignment gaps for queries and references.
 
@@ -278,7 +282,7 @@ class BowtieFilter(AlignmentSpecificityFilter):
         :param references: List of reference sequences to be aligned.
         :type references: list
         :return: Unmodified lists of query and reference sequences.
-        :rtype: Tuple[list, list]
+        :rtype: tuple[list, list]
         """
         # bowtie does not support gaps
         return queries, references
@@ -480,7 +484,7 @@ class Bowtie2Filter(AlignmentSpecificityFilter):
         Raises an error indicating that AI filters are not supported for Bowtie2.
 
         This method is intended to retrieve reference sequences based on search results.
-        However, in the context of Bowtie2, this method is not implemented and raises a `NotImplementedError`.
+        However, in the context of Bowtie2, this method is not implemented and raises a `FeatureNotImplementedError`.
 
         :param table_hits: DataFrame containing Bowtie2 search hits with alignment information.
         :type table_hits: pd.DataFrame
@@ -488,18 +492,18 @@ class Bowtie2Filter(AlignmentSpecificityFilter):
         :type file_reference: str
         :param region_id: Region ID to process.
         :type region_id: str
-        :raises NotImplementedError: Always, because AI filters are not supported for Bowtie2.
+        :raises FeatureNotImplementedError: Always, because AI filters are not supported for Bowtie2.
         """
-        raise NotImplementedError("AI filters not supported for Bowtie2.")
+        raise FeatureNotImplementedError("AI filters not supported for Bowtie2.")
 
     def _add_alignment_gaps(
         self, search_results: pd.DataFrame, queries: list, references: list
-    ) -> Tuple[list, list]:
+    ) -> tuple[list, list]:
         """
         Raises an error indicating that AI filters are not supported for Bowtie2.
 
         This method is intended to add alignment gaps to sequences based on search results.
-        However, in the context of Bowtie2, this method is not implemented and raises a `NotImplementedError`.
+        However, in the context of Bowtie2, this method is not implemented and raises a `FeatureNotImplementedError`.
 
         :param table_hits: DataFrame containing information about the alignment hits, including gap positions.
         :type table_hits: pd.DataFrame
@@ -507,7 +511,7 @@ class Bowtie2Filter(AlignmentSpecificityFilter):
         :type queries: list
         :param references: List of reference sequences to be aligned.
         :type references: list
-        :raises NotImplementedError: Always, because AI filters are not supported for Bowtie2.
+        :raises FeatureNotImplementedError: Always, because AI filters are not supported for Bowtie2.
         """
 
-        raise NotImplementedError("AI filters not supported for Bowtie2.")
+        raise FeatureNotImplementedError("AI filters not supported for Bowtie2.")

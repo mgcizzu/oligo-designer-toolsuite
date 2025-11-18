@@ -4,6 +4,7 @@
 
 import gzip
 import itertools
+import logging
 import os
 import re
 import shutil
@@ -437,6 +438,6 @@ class FtpLoaderNCBI(BaseFtpLoader):
                     )
                     SeqIO.write(chromosome_sequnece, handle, "fasta")
                 else:
-                    print("No mapping for accession number: {}".format(accession_number))
+                    logging.warning("No mapping for accession number: {}".format(accession_number))
 
         os.replace(file_tmp, ftp_file)

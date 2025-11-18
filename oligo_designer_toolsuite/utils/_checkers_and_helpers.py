@@ -50,17 +50,19 @@ class CustomYamlDumper(yaml.SafeDumper):
         return True
 
 
-def check_if_dna_sequence(seq: str, valid_characters: list = ["A", "C", "T", "G"]) -> bool:
+def check_if_dna_sequence(seq: str, valid_characters: list[str] | None = None) -> bool:
     """
     Checks if a given sequence is a valid DNA sequence containing only specified characters.
 
     :param seq: The DNA sequence to check.
     :type seq: str
     :param valid_characters: A list of valid characters that the sequence should contain, defaults to ["A", "C", "T", "G"].
-    :type valid_characters: list
+    :type valid_characters: list[str] | None
     :return: `True` if the sequence is valid, `False` otherwise.
     :rtype: bool
     """
+    if valid_characters is None:
+        valid_characters = ["A", "C", "T", "G"]
     if any(len(char) > 1 for char in valid_characters):
         raise ConfigurationError(f"Valid characters must be single characters. Received: {valid_characters}.")
 

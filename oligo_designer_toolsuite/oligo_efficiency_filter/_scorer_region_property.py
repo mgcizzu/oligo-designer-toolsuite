@@ -25,7 +25,7 @@ class OverlapTargetedExonsScorer(BaseScorer):
     :type score_weight: float
     """
 
-    def __init__(self, targeted_exons: list, score_weight: float):
+    def __init__(self, targeted_exons: list[str], score_weight: float):
         """Constructor for the OverlapTargetedExonsScorer class."""
 
         self.targeted_exons = sorted(targeted_exons)

@@ -182,7 +182,7 @@ def main() -> None:
         - config: Path to the configuration YAML file containing parameters for the pipeline.
     :type args: dict
     """
-    print("--------------START PIPELINE--------------")
+    logging.info("--------------START PIPELINE--------------")
     args = base_parser()
 
     # read the config file
@@ -203,7 +203,7 @@ def main() -> None:
         block_size=config["exon_exon_junction_block_size"],
     )
 
-    print("--------------END PIPELINE--------------")
+    logging.info("--------------END PIPELINE--------------")
 
 
 if __name__ == "__main__":

@@ -54,7 +54,6 @@ def setup_logging(
     if include_console:
         handlers.append(logging.StreamHandler())
 
-    logging.getLogger("log_name")
     logging.basicConfig(
         format="%(asctime)s [%(levelname)s] %(message)s",
         level=log_level,
@@ -138,7 +137,17 @@ def get_oligo_database_info(oligo_database: dict[str, dict[str, Any]]) -> tuple[
 
 
 def get_oligo_length_min_max_from_database(oligo_database: OligoDatabase) -> tuple[int, int]:
+    """
+    Get the minimum and maximum oligo lengths from the database.
 
+    This function iterates through all oligos in the database to find the
+    minimum and maximum length values.
+
+    :param oligo_database: The OligoDatabase instance to query.
+    :type oligo_database: OligoDatabase
+    :return: A tuple containing (minimum_length, maximum_length).
+    :rtype: tuple[int, int]
+    """
     oligo_length_min = sys.maxsize
     oligo_length_max = 0
 
@@ -226,7 +235,7 @@ def check_content_oligo_database(oligo_database: OligoDatabase) -> None:
     :raises SystemExit: If the database is empty, exits with status code 1.
     """
     if len(oligo_database.get_regionid_list()) == 0:
-        print("The oligo database is empty. Exiting program...")
+        logging.error("The oligo database is empty. Exiting program...")
         warnings.warn("The oligo database is empty. Exiting program...", UserWarning)
         sys.exit(1)  # Exit the program with a status code of 1
 

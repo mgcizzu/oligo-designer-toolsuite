@@ -2,8 +2,6 @@
 # imports
 ############################################
 
-from typing import List, Tuple
-
 import pandas as pd
 
 from oligo_designer_toolsuite.database import OligoDatabase
@@ -25,16 +23,16 @@ class OligoScoring:
     total score of an oligo, which is saved in the database and returned as a pandas Series.
 
     :param scorers: A list of scorer instances that define how each oligo should be evaluated.
-    :type scorers: List[BaseScorer]
+    :type scorers: list[BaseScorer]
     """
 
-    def __init__(self, scorers: List[BaseScorer]):
+    def __init__(self, scorers: list[BaseScorer]):
         """Constructor for the OligoScoring class."""
         self.scorers = scorers
 
     def apply(
         self, oligo_database: OligoDatabase, region_id: str, sequence_type: str
-    ) -> Tuple[OligoDatabase, pd.Series]:
+    ) -> tuple[OligoDatabase, pd.Series]:
         """
         Apply all configured scorers to the oligonucleotides within a given region and sequence type.
 
@@ -49,7 +47,7 @@ class OligoScoring:
         :param sequence_type: Type of sequence being processed.
         :type sequence_type: str
         :return: A tuple containing the updated OligoDatabase and a pandas Series of scores indexed by oligo ID.
-        :rtype: Tuple[OligoDatabase, pd.Series]
+        :rtype: tuple[OligoDatabase, pd.Series]
         """
 
         assert check_if_key_in_database(

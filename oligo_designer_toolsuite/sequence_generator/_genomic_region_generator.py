@@ -208,13 +208,13 @@ class CustomGenomicRegionGenerator:
             :return: The path to the file containing chromosome lengths.
             :rtype: str
             """
-            dict_chromosome_length = {}
+            chromosome_lengths = {}
             for rec in SeqIO.parse(self.sequence_file, "fasta"):
-                dict_chromosome_length[rec.id] = len(rec.seq)
+                chromosome_lengths[rec.id] = len(rec.seq)
 
             file_chromosome_length = os.path.join(self.dir_output, "annotation.genome")
             with open(file_chromosome_length, "w") as handle:
-                for key, value in sorted(dict_chromosome_length.items()):
+                for key, value in sorted(chromosome_lengths.items()):
                     handle.write(f"{key}\t{value}\n")
 
             return file_chromosome_length

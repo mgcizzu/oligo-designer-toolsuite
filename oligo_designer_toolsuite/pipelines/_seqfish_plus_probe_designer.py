@@ -413,7 +413,9 @@ class SeqFishPlusProbeDesigner:
 
         if self.write_intermediate_steps:
             dir_database = oligo_database.save_database(name_database="1_db_target_probes_initial")
-            print(f"Saved target probe database for step 1 (Create Database) in directory {dir_database}")
+            logging.info(
+                f"Saved target probe database for step 1 (Create Database) in directory {dir_database}"
+            )
 
         oligo_database = target_probe_designer.filter_by_property(
             oligo_database=oligo_database,
@@ -426,7 +428,9 @@ class SeqFishPlusProbeDesigner:
 
         if self.write_intermediate_steps:
             dir_database = oligo_database.save_database(name_database="2_db_target_probes_property_filter")
-            print(f"Saved target probe database for step 2 (Property Filters) in directory {dir_database}")
+            logging.info(
+                f"Saved target probe database for step 2 (Property Filters) in directory {dir_database}"
+            )
 
         oligo_database = target_probe_designer.filter_by_specificity(
             oligo_database=oligo_database,
@@ -439,7 +443,9 @@ class SeqFishPlusProbeDesigner:
 
         if self.write_intermediate_steps:
             dir_database = oligo_database.save_database(name_database="3_db_target_probes_specificity_filter")
-            print(f"Saved target probe database for step 3 (Specificity Filters) in directory {dir_database}")
+            logging.info(
+                f"Saved target probe database for step 3 (Specificity Filters) in directory {dir_database}"
+            )
 
         oligo_database = target_probe_designer.create_oligo_sets(
             oligo_database=oligo_database,
@@ -459,7 +465,7 @@ class SeqFishPlusProbeDesigner:
         if self.write_intermediate_steps:
             dir_database = oligo_database.save_database(name_database="4_db_target_probes_sets")
             dir_oligosets = oligo_database.write_oligosets_to_table()
-            print(
+            logging.info(
                 f"Saved target probe database for step 4 (Specificity Filters) in directory {dir_database} and sets table in directory {dir_oligosets}"
             )
 
@@ -521,7 +527,9 @@ class SeqFishPlusProbeDesigner:
 
         if self.write_intermediate_steps:
             dir_database = oligo_database.save_database(name_database="1_db_readout_probes_initial")
-            print(f"Saved readout probe database for step 1 (Create Database) in directory {dir_database}")
+            logging.info(
+                f"Saved readout probe database for step 1 (Create Database) in directory {dir_database}"
+            )
 
         oligo_database = readout_probe_designer.filter_by_property(
             oligo_database=oligo_database,
@@ -532,7 +540,9 @@ class SeqFishPlusProbeDesigner:
 
         if self.write_intermediate_steps:
             dir_database = oligo_database.save_database(name_database="2_db_readout_probes_property_filter")
-            print(f"Saved readout probe database for step 2 (Property Filters) in directory {dir_database}")
+            logging.info(
+                f"Saved readout probe database for step 2 (Property Filters) in directory {dir_database}"
+            )
 
         oligo_database = readout_probe_designer.filter_by_specificity(
             oligo_database=oligo_database,
@@ -545,7 +555,7 @@ class SeqFishPlusProbeDesigner:
 
         if self.write_intermediate_steps:
             dir_database = oligo_database.save_database(name_database="3_db_readout_probes_specificty_filter")
-            print(
+            logging.info(
                 f"Saved readout probe database for step 3 (Specificity Filters) in directory {dir_database}"
             )
 
@@ -719,7 +729,7 @@ class SeqFishPlusProbeDesigner:
 
         if self.write_intermediate_steps:
             dir_database = oligo_database.save_database(name_database="1_db_primers_initial")
-            print(f"Saved primer database for step 1 (Create Database) in directory {dir_database}")
+            logging.info(f"Saved primer database for step 1 (Create Database) in directory {dir_database}")
 
         oligo_database = primer_designer.filter_by_property(
             oligo_database=oligo_database,
@@ -742,7 +752,7 @@ class SeqFishPlusProbeDesigner:
 
         if self.write_intermediate_steps:
             dir_database = oligo_database.save_database(name_database="2_db_primer_property_filter")
-            print(f"Saved primer database for step 2 (Property Filters) in directory {dir_database}")
+            logging.info(f"Saved primer database for step 2 (Property Filters) in directory {dir_database}")
 
         oligo_database = primer_designer.filter_by_specificity(
             oligo_database=oligo_database,
@@ -756,7 +766,9 @@ class SeqFishPlusProbeDesigner:
 
         if self.write_intermediate_steps:
             dir_database = oligo_database.save_database(name_database="3_db_primer_specificty_filter")
-            print(f"Saved primer database for step 3 (Specificity Filters) in directory {dir_database}")
+            logging.info(
+                f"Saved primer database for step 3 (Specificity Filters) in directory {dir_database}"
+            )
 
         min_dif_Tm = float("inf")
 
@@ -1966,7 +1978,7 @@ def main() -> None:
         - config: Path to the configuration YAML file containing parameters for the pipeline.
     :type args: dict
     """
-    print("--------------START PIPELINE--------------")
+    logging.info("--------------START PIPELINE--------------")
 
     args = base_parser()
 
@@ -2111,7 +2123,7 @@ def main() -> None:
         top_n_sets=config["top_n_sets"],
     )
 
-    print("--------------END PIPELINE--------------")
+    logging.info("--------------END PIPELINE--------------")
 
 
 if __name__ == "__main__":

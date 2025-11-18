@@ -15,7 +15,11 @@ import yaml
 from Bio.SeqUtils import MeltingTemp as mt
 from Bio.SeqUtils import Seq
 
-from oligo_designer_toolsuite._exceptions import ConfigurationError, FileFormatError, NotImplementedError
+from oligo_designer_toolsuite._exceptions import (
+    ConfigurationError,
+    FeatureNotImplementedError,
+    FileFormatError,
+)
 from oligo_designer_toolsuite.database import OligoDatabase, ReferenceDatabase
 from oligo_designer_toolsuite.oligo_efficiency_filter import (
     AverageSetScoring,
@@ -315,7 +319,9 @@ class CycleHCRProbeDesigner:
 
         if self.write_intermediate_steps:
             dir_database = oligo_database.save_database(name_database="1_db_target_probes_initial")
-            print(f"Saved target probe database for step 1 (Create Database) in directory {dir_database}")
+            logging.info(
+                f"Saved target probe database for step 1 (Create Database) in directory {dir_database}"
+            )
 
         oligo_database = target_probe_designer.filter_by_property(
             oligo_database=oligo_database,
@@ -333,7 +339,9 @@ class CycleHCRProbeDesigner:
 
         if self.write_intermediate_steps:
             dir_database = oligo_database.save_database(name_database="2_db_target_probes_property_filter")
-            print(f"Saved target probe database for step 2 (Property Filters) in directory {dir_database}")
+            logging.info(
+                f"Saved target probe database for step 2 (Property Filters) in directory {dir_database}"
+            )
 
         oligo_database = target_probe_designer.filter_by_specificity(
             oligo_database=oligo_database,
@@ -348,7 +356,9 @@ class CycleHCRProbeDesigner:
 
         if self.write_intermediate_steps:
             dir_database = oligo_database.save_database(name_database="3_db_target_probes_specificity_filter")
-            print(f"Saved target probe database for step 3 (Specificity Filters) in directory {dir_database}")
+            logging.info(
+                f"Saved target probe database for step 3 (Specificity Filters) in directory {dir_database}"
+            )
 
         oligo_database = target_probe_designer.create_oligo_sets(
             oligo_database=oligo_database,
@@ -371,7 +381,7 @@ class CycleHCRProbeDesigner:
         if self.write_intermediate_steps:
             dir_database = oligo_database.save_database(name_database="4_db_target_probes_sets")
             dir_oligosets = oligo_database.write_oligosets_to_table()
-            print(
+            logging.info(
                 f"Saved target probe database for step 4 (Specificity Filters) in directory {dir_database} and sets table in directory {dir_oligosets}"
             )
 
@@ -411,13 +421,13 @@ class CycleHCRProbeDesigner:
                 f"Loaded readout probes table from file and retrieved {n_channels} channels and {n_readout_probes_LR} L and R readout probes."
             )
         else:
-            raise NotImplementedError(
+            raise FeatureNotImplementedError(
                 "Generation of readout probe table is not yet implemented. "
                 "Please provide a file_readout_probe_table parameter."
             )
 
         if file_codebook:
-            raise NotImplementedError(
+            raise FeatureNotImplementedError(
                 "Loading of codebook from file is not yet implemented. "
                 "Leave file_codebook empty to generate a codebook automatically."
             )
@@ -556,7 +566,7 @@ class CycleHCRProbeDesigner:
             forward_primer_sequence = forward_primer_sequence
         else:
             # generate forward primers
-            raise NotImplementedError(
+            raise FeatureNotImplementedError(
                 "Forward primer generation is not yet implemented. "
                 "Please provide a forward_primer_sequence parameter."
             )
@@ -565,7 +575,7 @@ class CycleHCRProbeDesigner:
             reverse_primer_sequence = reverse_primer_sequence
         else:
             # generate reverse primers
-            raise NotImplementedError(
+            raise FeatureNotImplementedError(
                 "Reverse primer generation is not yet implemented. "
                 "Please provide a reverse_primer_sequence parameter."
             )
@@ -688,9 +698,9 @@ class CycleHCRProbeDesigner:
         calculator = PropertyCalculator(
             properties=[num_targeted_transcripts_property, isoform_consensus_property]
         )
-        encoding_probe_database = calculator.apply(
-            oligo_database=encoding_probe_database, sequence_type="oligo", n_jobs=self.n_jobs
-        )
+        # encoding_probe_database = calculator.apply(
+        #    oligo_database=encoding_probe_database, sequence_type="oligo", n_jobs=self.n_jobs
+        # )
 
         encoding_probe_database.write_oligosets_to_yaml(
             properties=properties,
@@ -860,6 +870,7 @@ class TargetProbeDesigner:
             split_start_end=split_start_end,
             split_names=["oligo_pair_L", "spacer", "oligo_pair_R"],
         )
+
         calculator = PropertyCalculator(properties=[split_sequence_property])
         oligo_database = calculator.apply(
             oligo_database=oligo_database, sequence_type="target", n_jobs=self.n_jobs
@@ -868,14 +879,14 @@ class TargetProbeDesigner:
         ##### pre-filter oligo database for certain properties #####
         isoform_consensus_property: BaseProperty = IsoformConsensusProperty()
         calculator = PropertyCalculator(properties=[isoform_consensus_property])
-        oligo_database = calculator.apply(
-            oligo_database=oligo_database, sequence_type="oligo", n_jobs=self.n_jobs
-        )
-        oligo_database.filter_database_by_property_threshold(
-            property_name="isoform_consensus",
-            property_thr=isoform_consensus,
-            remove_if_smaller_threshold=True,
-        )
+        # oligo_database = calculator.apply(
+        #     oligo_database=oligo_database, sequence_type="oligo", n_jobs=self.n_jobs
+        # )
+        # oligo_database.filter_database_by_property_threshold(
+        #    property_name="isoform_consensus",
+        #     property_thr=isoform_consensus,
+        #     remove_if_smaller_threshold=True,
+        # )
 
         dir = oligo_sequences.dir_output
         shutil.rmtree(dir) if os.path.exists(dir) else None
@@ -1433,7 +1444,7 @@ def main() -> None:
         - config: Path to the configuration YAML file containing parameters for the pipeline.
     :type args: argparse.Namespace
     """
-    print("--------------START PIPELINE--------------")
+    logging.info("--------------START PIPELINE--------------")
 
     args = base_parser()
 
@@ -1535,7 +1546,7 @@ def main() -> None:
         top_n_sets=config["top_n_sets"],
     )
 
-    print("--------------END PIPELINE--------------")
+    logging.info("--------------END PIPELINE--------------")
 
 
 if __name__ == "__main__":
