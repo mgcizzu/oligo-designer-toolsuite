@@ -30,8 +30,8 @@ from oligo_designer_toolsuite.oligo_efficiency_filter import (
 from oligo_designer_toolsuite.oligo_property_calculator import (
     BaseProperty,
     IsoformConsensusProperty,
-    NumTargetedTranscriptsProperty,
     PropertyCalculator,
+    ReverseComplementSequenceProperty,
     SplitSequenceProperty,
     TmNNProperty,
 )
@@ -92,7 +92,13 @@ class CycleHCRProbeDesigner:
     :type n_jobs: int
     """
 
-    def __init__(self, write_intermediate_steps: bool, dir_output: str, n_jobs: int) -> None:
+    def __init__(
+        self,
+        write_intermediate_steps: bool,
+        dir_output: str,
+        n_jobs: int,
+        output_properties: list[str] | None = None,
+    ) -> None:
         """Constructor for the CycleHCRProbeDesigner class."""
 
         # create the output folder
@@ -110,6 +116,39 @@ class CycleHCRProbeDesigner:
         self.write_intermediate_steps = write_intermediate_steps
         self.n_jobs = n_jobs
         self.set_developer_parameters()
+
+        ##### define output properties #####
+        if output_properties is None:
+            self.output_properties = [
+                "source",
+                "species",
+                "annotation_release",
+                "genome_assembly",
+                "gene_id",
+                "chromosome",
+                "start",
+                "end",
+                "strand",
+                "regiontype",
+                "transcript_id",
+                "exon_number",
+                "sequence_target",
+                "sequence_spacer",
+                "sequence_reverse_primer",
+                "sequence_forward_primer",
+                "sequence_readout_probe_L",
+                "sequence_readout_probe_R",
+                "sequence_hybridization_probe_L",
+                "sequence_hybridization_probe_R",
+                "sequence_dna_template_probe_L",
+                "sequence_dna_template_probe_R",
+                "TmNN_sequence_target_L",
+                "TmNN_sequence_target_R",
+                "isoform_consensus",
+            ]
+
+        else:
+            self.output_properties = output_properties
 
     def set_developer_parameters(
         self,
@@ -235,7 +274,7 @@ class CycleHCRProbeDesigner:
         self,
         files_fasta_target_probe_database: list[str],
         files_fasta_reference_database_target_probe: list[str],
-        gene_ids: list[str] | None = None,
+        region_ids: list[str] | None = None,
         target_probe_isoform_consensus: float = 0,
         target_probe_L_probe_sequence_length: int = 45,
         target_probe_gap_sequence_length: int = 2,
@@ -263,8 +302,8 @@ class CycleHCRProbeDesigner:
         :type files_fasta_target_probe_database: list[str]
         :param files_fasta_reference_database_target_probe: List of input FASTA files for the reference database.
         :type files_fasta_reference_database_target_probe: list[str]
-        :param gene_ids: List of gene IDs to target, or None to target all genes.
-        :type gene_ids: list[str], optional
+        :param region_ids: List of region IDs to target, or None to target all regions.
+        :type region_ids: list[str], optional
         :param target_probe_isoform_consensus: Isoform consensus threshold for filtering. Default is 50.
         :type target_probe_isoform_consensus: float
         :param target_probe_L_probe_sequence_length: Length of the left probe sequence. Default is 45.
@@ -308,7 +347,7 @@ class CycleHCRProbeDesigner:
         target_probe_designer = TargetProbeDesigner(self.dir_output, self.n_jobs)
 
         oligo_database: OligoDatabase = target_probe_designer.create_oligo_database(
-            gene_ids=gene_ids,
+            region_ids=region_ids,
             target_probe_L_probe_sequence_length=target_probe_L_probe_sequence_length,
             target_probe_gap_sequence_length=target_probe_gap_sequence_length,
             target_probe_R_probe_sequence_length=target_probe_R_probe_sequence_length,
@@ -389,15 +428,15 @@ class CycleHCRProbeDesigner:
 
     def design_readout_probes(
         self,
-        n_regions: int,
+        region_ids: list[str],
         file_readout_probe_table: str,
         file_codebook: str,
     ) -> tuple[pd.DataFrame, pd.DataFrame]:
         """
         Design readout probes based on specified parameters.
 
-        :param n_regions: Number of regions for which readout probes are to be designed.
-        :type n_regions: int
+        :param region_ids: List of region IDs for which readout probes are to be designed.
+        :type region_ids: list[str]
         :param file_readout_probe_table: Path to the input readout probe table file.
         :type file_readout_probe_table: str
         :param file_codebook: Path to the input codebook file.
@@ -433,14 +472,18 @@ class CycleHCRProbeDesigner:
             )
         else:
             codebook = readout_probe_designer.generate_codebook(
-                n_regions=n_regions,
+                n_regions=len(region_ids),
                 n_channels=n_channels,
                 n_readout_probes_LR=n_readout_probes_LR,
             )
 
+        codebook.index = region_ids + [
+            f"unassigned_barcode_{i+1}" for i in range(len(codebook.index) - len(region_ids))
+        ]
+
         return codebook, readout_probe_table
 
-    def design_encoding_probe(
+    def assembl_hybridization_probes(
         self,
         target_probe_database: OligoDatabase,
         codebook: pd.DataFrame,
@@ -448,7 +491,7 @@ class CycleHCRProbeDesigner:
         linker_sequence: str,
     ) -> OligoDatabase:
         """
-        Design encoding probes by combining target probes with readout probe sequences based on the codebook.
+        Assemble hybridization probes by combining target probes with readout probe sequences based on the codebook.
 
         :param target_probe_database: Database of target probes containing sequence and property information.
         :type target_probe_database: OligoDatabase
@@ -460,84 +503,78 @@ class CycleHCRProbeDesigner:
         :type readout_probe_table: pd.DataFrame
         :param linker_sequence: Sequence used to link target probes and readout probes in the encoding probe.
         :type linker_sequence: str
-        :return: Updated target_probe_database with properties for encoding probes, including sequences
-            for target probes, readout probes, and the full encoding probe sequence.
+        :return: Database of assembled hybridization probes with properties and sequences.
         :rtype: OligoDatabase
         """
         region_ids = list(target_probe_database.database.keys())
 
-        codebook.index = region_ids + [
-            f"unassigned_barcode_{i+1}" for i in range(len(codebook.index) - len(region_ids))
-        ]
-
-        # write codebook and readout probe table
-        codebook.to_csv(os.path.join(self.dir_output, "codebook.tsv"), sep="\t")
-        readout_probe_table.to_csv(os.path.join(self.dir_output, "readout_probes.tsv"), sep="\t")
-
-        readout_probe_table_regions = []
-        for region_id, barcode in codebook.iterrows():
-            bits = barcode[barcode == 1].index
-            readout_probe_info = readout_probe_table.loc[bits, :]
-            readout_probe_info["region_id"] = region_id
-            readout_probe_table_regions.append(readout_probe_info)
-        readout_probe_table_regions_df = pd.concat(readout_probe_table_regions, axis=0)
-        readout_probe_table_regions_df[
-            ["region_id", "channel", "readout_probe_id", "L/R", "readout_probe_sequence"]
-        ].to_csv(os.path.join(self.dir_output, "readout_probes_regions.tsv"), sep="\t", index=False)
+        target_probe_database.set_database_sequence_types(
+            [
+                "sequence_target",
+                "sequence_oligo_L",
+                "sequence_oligo_R",
+                "sequence_readout_probe_L",
+                "sequence_readout_probe_R",
+                "sequence_hybridization_probe_L",
+                "sequence_hybridization_probe_R",
+            ]
+        )
 
         for region_id in region_ids:
             barcode = codebook.loc[region_id]
             bits = barcode[barcode == 1].index
             readout_probe_sequences = readout_probe_table.loc[bits, "readout_probe_sequence"]
+            sequence_readout_probe_L = readout_probe_sequences.iloc[0]
+            sequence_readout_probe_R = readout_probe_sequences.iloc[1]
 
-            new_probe_properties_encoding_probe = {}
+            probe_ids = list(target_probe_database.database[region_id].keys())
+            new_properties: dict[str, dict[str, str]] = {probe_id: {} for probe_id in probe_ids}
 
-            for probe_id in target_probe_database.database[region_id].keys():
+            for probe_id in probe_ids:
+                new_properties[probe_id]["sequence_target"] = format_sequence(
+                    database=target_probe_database,
+                    property="target",
+                    region_id=region_id,
+                    oligo_id=probe_id,
+                )
+                new_properties[probe_id]["sequence_oligo_L"] = format_sequence(
+                    database=target_probe_database,
+                    property="oligo_L",
+                    region_id=region_id,
+                    oligo_id=probe_id,
+                )
+                new_properties[probe_id]["sequence_oligo_R"] = format_sequence(
+                    database=target_probe_database,
+                    property="oligo_R",
+                    region_id=region_id,
+                    oligo_id=probe_id,
+                )
+                new_properties[probe_id]["sequence_readout_probe_L"] = sequence_readout_probe_L
+                new_properties[probe_id]["sequence_readout_probe_R"] = sequence_readout_probe_R
 
-                sequence_readout_probe_L = readout_probe_sequences.iloc[0]
-                sequence_readout_probe_R = readout_probe_sequences.iloc[1]
-
-                new_probe_properties_encoding_probe[probe_id] = {
-                    "barcode": barcode,
-                    "sequence_target": format_sequence(
+                new_properties[probe_id]["sequence_hybridization_probe_L"] = (
+                    sequence_readout_probe_L
+                    + str(Seq(linker_sequence).reverse_complement())
+                    + format_sequence(
                         database=target_probe_database,
-                        property="target",
-                        region_id=region_id,
-                        oligo_id=probe_id,
-                    ),
-                    "sequence_target_probe_L": format_sequence(
-                        database=target_probe_database,
-                        property="oligo_pair_L",
-                        region_id=region_id,
-                        oligo_id=probe_id,
-                    ),
-                    "sequence_target_probe_R": format_sequence(
-                        database=target_probe_database,
-                        property="oligo_pair_R",
-                        region_id=region_id,
-                        oligo_id=probe_id,
-                    ),
-                    "sequence_readout_probe_L": sequence_readout_probe_L,
-                    "sequence_readout_probe_R": sequence_readout_probe_R,
-                    "sequence_encoding_probe_L": format_sequence(
-                        database=target_probe_database,
-                        property="oligo_pair_L",
+                        property="oligo_L",
                         region_id=region_id,
                         oligo_id=probe_id,
                     )
-                    + linker_sequence
-                    + str(Seq(sequence_readout_probe_L).reverse_complement()),
-                    "sequence_encoding_probe_R": str(Seq(sequence_readout_probe_R).reverse_complement())
-                    + linker_sequence
-                    + format_sequence(
+                )
+
+                new_properties[probe_id]["sequence_hybridization_probe_R"] = (
+                    format_sequence(
                         database=target_probe_database,
-                        property="oligo_pair_R",
+                        property="oligo_R",
                         region_id=region_id,
                         oligo_id=probe_id,
-                    ),
-                }
+                    )
+                    + str(Seq(linker_sequence).reverse_complement())
+                    + sequence_readout_probe_R
+                )
 
-            target_probe_database.update_oligo_properties(new_probe_properties_encoding_probe)
+            target_probe_database.update_oligo_properties(new_properties)
 
         return target_probe_database
 
@@ -582,128 +619,152 @@ class CycleHCRProbeDesigner:
 
         return reverse_primer_sequence, forward_primer_sequence
 
+    def assemble_dna_template_probes(
+        self,
+        hybridization_probe_database: OligoDatabase,
+        linker_sequence: str,
+        forward_primer_sequence: str,
+        reverse_primer_sequence: str,
+    ) -> OligoDatabase:
+        """
+        Assemble DNA template probes by combining hybridization probes with forward and reverse primers.
+
+        :param hybridization_probe_database: Database of hybridization probes containing sequence and property information.
+        :type hybridization_probe_database: OligoDatabase
+        :param linker_sequence: Sequence used to link hybridization probes and forward and reverse primers.
+        :type linker_sequence: str
+        :param forward_primer_sequence: Sequence of the forward primer.
+        :type forward_primer_sequence: str
+        :param reverse_primer_sequence: Sequence of the reverse primer.
+        :type reverse_primer_sequence: str
+        :return: Database of assembled DNA template probes with properties and sequences.
+        :rtype: OligoDatabase
+        """
+        region_ids = list(hybridization_probe_database.database.keys())
+        hybridization_probe_database.set_database_sequence_types(
+            [
+                "sequence_reverse_primer",
+                "sequence_forward_primer",
+                "sequence_dna_template_probe_L",
+                "sequence_dna_template_probe_R",
+            ]
+        )
+
+        for region_id in region_ids:
+            probe_ids = list(hybridization_probe_database.database[region_id].keys())
+            new_properties: dict[str, dict[str, str]] = {probe_id: {} for probe_id in probe_ids}
+
+            for probe_id in probe_ids:
+                new_properties[probe_id]["sequence_reverse_primer"] = reverse_primer_sequence
+                new_properties[probe_id]["sequence_forward_primer"] = forward_primer_sequence
+
+                new_properties[probe_id]["sequence_dna_template_probe_L"] = (
+                    forward_primer_sequence
+                    + str(
+                        Seq(
+                            format_sequence(
+                                database=hybridization_probe_database,
+                                property="sequence_oligo_L",
+                                region_id=region_id,
+                                oligo_id=probe_id,
+                            )
+                        ).reverse_complement()
+                    )
+                    + linker_sequence
+                    + str(
+                        Seq(
+                            format_sequence(
+                                database=hybridization_probe_database,
+                                property="sequence_readout_probe_L",
+                                region_id=region_id,
+                                oligo_id=probe_id,
+                            )
+                        ).reverse_complement()
+                    )
+                    + reverse_primer_sequence
+                )
+                new_properties[probe_id]["sequence_dna_template_probe_R"] = (
+                    forward_primer_sequence
+                    + str(
+                        Seq(
+                            format_sequence(
+                                database=hybridization_probe_database,
+                                property="sequence_readout_probe_R",
+                                region_id=region_id,
+                                oligo_id=probe_id,
+                            )
+                        ).reverse_complement()
+                    )
+                    + linker_sequence
+                    + str(
+                        Seq(
+                            format_sequence(
+                                database=hybridization_probe_database,
+                                property="sequence_oligo_R",
+                                region_id=region_id,
+                                oligo_id=probe_id,
+                            )
+                        ).reverse_complement()
+                    )
+                    + reverse_primer_sequence
+                )
+
+            hybridization_probe_database.update_oligo_properties(new_properties)
+
+        return hybridization_probe_database
+
     def generate_output(
         self,
-        encoding_probe_database: OligoDatabase,
-        reverse_primer_sequence: str,
-        forward_primer_sequence: str,
+        probe_database: OligoDatabase,
+        codebook: pd.DataFrame,
+        readout_probe_table: pd.DataFrame,
         top_n_sets: int = 3,
-        properties: list[str] = [
-            "source",
-            "species",
-            "annotation_release",
-            "genome_assembly",
-            "regiontype",
-            "gene_id",
-            "transcript_id",
-            "exon_number",
-            "chromosome",
-            "start",
-            "end",
-            "strand",
-            "sequence_cyclehcr_probe_L",
-            "sequence_cyclehcr_probe_R",
-            "sequence_encoding_probe_L",
-            "sequence_encoding_probe_L_rc",
-            "sequence_encoding_probe_R",
-            "sequence_encoding_probe_R_rc",
-            "sequence_readout_probe_L",
-            "sequence_readout_probe_R",
-            "sequence_forward_primer",
-            "sequence_reverse_primer",
-            "sequence_target",
-            "TmNN_oligo_pair_L",
-            "TmNN_oligo_pair_R",
-        ],
     ) -> None:
         """
         Generate the final output files for the CycleHCR probe design pipeline.
 
-        :param encoding_probe_database: Database of encoding probes with associated properties and sequences.
-        :type encoding_probe_database: OligoDatabase
-        :param reverse_primer_sequence: Sequence of the reverse primer.
-        :type reverse_primer_sequence: str
-        :param forward_primer_sequence: Sequence of the forward primer.
-        :type forward_primer_sequence: str
+        :param probe_database: Database of encoding probes with associated properties and sequences.
+        :type probe_database: OligoDatabase
+        :param codebook: Codebook used for the encoding probes.
+        :type codebook: pd.DataFrame
+        :param readout_probe_table: Table of readout probes used for the encoding probes.
+        :type readout_probe_table: pd.DataFrame
         :param top_n_sets: Number of top probe sets to include in the output, defaults to 3.
         :type top_n_sets: int
-        :param properties: List of properties to include in the output files, defaults to a comprehensive list of probe properties.
-        :type properties: list
 
         :return: None
         """
-        new_probe_properties_primer = {}
+        # write codebook and readout probe table
+        codebook.to_csv(os.path.join(self.dir_output, "codebook.tsv"), sep="\t")
+        readout_probe_table.to_csv(os.path.join(self.dir_output, "readout_probes.tsv"), sep="\t")
 
-        for region_id in encoding_probe_database.database.keys():
-            for probe_id in encoding_probe_database.database[region_id].keys():
-                new_probe_properties_primer[probe_id] = {
-                    "sequence_reverse_primer": reverse_primer_sequence,
-                    "sequence_forward_primer": forward_primer_sequence,
-                    "sequence_cyclehcr_probe_L": forward_primer_sequence
-                    + format_sequence(
-                        database=encoding_probe_database,
-                        property="sequence_encoding_probe_L",
-                        region_id=region_id,
-                        oligo_id=probe_id,
-                    )
-                    + reverse_primer_sequence,
-                    "sequence_cyclehcr_probe_R": forward_primer_sequence
-                    + format_sequence(
-                        database=encoding_probe_database,
-                        property="sequence_encoding_probe_R",
-                        region_id=region_id,
-                        oligo_id=probe_id,
-                    )
-                    + reverse_primer_sequence,
-                    "sequence_encoding_probe_L_rc": str(
-                        Seq(
-                            format_sequence(
-                                database=encoding_probe_database,
-                                property="sequence_encoding_probe_L",
-                                region_id=region_id,
-                                oligo_id=probe_id,
-                            )
-                        ).reverse_complement()
-                    ),
-                    "sequence_encoding_probe_R_rc": str(
-                        Seq(
-                            format_sequence(
-                                database=encoding_probe_database,
-                                property="sequence_encoding_probe_R",
-                                region_id=region_id,
-                                oligo_id=probe_id,
-                            )
-                        ).reverse_complement()
-                    ),
-                }
-        encoding_probe_database.update_oligo_properties(new_probe_properties_primer)
+        readout_probe_table_regions = []
+        for region_id, barcode in codebook.iterrows():
+            bits = barcode[barcode == 1].index
+            readout_probe_info = readout_probe_table.loc[bits, :]
+            readout_probe_info["region_id"] = region_id
+            readout_probe_table_regions.append(readout_probe_info)
+        readout_probe_table_regions_df = pd.concat(readout_probe_table_regions, axis=0)
+        readout_probe_table_regions_df[
+            ["region_id", "channel", "readout_probe_id", "L/R", "readout_probe_sequence"]
+        ].to_csv(os.path.join(self.dir_output, "readout_probes_regions.tsv"), sep="\t", index=False)
 
-        # Calculate Tm for oligo_pair_L
         tm_nn_property: BaseProperty = TmNNProperty(
             Tm_parameters=self.target_probe_Tm_parameters,
             Tm_chem_correction_parameters=self.target_probe_Tm_chem_correction_parameters,
             Tm_salt_correction_parameters=self.target_probe_Tm_salt_correction_parameters,
         )
-        calculator = PropertyCalculator(properties=[tm_nn_property])
-        encoding_probe_database = calculator.apply(
-            oligo_database=encoding_probe_database, sequence_type="oligo_pair_L", n_jobs=self.n_jobs
-        )
-        # Calculate Tm for oligo_pair_R
-        encoding_probe_database = calculator.apply(
-            oligo_database=encoding_probe_database, sequence_type="oligo_pair_R", n_jobs=self.n_jobs
-        )
-        # Calculate num targeted transcripts and isoform consensus
-        num_targeted_transcripts_property: BaseProperty = NumTargetedTranscriptsProperty()
-        isoform_consensus_property: BaseProperty = IsoformConsensusProperty()
-        calculator = PropertyCalculator(
-            properties=[num_targeted_transcripts_property, isoform_consensus_property]
-        )
-        # encoding_probe_database = calculator.apply(
-        #    oligo_database=encoding_probe_database, sequence_type="oligo", n_jobs=self.n_jobs
-        # )
 
-        encoding_probe_database.write_oligosets_to_yaml(
-            properties=properties,
+        calculator = PropertyCalculator(properties=[tm_nn_property])
+        probe_database = calculator.apply(
+            oligo_database=probe_database, sequence_type="sequence_oligo_L", n_jobs=self.n_jobs
+        )
+        probe_database = calculator.apply(
+            oligo_database=probe_database, sequence_type="sequence_oligo_R", n_jobs=self.n_jobs
+        )
+
+        probe_database.write_oligosets_to_yaml(
+            properties=self.output_properties,
             top_n_sets=top_n_sets,
             ascending=True,
             filename="cyclehcr_probes",
@@ -712,9 +773,9 @@ class CycleHCRProbeDesigner:
         # write a second file that only contains order information
         yaml_dict_order: dict[str, dict] = {}
 
-        for region_id in encoding_probe_database.database.keys():
+        for region_id in probe_database.database.keys():
             yaml_dict_order[region_id] = {}
-            oligosets_region = encoding_probe_database.oligosets[region_id]
+            oligosets_region = probe_database.oligosets[region_id]
             oligosets_oligo_columns = [col for col in oligosets_region.columns if col.startswith("oligo_")]
             oligosets_score_columns = [col for col in oligosets_region.columns if col.startswith("score_")]
 
@@ -728,25 +789,25 @@ class CycleHCRProbeDesigner:
                 yaml_dict_order[region_id][oligoset_id] = {}
                 for oligo_id in oligoset:
                     yaml_dict_order[region_id][oligoset_id][oligo_id] = {
-                        "sequence_cyclehcr_probe_L": encoding_probe_database.get_oligo_property_value(
-                            property="sequence_cyclehcr_probe_L",
+                        "sequence_dna_template_probe_L": probe_database.get_oligo_property_value(
+                            property="sequence_dna_template_probe_L",
                             region_id=region_id,
                             oligo_id=oligo_id,
                             flatten=True,
                         ),
-                        "sequence_cyclehcr_probe_R": encoding_probe_database.get_oligo_property_value(
-                            property="sequence_cyclehcr_probe_R",
+                        "sequence_dna_template_probe_R": probe_database.get_oligo_property_value(
+                            property="sequence_dna_template_probe_R",
                             region_id=region_id,
                             oligo_id=oligo_id,
                             flatten=True,
                         ),
-                        "sequence_readout_probe_L": encoding_probe_database.get_oligo_property_value(
+                        "sequence_readout_probe_L": probe_database.get_oligo_property_value(
                             property="sequence_readout_probe_L",
                             region_id=region_id,
                             oligo_id=oligo_id,
                             flatten=True,
                         ),
-                        "sequence_readout_probe_R": encoding_probe_database.get_oligo_property_value(
+                        "sequence_readout_probe_R": probe_database.get_oligo_property_value(
                             property="sequence_readout_probe_R",
                             region_id=region_id,
                             oligo_id=oligo_id,
@@ -782,7 +843,7 @@ class TargetProbeDesigner:
 
         ##### create the output folder #####
         self.dir_output = os.path.abspath(dir_output)
-        self.subdir_db_oligos = "db_probes"
+        self.subdir_db_oligos = "db_target_probes"
         self.subdir_db_reference = "db_reference"
 
         self.n_jobs = n_jobs
@@ -790,7 +851,7 @@ class TargetProbeDesigner:
     @pipeline_step_basic(step_name="Target Probe Generation - Create Database")
     def create_oligo_database(
         self,
-        gene_ids: list | None,
+        region_ids: list[str] | None,
         target_probe_L_probe_sequence_length: int,
         target_probe_gap_sequence_length: int,
         target_probe_R_probe_sequence_length: int,
@@ -802,9 +863,9 @@ class TargetProbeDesigner:
         Creates an oligo database by generating sequences using a sliding window approach
         and filtering based on specified criteria.
 
-        :param gene_ids: List of gene identifiers for which oligos should be generated.
-                        If None, all genes in the input fasta file are used.
-        :type gene_ids: list | None
+        :param region_ids: List of region identifiers for which oligos should be generated.
+                        If None, all regions in the input fasta file are used.
+        :type region_ids: list[str] | None
         :param target_probe_L_probe_sequence_length: Length of the left probe sequence.
         :type target_probe_L_probe_sequence_length: int
         :param target_probe_gap_sequence_length: Length of the gap sequence.
@@ -830,7 +891,7 @@ class TargetProbeDesigner:
         oligo_fasta_file = oligo_sequences.create_sequences_sliding_window(
             files_fasta_in=files_fasta_oligo_database,
             length_interval_sequences=(oligo_length, oligo_length),
-            region_ids=gene_ids,
+            region_ids=region_ids,
             n_jobs=self.n_jobs,
         )
 
@@ -847,10 +908,29 @@ class TargetProbeDesigner:
             files_fasta=oligo_fasta_file,
             database_overwrite=True,
             sequence_type="target",
-            region_ids=gene_ids,
+            region_ids=region_ids,
         )
         # Set all sequence types that will be used in this pipeline
-        oligo_database.set_database_sequence_types(["target", "oligo_pair_L", "oligo_pair_R", "spacer"])
+        oligo_database.set_database_sequence_types(["target", "oligo", "oligo_L", "oligo_R"])
+
+        ##### pre-filter oligo database for certain properties #####
+        isoform_consensus_property: BaseProperty = IsoformConsensusProperty()
+        reverse_complement_sequence_property: BaseProperty = ReverseComplementSequenceProperty(
+            sequence_type_reverse_complement="oligo"
+        )
+
+        calculator = PropertyCalculator(
+            properties=[isoform_consensus_property, reverse_complement_sequence_property]
+        )
+        oligo_database = calculator.apply(
+            oligo_database=oligo_database, sequence_type="target", n_jobs=self.n_jobs
+        )
+        oligo_database.filter_database_by_property_threshold(
+            property_name="isoform_consensus",
+            property_thr=isoform_consensus,
+            remove_if_smaller_threshold=True,
+        )
+
         ##### calculate probe pairs
         split_start_end = [
             (0, target_probe_L_probe_sequence_length),
@@ -866,27 +946,16 @@ class TargetProbeDesigner:
             ),
         ]
         # Calculate split sequence using new PropertyCalculator pattern
+        # first right then left sequence because we are splitting the oligo not the target sequence
         split_sequence_property: BaseProperty = SplitSequenceProperty(
             split_start_end=split_start_end,
-            split_names=["oligo_pair_L", "spacer", "oligo_pair_R"],
+            split_names=["oligo_R", "spacer", "oligo_L"],
         )
 
         calculator = PropertyCalculator(properties=[split_sequence_property])
         oligo_database = calculator.apply(
-            oligo_database=oligo_database, sequence_type="target", n_jobs=self.n_jobs
+            oligo_database=oligo_database, sequence_type="oligo", n_jobs=self.n_jobs
         )
-
-        ##### pre-filter oligo database for certain properties #####
-        isoform_consensus_property: BaseProperty = IsoformConsensusProperty()
-        calculator = PropertyCalculator(properties=[isoform_consensus_property])
-        # oligo_database = calculator.apply(
-        #     oligo_database=oligo_database, sequence_type="oligo", n_jobs=self.n_jobs
-        # )
-        # oligo_database.filter_database_by_property_threshold(
-        #    property_name="isoform_consensus",
-        #     property_thr=isoform_consensus,
-        #     remove_if_smaller_threshold=True,
-        # )
 
         dir = oligo_sequences.dir_output
         shutil.rmtree(dir) if os.path.exists(dir) else None
@@ -973,12 +1042,12 @@ class TargetProbeDesigner:
         # filter the database
         oligo_database = property_filter.apply(
             oligo_database=oligo_database,
-            sequence_type="oligo_pair_L",
+            sequence_type="oligo_L",
             n_jobs=self.n_jobs,
         )
         oligo_database = property_filter.apply(
             oligo_database=oligo_database,
-            sequence_type="oligo_pair_R",
+            sequence_type="oligo_R",
             n_jobs=self.n_jobs,
         )
         oligo_database.remove_regions_with_insufficient_oligos(pipeline_step="Property Filters")
@@ -1030,7 +1099,7 @@ class TargetProbeDesigner:
         )
 
         ##### define specificity filters #####
-        exact_matches = ExactMatchFilter(policy=RemoveAllFilterPolicy(), filter_name="oligo_exact_match")
+        exact_matches = ExactMatchFilter(policy=RemoveAllFilterPolicy(), filter_name="exact_match")
 
         specificity: AlignmentSpecificityFilter
         if junction_region_size > 0:
@@ -1059,7 +1128,7 @@ class TargetProbeDesigner:
         specificity_filter = SpecificityFilter(filters=[exact_matches, specificity])
         oligo_database = specificity_filter.apply(
             oligo_database=oligo_database,
-            sequence_type="target",
+            sequence_type="oligo",
             n_jobs=self.n_jobs,
         )
 
@@ -1074,7 +1143,7 @@ class TargetProbeDesigner:
         cross_hybridization_oligo_pair_L = CrossHybridizationFilter(
             policy=RemoveByLargerRegionFilterPolicy(),
             alignment_method=cross_hybridization_aligner_oligo_pair_L,
-            sequence_type_reference="oligo_pair_L",
+            sequence_type_reference="oligo_L",
             filter_name="blastn_crosshybridization",
             dir_output=self.dir_output,
         )
@@ -1088,7 +1157,7 @@ class TargetProbeDesigner:
         cross_hybridization_oligo_pair_R = CrossHybridizationFilter(
             policy=RemoveByLargerRegionFilterPolicy(),
             alignment_method=cross_hybridization_aligner_oligo_pair_R,
-            sequence_type_reference="oligo_pair_R",
+            sequence_type_reference="oligo_R",
             filter_name="blastn_crosshybridization",
             dir_output=self.dir_output,
         )
@@ -1099,12 +1168,12 @@ class TargetProbeDesigner:
         )
         oligo_database = specificity_filter.apply(
             oligo_database=oligo_database,
-            sequence_type="oligo_pair_L",
+            sequence_type="oligo_L",
             n_jobs=self.n_jobs,
         )
         oligo_database = specificity_filter.apply(
             oligo_database=oligo_database,
-            sequence_type="oligo_pair_R",
+            sequence_type="oligo_R",
             n_jobs=self.n_jobs,
         )
 
@@ -1261,7 +1330,7 @@ class TargetProbeDesigner:
         )
         oligo_database = probeset_generator.apply(
             oligo_database=oligo_database,
-            sequence_type="target",
+            sequence_type="oligo",
             set_size_opt=set_size_opt,
             set_size_min=set_size_min,
             n_sets=n_sets,
@@ -1496,7 +1565,7 @@ def main() -> None:
 
     ##### design probes #####
     target_probe_database = pipeline.design_target_probes(
-        gene_ids=gene_ids,
+        region_ids=gene_ids,
         files_fasta_target_probe_database=config["files_fasta_target_probe_database"],
         files_fasta_reference_database_target_probe=config["files_fasta_reference_database_target_probe"],
         target_probe_isoform_consensus=config["target_probe_isoform_consensus"],
@@ -1522,12 +1591,12 @@ def main() -> None:
     )
 
     codebook, readout_probe_table = pipeline.design_readout_probes(
-        n_regions=len(target_probe_database.database),
+        region_ids=list(target_probe_database.database.keys()),
         file_readout_probe_table=config["file_readout_probe_table"],
         file_codebook=config["file_codebook"],
     )
 
-    encoding_probe_database = pipeline.design_encoding_probe(
+    hybridization_probe_database = pipeline.assembl_hybridization_probes(
         target_probe_database=target_probe_database,
         codebook=codebook,
         readout_probe_table=readout_probe_table,
@@ -1539,10 +1608,17 @@ def main() -> None:
         reverse_primer_sequence=config["reverse_primer_sequence"],
     )
 
-    pipeline.generate_output(
-        encoding_probe_database=encoding_probe_database,
-        reverse_primer_sequence=reverse_primer_sequence,
+    final_probe_database = pipeline.assemble_dna_template_probes(
+        hybridization_probe_database=hybridization_probe_database,
+        linker_sequence=config["linker_sequence"],
         forward_primer_sequence=forward_primer_sequence,
+        reverse_primer_sequence=reverse_primer_sequence,
+    )
+
+    pipeline.generate_output(
+        probe_database=final_probe_database,
+        codebook=codebook,
+        readout_probe_table=readout_probe_table,
         top_n_sets=config["top_n_sets"],
     )
 

@@ -78,7 +78,7 @@ target_probe_secondary_structures_threshold_deltaG: 0 # threshold for the second
 # Specificity filter with BlastN
 target_probe_specificity_blastn_search_parameters:
   -perc_identity: 100
-  -strand: "plus" # this parameter is fixed, if reference is whole genome, consider using "both"
+  -strand: "minus" # this parameter is fixed, if reference is whole genome, consider using "both"
   -word_size: 10
   -dust: "no"
   -soft_masking: "false"
