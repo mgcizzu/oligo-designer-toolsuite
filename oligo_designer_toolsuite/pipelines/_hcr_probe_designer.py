@@ -110,7 +110,6 @@ class HcrProbeDesigner:
         ##### set class parameters #####
         self.write_intermediate_steps = write_intermediate_steps
         self.n_jobs = n_jobs
-        self.set_developer_parameters()
 
         ##### define output properties #####
         if output_properties is None:
@@ -142,50 +141,17 @@ class HcrProbeDesigner:
 
     def set_developer_parameters(
         self,
-        target_probe_specificity_blastn_search_parameters: dict = {
-            "-perc_identity": 80,
-            "-strand": "minus",
-            "-word_size": 10,
-            "-dust": "no",
-            "-soft_masking": "false",
-            "-max_target_seqs": 10,
-            "-max_hsps": 1000,
-        },
-        target_probe_specificity_blastn_hit_parameters: dict = {"coverage": 50},
-        target_probe_cross_hybridization_blastn_search_parameters: dict = {
-            "-perc_identity": 80,
-            "-strand": "minus",
-            "-word_size": 7,
-            "-dust": "no",
-            "-soft_masking": "false",
-            "-max_target_seqs": 10,
-        },
-        target_probe_cross_hybridization_blastn_hit_parameters: dict = {"coverage": 50},
-        target_probe_Tm_parameters: dict = {
-            "check": True,
-            "strict": True,
-            "c_seq": None,
-            "shift": 0,
-            "nn_table": "DNA_NN3",
-            "tmm_table": "DNA_TMM1",
-            "imm_table": "DNA_IMM1",
-            "de_table": "DNA_DE1",
-            "dnac1": 25,
-            "dnac2": 25,
-            "selfcomp": False,
-            "saltcorr": 0,
-            "Na": 50,
-            "K": 0,
-            "Tris": 0,
-            "Mg": 0,
-            "dNTPs": 0,
-        },
-        target_probe_Tm_chem_correction_parameters: dict | None = None,
-        target_probe_Tm_salt_correction_parameters: dict | None = None,
-        max_graph_size: int = 5000,
-        n_attempts: int = 100000,
-        heuristic: bool = True,
-        heuristic_n_attempts: int = 100,
+        target_probe_specificity_blastn_search_parameters: dict,
+        target_probe_specificity_blastn_hit_parameters: dict,
+        target_probe_cross_hybridization_blastn_search_parameters: dict,
+        target_probe_cross_hybridization_blastn_hit_parameters: dict,
+        target_probe_Tm_parameters: dict,
+        target_probe_Tm_chem_correction_parameters: dict | None,
+        target_probe_Tm_salt_correction_parameters: dict | None,
+        max_graph_size: int,
+        n_attempts: int,
+        heuristic: bool,
+        heuristic_n_attempts: int,
     ) -> None:
         """
         Set developer-specific parameters for HCR probe designer pipeline.
@@ -193,16 +159,16 @@ class HcrProbeDesigner:
 
         :param target_probe_specificity_blastn_search_parameters: Parameters for the BlastN specificity
             search for target probes.
-        :type target_probe_specificity_blastn_search_parameters: dict, optional
+        :type target_probe_specificity_blastn_search_parameters: dict
         :param target_probe_specificity_blastn_hit_parameters: Parameters for filtering BlastN hits
             for target probe specificity.
-        :type target_probe_specificity_blastn_hit_parameters: dict, optional
+        :type target_probe_specificity_blastn_hit_parameters: dict
         :param target_probe_cross_hybridization_blastn_search_parameters: Parameters for the BlastN
             cross-hybridization search for target probes.
-        :type target_probe_cross_hybridization_blastn_search_parameters: dict, optional
+        :type target_probe_cross_hybridization_blastn_search_parameters: dict
         :param target_probe_cross_hybridization_blastn_hit_parameters: Parameters for filtering
             BlastN hits for target probe cross-hybridization.
-        :type target_probe_cross_hybridization_blastn_hit_parameters: dict, optional
+        :type target_probe_cross_hybridization_blastn_hit_parameters: dict
         :param target_probe_Tm_parameters: Parameters for calculating melting temperature (Tm) of target probes.
             For using Bio.SeqUtils.MeltingTemp default parameters set to ``{}``. For more information on parameters,
             see: https://biopython.org/docs/1.75/api/Bio.SeqUtils.MeltingTemp.html#Bio.SeqUtils.MeltingTemp.Tm_NN
@@ -215,13 +181,13 @@ class HcrProbeDesigner:
             For using Bio.SeqUtils.MeltingTemp default parameters set to ``{}``. For more information on parameters,
             see: https://biopython.org/docs/1.75/api/Bio.SeqUtils.MeltingTemp.html#Bio.SeqUtils.MeltingTemp.chem_correction
         :type target_probe_Tm_salt_correction_parameters: dict
-        :param max_graph_size: Maximum size of the graph used in set selection, defaults to 5000.
+        :param max_graph_size: Maximum size of the graph used in set selection.
         :type max_graph_size: int
-        :param n_attempts: Maximum number of attempts for selecting oligo sets, defaults to 100000.
+        :param n_attempts: Maximum number of attempts for selecting oligo sets.
         :type n_attempts: int
-        :param heuristic: Whether to apply heuristic methods in oligo set selection, defaults to True.
+        :param heuristic: Whether to apply heuristic methods in oligo set selection.
         :type heuristic: bool
-        :param heuristic_n_attempts: Maximum number of attempts for heuristic selecting oligo sets, defaults to 100.
+        :param heuristic_n_attempts: Maximum number of attempts for heuristic selecting oligo sets.
         :type heuristic_n_attempts: int
         """
         ### Parameters for the specificity filters
@@ -264,24 +230,24 @@ class HcrProbeDesigner:
         self,
         files_fasta_target_probe_database: list[str],
         files_fasta_reference_database_target_probe: list[str],
-        region_ids: list[str] | None = None,
-        target_probe_isoform_consensus: float = 0,
-        target_probe_L_probe_sequence_length: int = 25,
-        target_probe_gap_sequence_length: int = 2,
-        target_probe_R_probe_sequence_length: int = 25,
-        target_probe_GC_content_min: float = 40,
-        target_probe_GC_content_max: float = 60,
-        target_probe_Tm_min: float = 57,
-        target_probe_Tm_max: float = 63,
-        target_probe_homopolymeric_base_n: dict = {"A": 4, "T": 4, "C": 4, "G": 4},
-        target_probe_T_secondary_structure: float = 37,
-        target_probe_secondary_structures_threshold_deltaG: float = 0,
-        target_probe_junction_region_size: int = 22,
-        target_probe_isoform_weight: float = 1,
-        set_size_opt: int = 25,
-        set_size_min: int = 10,
-        distance_between_target_probes: int = 2,
-        n_sets: int = 30,
+        region_ids: list[str] | None,
+        target_probe_isoform_consensus: float,
+        target_probe_L_probe_sequence_length: int,
+        target_probe_gap_sequence_length: int,
+        target_probe_R_probe_sequence_length: int,
+        target_probe_GC_content_min: float,
+        target_probe_GC_content_max: float,
+        target_probe_Tm_min: float,
+        target_probe_Tm_max: float,
+        target_probe_homopolymeric_base_n: dict,
+        target_probe_T_secondary_structure: float,
+        target_probe_secondary_structures_threshold_deltaG: float,
+        target_probe_junction_region_size: int,
+        target_probe_isoform_weight: float,
+        set_size_opt: int,
+        set_size_min: int,
+        distance_between_target_probes: int,
+        n_sets: int,
     ) -> OligoDatabase:
         """
         Design target probes based on specified parameters, including property and specificity filters.
@@ -292,40 +258,36 @@ class HcrProbeDesigner:
         :param files_fasta_reference_database_target_probe: List of input FASTA files for the reference database.
         :type files_fasta_reference_database_target_probe: list[str]
         :param region_ids: List of region IDs to target, or None to target all regions.
-        :type region_ids: list[str], optional
-        :param target_probe_isoform_consensus: Isoform consensus threshold for filtering. Default is 50.
+        :type region_ids: list[str]
+        :param target_probe_isoform_consensus: Isoform consensus threshold for filtering.
         :type target_probe_isoform_consensus: float
-        :param target_probe_L_probe_sequence_length: Length of the left probe sequence. Default is 45.
+        :param target_probe_L_probe_sequence_length: Length of the left probe sequence.
         :type target_probe_L_probe_sequence_length: int
-        :param target_probe_gap_sequence_length: Length of the gap sequence between left and right probes. Default is 2.
+        :param target_probe_gap_sequence_length: Length of the gap sequence between left and right probes.
         :type target_probe_gap_sequence_length: int
-        :param target_probe_R_probe_sequence_length: Length of the right probe sequence. Default is 45.
+        :param target_probe_R_probe_sequence_length: Length of the right probe sequence.
         :type target_probe_R_probe_sequence_length: int
-        :param target_probe_GC_content_min: Minimum GC content for target probes. Default is 43.
+        :param target_probe_GC_content_min: Minimum GC content for target probes.
         :type target_probe_GC_content_min: float
-        :param target_probe_GC_content_max: Maximum GC content for target probes. Default is 63.
+        :param target_probe_GC_content_max: Maximum GC content for target probes.
         :type target_probe_GC_content_max: float
-        :param target_probe_Tm_min: Minimum melting temperature (Tm) for target probes. Default is 66.
-        :type target_probe_Tm_min: float
-        :param target_probe_Tm_max: Maximum melting temperature (Tm) for target probes. Default is 76.
-        :type target_probe_Tm_max: float
-        :param target_probe_homopolymeric_base_n: Maximum allowed homopolymeric runs for each nucleotide. Default is {"A": 5, "T": 5, "C": 5, "G": 5}.
+        :param target_probe_homopolymeric_base_n: Maximum allowed homopolymeric runs for each nucleotide.
         :type target_probe_homopolymeric_base_n: dict[str, int]
-        :param target_probe_T_secondary_structure: Threshold temperature for secondary structure evaluation. Default is 76.
+        :param target_probe_T_secondary_structure: Threshold temperature for secondary structure evaluation.
         :type target_probe_T_secondary_structure: float
-        :param target_probe_secondary_structures_threshold_deltaG: DeltaG threshold for secondary structure stability. Default is 0.
+        :param target_probe_secondary_structures_threshold_deltaG: DeltaG threshold for secondary structure stability.
         :type target_probe_secondary_structures_threshold_deltaG: float
-        :param target_probe_junction_region_size: Size of the junction region for specificity filtering. Default is 13.
+        :param target_probe_junction_region_size: Size of the junction region for specificity filtering.
         :type target_probe_junction_region_size: int
-        :param target_probe_isoform_weight: Weight for isoform consensus in probe scoring. Default is 1.
+        :param target_probe_isoform_weight: Weight for isoform consensus in probe scoring.
         :type target_probe_isoform_weight: float
-        :param set_size_opt: Optimal size of oligo sets. Default is 50.
+        :param set_size_opt: Optimal size of oligo sets.
         :type set_size_opt: int
-        :param set_size_min: Minimum size of oligo sets. Default is 50.
+        :param set_size_min: Minimum size of oligo sets.
         :type set_size_min: int
-        :param distance_between_target_probes: Minimum genomic distance between probes in a set, defaults to 0.
-        :type distance_between_target_probes: int, optional
-        :param n_sets: Number of oligo sets to generate. Default is 100.
+        :param distance_between_target_probes: Minimum genomic distance between probes in a set.
+        :type distance_between_target_probes: int
+        :param n_sets: Number of oligo sets to generate.
         :type n_sets: int
         :return: An `OligoDatabase` object containing the designed target probes.
         :rtype: OligoDatabase
@@ -448,6 +410,14 @@ class HcrProbeDesigner:
                 "Generation of codebook is not yet implemented. " "Please provide a file_codebook parameter."
             )
 
+        # Check if all region_ids are in the codebook
+        missing_region_ids = set(region_ids) - set(codebook.index)
+        if len(missing_region_ids) > 0:
+            raise FileFormatError(
+                f"Codebook is missing the following region IDs: {sorted(missing_region_ids)}. "
+                f"Codebook contains {len(codebook)} regions: {sorted(codebook.index.tolist())}"
+            )
+
         return codebook, initiator_table
 
     def assemble_hybridization_probes(
@@ -567,7 +537,6 @@ class HcrProbeDesigner:
 
         :return: None
         """
-        print("writing output")
         # write codebook and readout probe table
         codebook.to_csv(os.path.join(self.dir_output, "codebook.tsv"), sep="\t", index_label="region_id")
         initiator_table.to_csv(os.path.join(self.dir_output, "initiators.tsv"), sep="\t")
@@ -585,8 +554,6 @@ class HcrProbeDesigner:
         probe_database = calculator.apply(
             oligo_database=probe_database, sequence_type="sequence_oligo_R", n_jobs=self.n_jobs
         )
-
-        print(self.output_properties)
 
         probe_database.write_oligosets_to_yaml(
             properties=self.output_properties,
