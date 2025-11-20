@@ -95,7 +95,13 @@ class MerfishProbeDesigner:
     :type n_jobs: int
     """
 
-    def __init__(self, write_intermediate_steps: bool, dir_output: str, n_jobs: int) -> None:
+    def __init__(
+        self,
+        write_intermediate_steps: bool,
+        dir_output: str,
+        n_jobs: int,
+        output_properties: list[str] | None = None,
+    ) -> None:
         """Constructor for the MerfishProbeDesigner class."""
 
         # create the output folder
@@ -113,6 +119,33 @@ class MerfishProbeDesigner:
         self.write_intermediate_steps = write_intermediate_steps
         self.n_jobs = n_jobs
         self.set_developer_parameters()
+
+        ##### define output properties #####
+        if output_properties is None:
+            self.output_properties = [
+                "source",
+                "species",
+                "annotation_release",
+                "genome_assembly",
+                "gene_id",
+                "chromosome",
+                "start",
+                "end",
+                "strand",
+                "regiontype",
+                "transcript_id",
+                "exon_number",
+                "sequence_target",
+                "sequence_readout_probe_1",
+                "sequence_readout_probe_2",
+                "sequence_hybridization_probe",
+                "sequence_forward_primer",
+                "sequence_reverse_primer",
+                "sequence_dna_template_probe",
+                "isoform_consensus",
+            ]
+        else:
+            self.output_properties = output_properties
 
     def set_developer_parameters(
         self,
@@ -591,7 +624,7 @@ class MerfishProbeDesigner:
 
     def design_readout_probes(
         self,
-        n_genes: int,
+        region_ids: list[str],
         files_fasta_reference_database_readout_probe: list[str],
         readout_probe_length: int = 20,
         readout_probe_base_probabilities: dict[str, float] = {
@@ -613,8 +646,8 @@ class MerfishProbeDesigner:
         """
         Design readout probes based on specified parameters.
 
-        :param n_genes: Number of genes for which readout probes are to be designed.
-        :type n_genes: int
+        :param region_ids: List of region IDs for which readout probes are to be designed.
+        :type region_ids: list[str]
         :param files_fasta_reference_database_readout_probe: List of input FASTA files for the reference database.
         :type files_fasta_reference_database_readout_probe: list[str]
         :param readout_probe_length: Length of each readout probe. Default is 20.
@@ -642,6 +675,8 @@ class MerfishProbeDesigner:
         :return: A tuple containing the generated codebook and readout probe table.
         :rtype: tuple[pd.DataFrame, pd.DataFrame]
         """
+        n_regions = len(region_ids)
+
         readout_probe_designer = ReadoutProbeDesigner(
             dir_output=self.dir_output,
             n_jobs=self.n_jobs,
@@ -703,7 +738,7 @@ class MerfishProbeDesigner:
             )
 
         codebook = readout_probe_designer.generate_codebook(
-            n_regions=n_genes,
+            n_regions=n_regions,
             n_bits=n_bits,
             min_hamming_dist=min_hamming_dist,
             hamming_weight=hamming_weight,
@@ -715,9 +750,13 @@ class MerfishProbeDesigner:
             n_bits=n_bits,
         )
 
+        codebook.index = region_ids + [
+            f"unassigned_barcode_{i+1}" for i in range(len(codebook.index) - len(region_ids))
+        ]
+
         return codebook, readout_probe_table
 
-    def design_encoding_probe(
+    def assemble_hybridization_probes(
         self,
         target_probe_database: OligoDatabase,
         codebook: pd.DataFrame,
@@ -740,57 +779,57 @@ class MerfishProbeDesigner:
         """
         region_ids = list(target_probe_database.database.keys())
 
-        codebook.index = region_ids + [
-            f"unassigned_barcode_{i+1}" for i in range(len(codebook.index) - len(region_ids))
-        ]
-        # codebook = codebook.iloc[: len(region_ids)]
-
-        codebook.to_csv(os.path.join(self.dir_output, "codebook.tsv"), sep="\t")
-        readout_probe_table.to_csv(os.path.join(self.dir_output, "readout_probes.tsv"), sep="\t")
+        target_probe_database.set_database_sequence_types(
+            [
+                "sequence_target",
+                "sequence_readout_probe_1",
+                "sequence_readout_probe_2",
+                "sequence_hybridization_probe",
+            ]
+        )
 
         for region_id in region_ids:
             barcode = codebook.loc[region_id]
             bits = barcode[barcode == 1].index
             readout_probe_sequences = readout_probe_table.loc[bits, "readout_probe_sequence"]
+            sequence_readout_probe_1 = readout_probe_sequences.iloc[0]
+            sequence_readout_probe_2 = readout_probe_sequences.iloc[1]
 
-            new_probe_properties_encoding_probe = {}
+            probe_ids = list(target_probe_database.database[region_id].keys())
+            new_properties: dict[str, dict[str, str]] = {probe_id: {} for probe_id in probe_ids}
 
-            for probe_id in target_probe_database.database[region_id].keys():
+            for probe_id in probe_ids:
 
-                sequence_readout_probe_1 = readout_probe_sequences.iloc[0]
-                sequence_readout_probe_2 = readout_probe_sequences.iloc[1]
+                new_properties[probe_id]["sequence_target"] = format_sequence(
+                    database=target_probe_database,
+                    property="target",
+                    region_id=region_id,
+                    oligo_id=probe_id,
+                )
 
-                new_probe_properties_encoding_probe[probe_id] = {
-                    "barcode": barcode,
-                    "sequence_target": target_probe_database.get_oligo_property_value(
-                        property="target", region_id=region_id, oligo_id=probe_id, flatten=True
-                    ),
-                    "sequence_target_probe": target_probe_database.get_oligo_property_value(
-                        property="oligo", region_id=region_id, oligo_id=probe_id, flatten=True
-                    ),
-                    "sequence_readout_probe_1": sequence_readout_probe_1,
-                    "sequence_readout_probe_2": sequence_readout_probe_2,
-                    "sequence_encoding_probe": (
-                        str(Seq(sequence_readout_probe_1).reverse_complement())
-                        + "A"
-                        + format_sequence(
-                            database=target_probe_database,
-                            property="oligo",
-                            region_id=region_id,
-                            oligo_id=probe_id,
-                        )
-                        + "A"
-                        + str(Seq(sequence_readout_probe_2).reverse_complement())
-                    ),
-                }
+                new_properties[probe_id]["sequence_readout_probe_1"] = sequence_readout_probe_1
+                new_properties[probe_id]["sequence_readout_probe_2"] = sequence_readout_probe_2
 
-            target_probe_database.update_oligo_properties(new_probe_properties_encoding_probe)
+                new_properties[probe_id]["sequence_hybridization_probe"] = (
+                    str(Seq(sequence_readout_probe_1).reverse_complement())
+                    + "A"
+                    + format_sequence(
+                        database=target_probe_database,
+                        property="oligo",
+                        region_id=region_id,
+                        oligo_id=probe_id,
+                    )
+                    + "A"
+                    + str(Seq(sequence_readout_probe_2).reverse_complement())
+                )
+
+            target_probe_database.update_oligo_properties(new_properties)
 
         return target_probe_database
 
     def design_primers(
         self,
-        encoding_probe_database: OligoDatabase,
+        hybridization_probe_database: OligoDatabase,
         files_fasta_reference_database_primer: list[str],
         reverse_primer_sequence: str = "CCCTATAGTGAGTCGTATTA",
         primer_length: int = 20,
@@ -810,8 +849,8 @@ class MerfishProbeDesigner:
         """
         Design forward and reverse primers for the encoding probe database.
 
-        :param encoding_probe_database: Path to the encoding probe database file.
-        :type encoding_probe_database: OligoDatabase
+        :param hybridization_probe_database: Path to the hybridization probe database file.
+        :type hybridization_probe_database: OligoDatabase
         :param files_fasta_reference_database_primer: List of input FASTA files for the reference database.
         :type files_fasta_reference_database_primer: list[str]
         :param reverse_primer_sequence: Sequence of the reverse primer. Default is "CCCTATAGTGAGTCGTATTA".
@@ -845,12 +884,14 @@ class MerfishProbeDesigner:
         :return: A tuple containing the reverse primer sequence and the selected forward primer sequence.
         :rtype: tuple[str, str]
         """
-        file_fasta_encoding_probes_database = encoding_probe_database.write_database_to_fasta(
-            filename=f"db_reference_encoding_probes",
+        file_fasta_hybridization_probes_database = hybridization_probe_database.write_database_to_fasta(
+            filename=f"db_reference_hybridization_probes",
             save_description=False,
             region_ids=None,
-            sequence_type="sequence_encoding_probe",
+            sequence_type="sequence_hybridization_probe",
         )
+
+        # TODO: allow providing or genrating reverse and foreward primers
 
         primer_designer = PrimerDesigner(
             dir_output=self.dir_output,
@@ -894,7 +935,7 @@ class MerfishProbeDesigner:
             files_fasta_reference_database=files_fasta_reference_database_primer,
             specificity_refrence_blastn_search_parameters=self.primer_specificity_refrence_blastn_search_parameters,
             specificity_refrence_blastn_hit_parameters=self.primer_specificity_refrence_blastn_hit_parameters,
-            file_fasta_encoding_probes_database=file_fasta_encoding_probes_database,
+            file_fasta_hybridization_probes_database=file_fasta_hybridization_probes_database,
             specificity_encoding_probes_blastn_search_parameters=self.primer_specificity_encoding_probes_blastn_search_parameters,
             specificity_encoding_probes_blastn_hit_parameters=self.primer_specificity_encoding_probes_blastn_hit_parameters,
         )
@@ -905,8 +946,6 @@ class MerfishProbeDesigner:
                 f"Saved primer database for step 3 (Specificity Filters) in directory {dir_database}"
             )
 
-        min_dif_Tm = float("inf")
-
         # calculate Tm for the reverse primer
         Tm_reverse_primer = calc_tm_nn(
             sequence=reverse_primer_sequence,
@@ -916,6 +955,8 @@ class MerfishProbeDesigner:
         )
 
         # iterate over all primers in the database to find the one with Tm closest to the reverse primer Tm
+        min_dif_Tm = float("inf")
+        forward_primer_sequence = ""
         for database_region in oligo_database.database.values():
             for primer_properties in database_region.values():
                 Tm_forward_primer = calc_tm_nn(
@@ -929,85 +970,88 @@ class MerfishProbeDesigner:
                     min_dif_Tm = dif_Tm
                     forward_primer_sequence = primer_properties["oligo"]
 
-        os.remove(file_fasta_encoding_probes_database)
+        os.remove(file_fasta_hybridization_probes_database)
 
         return reverse_primer_sequence, forward_primer_sequence
 
+    def assemble_dna_template_probes(
+        self,
+        hybridization_probe_database: OligoDatabase,
+        forward_primer_sequence: str,
+        reverse_primer_sequence: str,
+    ) -> OligoDatabase:
+        """
+        Assemble DNA template probes by combining hybridization probes with forward and reverse primers.
+
+        :param hybridization_probe_database: Database of hybridization probes containing sequence and property information.
+        :type hybridization_probe_database: OligoDatabase
+        :param linker_sequence: Sequence used to link hybridization probes and forward and reverse primers.
+        :type linker_sequence: str
+        :param forward_primer_sequence: Sequence of the forward primer.
+        :type forward_primer_sequence: str
+        :param reverse_primer_sequence: Sequence of the reverse primer.
+        :type reverse_primer_sequence: str
+        :return: Database of assembled DNA template probes with properties and sequences.
+        :rtype: OligoDatabase
+        """
+        region_ids = list(hybridization_probe_database.database.keys())
+        hybridization_probe_database.set_database_sequence_types(
+            [
+                "sequence_forward_primer",
+                "sequence_reverse_primer",
+                "sequence_dna_template_probe",
+            ]
+        )
+
+        for region_id in region_ids:
+            probe_ids = list(hybridization_probe_database.database[region_id].keys())
+            new_properties: dict[str, dict[str, str]] = {probe_id: {} for probe_id in probe_ids}
+
+            for probe_id in probe_ids:
+                new_properties[probe_id]["sequence_reverse_primer"] = reverse_primer_sequence
+                new_properties[probe_id]["sequence_forward_primer"] = forward_primer_sequence
+
+                new_properties[probe_id]["sequence_dna_template_probe"] = (
+                    forward_primer_sequence
+                    + format_sequence(
+                        database=hybridization_probe_database,
+                        property="sequence_hybridization_probe",
+                        region_id=region_id,
+                        oligo_id=probe_id,
+                    )
+                    + reverse_primer_sequence
+                )
+
+            hybridization_probe_database.update_oligo_properties(new_properties)
+
+        return hybridization_probe_database
+
     def generate_output(
         self,
-        encoding_probe_database: OligoDatabase,
-        reverse_primer_sequence: str,
-        forward_primer_sequence: str,
+        probe_database: OligoDatabase,
+        codebook: pd.DataFrame,
+        readout_probe_table: pd.DataFrame,
         top_n_sets: int = 3,
-        properties: list[str] = [
-            "source",
-            "species",
-            "annotation_release",
-            "genome_assembly",
-            "regiontype",
-            "gene_id",
-            "transcript_id",
-            "exon_number",
-            "chromosome",
-            "start",
-            "end",
-            "strand",
-            "sequence_merfish_probe",
-            "sequence_encoding_probe",
-            "sequence_readout_probe_1",
-            "sequence_readout_probe_2",
-            "sequence_forward_primer",
-            "sequence_reverse_primer",
-            "sequence_target",
-            "sequence_target_probe",
-            "GC_content_sequence_target_probe",
-            "isoform_consensus",
-        ],
     ) -> None:
         """
         Generate the final output files for the MERFISH probe design pipeline.
 
-        :param encoding_probe_database: Database of encoding probes with associated properties and sequences.
-        :type encoding_probe_database: OligoDatabase
-        :param reverse_primer_sequence: Sequence of the reverse primer.
-        :type reverse_primer_sequence: str
-        :param forward_primer_sequence: Sequence of the forward primer.
-        :type forward_primer_sequence: str
+        :param probe_database: Database of encoding probes with associated properties and sequences.
+        :type probe_database: OligoDatabase
+        :param codebook: Codebook used for the encoding probes.
+        :type codebook: pd.DataFrame
+        :param readout_probe_table: Table of readout probes used for the encoding probes.
+        :type readout_probe_table: pd.DataFrame
         :param top_n_sets: Number of top probe sets to include in the output, defaults to 3.
         :type top_n_sets: int
-        :param properties: List of properties to include in the output files, defaults to a comprehensive list of probe properties.
-        :type properties: list
 
         :return: None
         """
-        new_probe_properties_primer = {}
+        codebook.to_csv(os.path.join(self.dir_output, "codebook.tsv"), sep="\t", index_label="region_id")
+        readout_probe_table.to_csv(os.path.join(self.dir_output, "readout_probes.tsv"), sep="\t")
 
-        for region_id in encoding_probe_database.database.keys():
-            for probe_id in encoding_probe_database.database[region_id].keys():
-                new_probe_properties_primer[probe_id] = {
-                    "sequence_reverse_primer": reverse_primer_sequence,
-                    "sequence_forward_primer": forward_primer_sequence,
-                    "sequence_merfish_probe": forward_primer_sequence
-                    + format_sequence(
-                        database=encoding_probe_database,
-                        property="sequence_encoding_probe",
-                        region_id=region_id,
-                        oligo_id=probe_id,
-                    )
-                    + reverse_primer_sequence,
-                }
-        encoding_probe_database.update_oligo_properties(new_probe_properties_primer)
-
-        # Calculate GC content and isoform consensus
-        gc_content_property = GCContentProperty()
-        isoform_consensus_property = IsoformConsensusProperty()
-        calculator = PropertyCalculator(properties=[gc_content_property, isoform_consensus_property])
-        encoding_probe_database = calculator.apply(
-            oligo_database=encoding_probe_database, sequence_type="sequence_target_probe", n_jobs=self.n_jobs
-        )
-
-        encoding_probe_database.write_oligosets_to_yaml(
-            properties=properties,
+        probe_database.write_oligosets_to_yaml(
+            properties=self.output_properties,
             top_n_sets=top_n_sets,
             ascending=True,
             filename="merfish_probes.yml",
@@ -1016,9 +1060,9 @@ class MerfishProbeDesigner:
         # write a second file that only contains order information
         yaml_dict_order: dict[str, dict] = {}
 
-        for region_id in encoding_probe_database.database.keys():
+        for region_id in probe_database.database.keys():
             yaml_dict_order[region_id] = {}
-            oligosets_region = encoding_probe_database.oligosets[region_id]
+            oligosets_region = probe_database.oligosets[region_id]
             oligosets_oligo_columns = [col for col in oligosets_region.columns if col.startswith("oligo_")]
             oligosets_score_columns = [col for col in oligosets_region.columns if col.startswith("score_")]
 
@@ -1032,20 +1076,20 @@ class MerfishProbeDesigner:
                 yaml_dict_order[region_id][oligoset_id] = {}
                 for oligo_id in oligoset:
                     yaml_dict_order[region_id][oligoset_id][oligo_id] = {
-                        "sequence_merfish_probe": format_sequence(
-                            database=encoding_probe_database,
-                            property="sequence_merfish_probe",
+                        "sequence_dna_template_probe": format_sequence(
+                            database=probe_database,
+                            property="sequence_dna_template_probe",
                             region_id=region_id,
                             oligo_id=oligo_id,
                         ),
                         "sequence_readout_probe_1": format_sequence(
-                            database=encoding_probe_database,
+                            database=probe_database,
                             property="sequence_readout_probe_1",
                             region_id=region_id,
                             oligo_id=oligo_id,
                         ),
                         "sequence_readout_probe_2": format_sequence(
-                            database=encoding_probe_database,
+                            database=probe_database,
                             property="sequence_readout_probe_2",
                             region_id=region_id,
                             oligo_id=oligo_id,
@@ -1133,14 +1177,14 @@ class TargetProbeDesigner:
             dir_output=self.dir_output,
             n_jobs=1,
         )
+        oligo_database.set_database_sequence_types(["target", "oligo"])
         oligo_database.load_database_from_fasta(
             files_fasta=oligo_fasta_file,
             database_overwrite=True,
             sequence_type="target",
             region_ids=gene_ids,
         )
-        # Set all sequence types that will be used in this pipeline
-        oligo_database.set_database_sequence_types(["target", "oligo", "sequence_encoding_probe"])
+
         # Calculate reverse complement and isoform consensus
         properties = [
             ReverseComplementSequenceProperty(sequence_type_reverse_complement="oligo"),
@@ -1152,7 +1196,6 @@ class TargetProbeDesigner:
         )
 
         ##### pre-filter oligo database for certain properties #####
-
         oligo_database.filter_database_by_property_threshold(
             property_name="isoform_consensus",
             property_thr=isoform_consensus,
@@ -1583,14 +1626,13 @@ class ReadoutProbeDesigner:
             dir_output=self.dir_output,
             n_jobs=1,
         )
+        oligo_database.set_database_sequence_types(["oligo"])
         oligo_database.load_database_from_fasta(
             files_fasta=oligo_fasta_file,
             database_overwrite=True,
             sequence_type="oligo",
             region_ids=None,
         )
-        # Set all sequence types that will be used in this pipeline
-        oligo_database.set_database_sequence_types(["oligo"])
 
         dir = oligo_sequences.dir_output
         shutil.rmtree(dir) if os.path.exists(dir) else None
@@ -1822,26 +1864,30 @@ class ReadoutProbeDesigner:
                 barcode[i] = 1
             return barcode
 
-        codebook: list[np.ndarray] = []
+        codebook_list: list[np.ndarray] = []
         for raw_barcode in combinations(iterable=range(n_bits), r=hamming_weight):
             new_barcode = _generate_barcode(raw_barcode=list(raw_barcode), n_bits=n_bits)
             # check if the barcode passes the requirements
             add_new_barcode = True
-            for barcode in codebook:
+            for barcode in codebook_list:
                 hamming_dist = hamming(new_barcode, barcode) * n_bits
                 if hamming_dist < min_hamming_dist:
                     add_new_barcode = False
                     break
             if add_new_barcode:
-                codebook.append(new_barcode)
-        if len(codebook) < n_regions:
+                codebook_list.append(new_barcode)
+        if len(codebook_list) < n_regions:
             raise ConfigurationError(
-                f"The number of valid barcodes ({len(codebook)}) is lower than the number of regions ({n_regions}). "
+                f"The number of valid barcodes ({len(codebook_list)}) is lower than the number of regions ({n_regions}). "
                 f"Consider increasing the number of bits or reducing the number of regions."
             )
 
-        codebook_df: pd.DataFrame = pd.DataFrame(codebook, columns=[f"bit_{i+1}" for i in range(n_bits)])
-        return codebook_df
+        codebook: pd.DataFrame = pd.DataFrame(codebook_list, columns=[f"bit_{i+1}" for i in range(n_bits)])
+
+        # Remove columns where all values are 0
+        codebook = codebook.loc[:, (codebook != 0).any(axis=0)]
+
+        return codebook
 
     def create_readout_probe_table(
         self, readout_probe_database: OligoDatabase, channels_ids: list[str], n_bits: int
@@ -2098,7 +2144,7 @@ class PrimerDesigner:
         files_fasta_reference_database: list[str],
         specificity_refrence_blastn_search_parameters: dict,
         specificity_refrence_blastn_hit_parameters: dict,
-        file_fasta_encoding_probes_database: str,
+        file_fasta_hybridization_probes_database: str,
         specificity_encoding_probes_blastn_search_parameters: dict,
         specificity_encoding_probes_blastn_hit_parameters: dict,
     ) -> OligoDatabase:
@@ -2144,7 +2190,7 @@ class PrimerDesigner:
             database_name=self.subdir_db_reference, dir_output=self.dir_output
         )
         encoding_probes_database.load_database_from_file(
-            files=file_fasta_encoding_probes_database, file_type="fasta", database_overwrite=True
+            files=file_fasta_hybridization_probes_database, file_type="fasta", database_overwrite=True
         )
         # BlastN Filter
         specificity_encoding_probes = BlastNFilter(
@@ -2303,7 +2349,7 @@ def main() -> None:
     )
 
     codebook, readout_probe_table = pipeline.design_readout_probes(
-        n_genes=len(target_probe_database.database),
+        region_ids=list(target_probe_database.database.keys()),
         files_fasta_reference_database_readout_probe=config["files_fasta_reference_database_readout_probe"],
         readout_probe_length=config["readout_probe_length"],
         readout_probe_base_probabilities=config["readout_probe_base_probabilities"],
@@ -2318,14 +2364,14 @@ def main() -> None:
         channels_ids=config["channels_ids"],
     )
 
-    encoding_probe_database = pipeline.design_encoding_probe(
+    hybridization_probe_database = pipeline.assemble_hybridization_probes(
         target_probe_database=target_probe_database,
         codebook=codebook,
         readout_probe_table=readout_probe_table,
     )
 
     reverse_primer_sequence, forward_primer_sequence = pipeline.design_primers(
-        encoding_probe_database=encoding_probe_database,
+        hybridization_probe_database=hybridization_probe_database,
         files_fasta_reference_database_primer=config["files_fasta_reference_database_primer"],
         reverse_primer_sequence=config["reverse_primer_sequence"],
         primer_length=config["primer_length"],
@@ -2343,10 +2389,16 @@ def main() -> None:
         primer_secondary_structures_threshold_deltaG=config["primer_secondary_structures_threshold_deltaG"],
     )
 
-    pipeline.generate_output(
-        encoding_probe_database=encoding_probe_database,
+    probe_database = pipeline.assemble_dna_template_probes(
+        hybridization_probe_database=hybridization_probe_database,
         reverse_primer_sequence=reverse_primer_sequence,
         forward_primer_sequence=forward_primer_sequence,
+    )
+
+    pipeline.generate_output(
+        probe_database=probe_database,
+        codebook=codebook,
+        readout_probe_table=readout_probe_table,
         top_n_sets=config["top_n_sets"],
     )
 

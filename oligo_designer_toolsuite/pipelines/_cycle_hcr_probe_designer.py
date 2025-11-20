@@ -134,19 +134,18 @@ class CycleHCRProbeDesigner:
                 "exon_number",
                 "sequence_target",
                 "sequence_spacer",
-                "sequence_reverse_primer",
-                "sequence_forward_primer",
                 "sequence_readout_probe_L",
                 "sequence_readout_probe_R",
                 "sequence_hybridization_probe_L",
                 "sequence_hybridization_probe_R",
+                "sequence_forward_primer",
+                "sequence_reverse_primer",
                 "sequence_dna_template_probe_L",
                 "sequence_dna_template_probe_R",
                 "TmNN_sequence_target_L",
                 "TmNN_sequence_target_R",
                 "isoform_consensus",
             ]
-
         else:
             self.output_properties = output_properties
 
@@ -466,10 +465,7 @@ class CycleHCRProbeDesigner:
             )
 
         if file_codebook:
-            raise FeatureNotImplementedError(
-                "Loading of codebook from file is not yet implemented. "
-                "Leave file_codebook empty to generate a codebook automatically."
-            )
+            codebook = readout_probe_designer.load_codebook(file_codebook=file_codebook)
         else:
             codebook = readout_probe_designer.generate_codebook(
                 n_regions=len(region_ids),
@@ -483,7 +479,7 @@ class CycleHCRProbeDesigner:
 
         return codebook, readout_probe_table
 
-    def assembl_hybridization_probes(
+    def assemble_hybridization_probes(
         self,
         target_probe_database: OligoDatabase,
         codebook: pd.DataFrame,
@@ -735,7 +731,7 @@ class CycleHCRProbeDesigner:
         :return: None
         """
         # write codebook and readout probe table
-        codebook.to_csv(os.path.join(self.dir_output, "codebook.tsv"), sep="\t")
+        codebook.to_csv(os.path.join(self.dir_output, "codebook.tsv"), sep="\t", index_label="region_id")
         readout_probe_table.to_csv(os.path.join(self.dir_output, "readout_probes.tsv"), sep="\t")
 
         readout_probe_table_regions = []
@@ -1099,7 +1095,7 @@ class TargetProbeDesigner:
         )
 
         ##### define specificity filters #####
-        exact_matches = ExactMatchFilter(policy=RemoveAllFilterPolicy(), filter_name="exact_match")
+        exact_matches = ExactMatchFilter(policy=RemoveAllFilterPolicy(), filter_name="oligo_exact_match")
 
         specificity: AlignmentSpecificityFilter
         if junction_region_size > 0:
@@ -1112,14 +1108,14 @@ class TargetProbeDesigner:
                 seedregion_site_name="junction_site",
                 search_parameters=specificity_blastn_search_parameters,
                 hit_parameters=specificity_blastn_hit_parameters,
-                filter_name="blastn_specificity",
+                filter_name="oligo_blastn_specificity",
                 dir_output=self.dir_output,
             )
         else:
             specificity = BlastNFilter(
                 search_parameters=specificity_blastn_search_parameters,
                 hit_parameters=specificity_blastn_hit_parameters,
-                filter_name="blastn_specificity",
+                filter_name="oligo_blastn_specificity",
                 dir_output=self.dir_output,
             )
         specificity.set_reference_database(reference_database=reference_database)
@@ -1137,28 +1133,28 @@ class TargetProbeDesigner:
             remove_hits=True,
             search_parameters=cross_hybridization_blastn_search_parameters,
             hit_parameters=cross_hybridization_blastn_hit_parameters,
-            filter_name="blastn_crosshybridization",
+            filter_name="oligo_L_R_blastn_crosshybridization",
             dir_output=self.dir_output,
         )
         cross_hybridization_oligo_pair_L = CrossHybridizationFilter(
             policy=RemoveByLargerRegionFilterPolicy(),
             alignment_method=cross_hybridization_aligner_oligo_pair_L,
             sequence_type_reference="oligo_L",
-            filter_name="blastn_crosshybridization",
+            filter_name="oligo_L_R_blastn_crosshybridization",
             dir_output=self.dir_output,
         )
         cross_hybridization_aligner_oligo_pair_R = BlastNFilter(
             remove_hits=True,
             search_parameters=cross_hybridization_blastn_search_parameters,
             hit_parameters=cross_hybridization_blastn_hit_parameters,
-            filter_name="blastn_crosshybridization",
+            filter_name="oligo_L_R_blastn_crosshybridization",
             dir_output=self.dir_output,
         )
         cross_hybridization_oligo_pair_R = CrossHybridizationFilter(
             policy=RemoveByLargerRegionFilterPolicy(),
             alignment_method=cross_hybridization_aligner_oligo_pair_R,
             sequence_type_reference="oligo_R",
-            filter_name="blastn_crosshybridization",
+            filter_name="oligo_L_R_blastn_crosshybridization",
             dir_output=self.dir_output,
         )
 
@@ -1372,6 +1368,71 @@ class ReadoutProbeDesigner:
 
         self.n_jobs = n_jobs
 
+    @pipeline_step_basic(step_name="Readout Probe Generation - Create Oligo Database")
+    def create_oligo_database(
+        self,
+        oligo_length: int,
+        oligo_base_probabilities: dict,
+        initial_num_sequences: int,
+    ) -> OligoDatabase:
+        """
+        Create an oligo database containing sequences of specific length and base probabilities.
+
+        :param oligo_length: Length of the oligo sequences to generate.
+        :type oligo_length: int
+        :param oligo_base_probabilities: Dictionary specifying the base probabilities for each position in the oligo.
+        :type oligo_base_probabilities: dict
+        :param initial_num_sequences: Number of sequences to generate initially.
+        :type initial_num_sequences: int
+        :return: An OligoDatabase containing the generated oligo sequences.
+        :rtype: OligoDatabase
+        """
+        raise FeatureNotImplementedError("Creation of oligo database is not yet implemented. ")
+
+    @pipeline_step_basic(step_name="Readout Probe Generation - Set Selection")
+    def create_oligo_sets(
+        self,
+        oligo_database: OligoDatabase,
+    ) -> OligoDatabase:
+        """
+        Create oligo sets for the readout probes.
+
+        :param oligo_database: The oligo database to create sets from.
+        :type oligo_database: OligoDatabase
+        :return: The oligo database with the sets.
+        :rtype: OligoDatabase
+        """
+        raise FeatureNotImplementedError("Creation of oligo sets is not yet implemented. ")
+
+    @pipeline_step_basic(step_name="Readout Probe Generation - Property Filters")
+    def filter_by_property(
+        self,
+        oligo_database: OligoDatabase,
+    ) -> OligoDatabase:
+        """
+        Filter the oligo database by property.
+
+        :param oligo_database: The oligo database to filter.
+        :type oligo_database: OligoDatabase
+        :return: The filtered oligo database.
+        :rtype: OligoDatabase
+        """
+        raise FeatureNotImplementedError("Filtering by property is not yet implemented. ")
+
+    def filter_by_specificity(
+        self,
+        oligo_database: OligoDatabase,
+    ) -> OligoDatabase:
+        """
+        Filter the oligo database by specificity.
+
+        :param oligo_database: The oligo database to filter.
+        :type oligo_database: OligoDatabase
+        :return: The filtered oligo database.
+        :rtype: OligoDatabase
+        """
+        raise FeatureNotImplementedError("Filtering by specificity is not yet implemented. ")
+
     def generate_codebook(self, n_regions: int, n_channels: int, n_readout_probes_LR: int) -> pd.DataFrame:
         """
         Generate a codebook (barcode matrix) for encoding multiple regions using CycleHCR readout probes.
@@ -1396,7 +1457,7 @@ class ReadoutProbeDesigner:
             barcode[[index1, index2]] = 1
             return list(barcode)
 
-        codebook = []
+        codebook_list = []
         codebook_size = n_channels * n_readout_probes_LR * 2
 
         combinations = list(
@@ -1418,13 +1479,69 @@ class ReadoutProbeDesigner:
                 combination=combination,
                 codebook_size=codebook_size,
             )
-            codebook.append(barcode)
+            codebook_list.append(barcode)
 
-        codebook_df: pd.DataFrame = pd.DataFrame(
-            codebook, columns=[f"bit_{i+1}" for i in range(codebook_size)]
+        codebook: pd.DataFrame = pd.DataFrame(
+            codebook_list, columns=[f"bit_{i+1}" for i in range(codebook_size)]
         )
 
-        return codebook_df
+        # Remove columns where all values are 0
+        codebook = codebook.loc[:, (codebook != 0).any(axis=0)]
+
+        return codebook
+
+    def load_codebook(self, file_codebook: str) -> pd.DataFrame:
+        """
+        Load a codebook from a file.
+
+        :param file_codebook: Path to the file containing the codebook.
+        :type file_codebook: str
+        :return: The codebook with region IDs as index.
+        :rtype: pd.DataFrame
+        :raises FileFormatError: If the codebook doesn't contain at least one bit column,
+            at least one row, or if not all columns are named with "bit_*".
+        """
+        codebook = pd.read_csv(file_codebook, sep=None, engine="python", index_col="region_id")
+
+        # Check for at least one column
+        if len(codebook.columns) == 0:
+            raise FileFormatError(f"Codebook file '{file_codebook}' must contain at least one column.")
+
+        # Check that all columns start with "bit_"
+        non_bit_columns = [col for col in codebook.columns if not str(col).startswith("bit_")]
+        if len(non_bit_columns) > 0:
+            raise FileFormatError(
+                f"Codebook file '{file_codebook}' must have all columns named with 'bit_*'. "
+                f"Found columns that don't match: {non_bit_columns}"
+            )
+
+        # Check for at least one data row (excluding empty rows)
+        codebook_clean = codebook.dropna(how="all")
+        if len(codebook_clean) == 0:
+            raise FileFormatError(f"Codebook file '{file_codebook}' must contain at least one row with data.")
+
+        return codebook
+
+    def create_readout_probe_table(
+        self,
+        readout_probe_database: OligoDatabase,
+        channels_ids: list,
+    ) -> pd.DataFrame:
+        """
+        Create a readout probe table that maps bits to channels and readout probes.
+
+        :param readout_probe_database: The database containing readout probes and their sequences.
+        :type readout_probe_database: OligoDatabase
+        :param channels_ids: List of channel identifiers to assign to the readout probes (e.g., fluorophore channels).
+        :type channels_ids: list
+        :param n_barcode_rounds: Number of barcode rounds.
+        :type n_barcode_rounds: int
+        :param n_pseudocolors: Number of pseudocolors.
+        :type n_pseudocolors: int
+        :return: DataFrame containing the readout probe table with columns for bit, channel, readout probe ID, and readout probe sequence.
+        :rtype: pd.DataFrame
+        """
+        raise FeatureNotImplementedError("Generation of readout probe table is not yet implemented. ")
 
     def load_readout_probe_table(self, file_readout_probe_table: str) -> tuple[pd.DataFrame, int, int]:
         """
@@ -1596,7 +1713,7 @@ def main() -> None:
         file_codebook=config["file_codebook"],
     )
 
-    hybridization_probe_database = pipeline.assembl_hybridization_probes(
+    hybridization_probe_database = pipeline.assemble_hybridization_probes(
         target_probe_database=target_probe_database,
         codebook=codebook,
         readout_probe_table=readout_probe_table,
