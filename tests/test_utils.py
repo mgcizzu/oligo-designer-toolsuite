@@ -22,9 +22,9 @@ from oligo_designer_toolsuite.utils import (
     check_if_list_of_lists,
     check_if_region_in_database,
     check_tsv_format,
-    collapse_attributes_for_duplicated_sequences,
-    flatten_attribute_list,
-    format_oligo_attributes,
+    collapse_properties_for_duplicated_sequences,
+    flatten_property_list,
+    format_oligo_properties,
     generate_unique_filename,
     merge_databases,
 )
@@ -184,7 +184,7 @@ class TestDatabaseProcessor(unittest.TestCase):
         self.oligo_database2.filter_database_by_oligo(
             remove_region=False, oligo_ids=["AARS1::1", "AARS1::2", "AARS1::5"]
         )
-        self.oligo_database2.update_oligo_attributes({"AARS1::2": {"start": 70265560, "end": 70265660}})
+        self.oligo_database2.update_oligo_properties({"AARS1::2": {"start": 70265560, "end": 70265660}})
 
     def tearDown(self):
         shutil.rmtree(self.tmp_path)
@@ -201,40 +201,40 @@ class TestDatabaseProcessor(unittest.TestCase):
         assert len(oligo_database_merged["AARS1"]) == 4, "error: region not succesfully merged"
         assert oligo_database_merged["AARS1"]["AARS1::1"]["start"] == [
             [70265563]
-        ], "error: attributes incorrectly merged"
+        ], "error: properties incorrectly merged"
         assert oligo_database_merged["AARS1"]["AARS1::2"]["start"] == [
             [70265562],
             [70265560],
-        ], "error: attributes incorrectly merged"
+        ], "error: properties incorrectly merged"
 
-    def test_collapse_attributes_for_duplicated_sequences_dict_identical(self):
+    def test_collapse_properties_for_duplicated_sequences_dict_identical(self):
         dict1 = {"chromosome": [["10"]], "start": [[1000]], "end": [[2000]], "strand": [["+"]]}
         dict2 = {"chromosome": [["10"]], "start": [[1000]], "end": [[2000]], "strand": [["+"]]}
 
-        dict_merged = collapse_attributes_for_duplicated_sequences(dict1, dict2)
+        dict_merged = collapse_properties_for_duplicated_sequences(dict1, dict2)
 
         assert dict_merged == dict1, "error: identical dict should not have duplicated elements"
 
-    def test_collapse_attributes_for_duplicated_sequences_dict_different(self):
+    def test_collapse_properties_for_duplicated_sequences_dict_different(self):
         dict1 = {"chromosome": [["10"]], "start": [[1000]], "end": [[2000]], "strand": [["+"]]}
         dict2 = {"chromosome": [["11"]], "start": [[1020]], "end": [[2020]], "strand": [["-"]]}
 
-        dict_merged = collapse_attributes_for_duplicated_sequences(dict1, dict2)
+        dict_merged = collapse_properties_for_duplicated_sequences(dict1, dict2)
 
         assert dict_merged["chromosome"] == [["10"], ["11"]], "error: different dicts should have been merged"
         assert dict_merged["start"] == [[1000], [1020]], "error: different dicts should have been merged"
         assert dict_merged["end"] == [[2000], [2020]], "error: different dicts should have been merged"
         assert dict_merged["strand"] == [["+"], ["-"]], "error: different dicts should have been merged"
 
-    def test_format_oligo_attributes(self):
-        oligo_attributes = {"chromosome": "10", "start": [1000], "end": [[2000]], "strand": [["+"], ["-"]]}
+    def test_format_oligo_properties(self):
+        oligo_properties = {"chromosome": "10", "start": [1000], "end": [[2000]], "strand": [["+"], ["-"]]}
 
-        oligo_attributes = format_oligo_attributes(oligo_attributes=oligo_attributes)
+        oligo_properties = format_oligo_properties(oligo_properties=oligo_properties)
 
-        assert oligo_attributes["chromosome"] == [["10"]], "error: oligo attribute not correctly formatted"
-        assert oligo_attributes["start"] == [[1000]], "error: oligo attribute not correctly formatted"
-        assert oligo_attributes["end"] == [[2000]], "error: oligo attribute not correctly formatted"
-        assert oligo_attributes["strand"] == [["+"], ["-"]], "error: oligo attribute not correctly formatted"
+        assert oligo_properties["chromosome"] == [["10"]], "error: oligo property not correctly formatted"
+        assert oligo_properties["start"] == [[1000]], "error: oligo property not correctly formatted"
+        assert oligo_properties["end"] == [[2000]], "error: oligo property not correctly formatted"
+        assert oligo_properties["strand"] == [["+"], ["-"]], "error: oligo property not correctly formatted"
 
     def test_check_if_region_in_database(self):
         file_removed_regions = os.path.join(self.tmp_path, "removed_regions.tsv")
@@ -250,26 +250,26 @@ class TestDatabaseProcessor(unittest.TestCase):
         )
         assert removed_regions.region[0] == "no_region1", "error: region was not removed"
 
-    def test_flatten_attribute_list(self):
-        oligo_attributes = {
+    def test_flatten_property_list(self):
+        oligo_properties = {
             "chromosome": [["10"]],
             "start": [[1000], [1020]],
             "end": [[2000]],
             "strand": [["+", "+"], ["-"]],
         }
 
-        assert flatten_attribute_list(oligo_attributes["chromosome"]) == [
+        assert flatten_property_list(oligo_properties["chromosome"]) == [
             "10"
-        ], "error: attribute not flattened"
-        assert flatten_attribute_list(oligo_attributes["strand"]) == [
+        ], "error: property not flattened"
+        assert flatten_property_list(oligo_properties["strand"]) == [
             "+",
             "+",
             "-",
-        ], "error: attribute not flattened"
-        assert flatten_attribute_list(oligo_attributes["start"]) == [
+        ], "error: property not flattened"
+        assert flatten_property_list(oligo_properties["start"]) == [
             1000,
             1020,
-        ], "error: attribute not flattened"
+        ], "error: property not flattened"
 
 
 class TestGffParser(unittest.TestCase):

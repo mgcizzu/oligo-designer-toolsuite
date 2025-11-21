@@ -12,7 +12,12 @@ import numpy as np
 import pandas as pd
 from Bio import SeqIO
 
-from oligo_designer_toolsuite.database import OligoAttributes, OligoDatabase
+from oligo_designer_toolsuite.database import OligoDatabase
+from oligo_designer_toolsuite.oligo_property_calculator import (
+    PropertyCalculator,
+    SeedregionProperty,
+    SeedregionSiteProperty,
+)
 from oligo_designer_toolsuite.oligo_specificity_filter import AlignmentSpecificityFilter
 
 from ..utils._sequence_processor import get_sequence_from_annotation
@@ -127,7 +132,7 @@ class BlastNFilter(AlignmentSpecificityFilter):
         performs a BLAST search against the provided ReferenceDatabase index.
         The results are read into a DataFrame for further analysis.
 
-        :param oligo_database: The OligoDatabase containing the oligonucleotides and their associated attributes.
+        :param oligo_database: The OligoDatabase containing the oligonucleotides and their associated properties.
         :type oligo_database: OligoDatabase
         :param file_reference: Path to the reference file used for alignment filtering.
         :type file_reference: str
@@ -191,7 +196,7 @@ class BlastNFilter(AlignmentSpecificityFilter):
         considering either a minimum alignment length or a coverage percentage of the query sequence.
         Additionally, it can exclude hits where the query and reference sequences originate from the same region.
 
-        :param oligo_database: The OligoDatabase containing the oligonucleotides and their associated attributes (not utilized in this filter).
+        :param oligo_database: The OligoDatabase containing the oligonucleotides and their associated properties (not utilized in this filter).
         :type oligo_database: OligoDatabase
         :param search_results: DataFrame containing the results of the BLAST search.
         :type search_results: pd.DataFrame
@@ -537,7 +542,7 @@ class BlastNSeedregionFilterBase(BlastNFilter):
         The `_add_seed_region_information` method is intended to be implemented in subclasses.
         It processes the BLAST search results and integrates specific seed region data into the provided OligoDatabase.
 
-        :param oligo_database: The OligoDatabase containing the oligonucleotides and their associated attributes.
+        :param oligo_database: The OligoDatabase containing the oligonucleotides and their associated properties.
         :type oligo_database: OligoDatabase
         :param search_results: The DataFrame containing the results of the BLAST search.
         :type search_results: pd.DataFrame
@@ -560,7 +565,7 @@ class BlastNSeedregionFilterBase(BlastNFilter):
         This method processes the search results to identify significant hits by applying user-defined thresholds for alignment length or coverage.
         It also incorporates seed region information into the search results and optionally filters out hits that originate from the same region as the input sequence.
 
-        :param oligo_database: The OligoDatabase containing the oligonucleotides and their associated attributes.
+        :param oligo_database: The OligoDatabase containing the oligonucleotides and their associated properties.
         :type oligo_database: OligoDatabase
         :param search_results: DataFrame containing BLAST search results.
         :type search_results: pd.DataFrame
@@ -696,7 +701,7 @@ class BlastNSeedregionFilter(BlastNSeedregionFilterBase):
         This method enhances the BLAST search results by incorporating seed region start and end positions from the OligoDatabase.
         It calculates the seed region positions for each oligonucleotide and merges this information with the BLAST search results to refine the output.
 
-        :param oligo_database: The OligoDatabase containing the oligonucleotides and their associated attributes.
+        :param oligo_database: The OligoDatabase containing the oligonucleotides and their associated properties.
         :type oligo_database: OligoDatabase
         :param search_results: The DataFrame containing the results of the BLAST search.
         :type search_results: pd.DataFrame
@@ -705,16 +710,15 @@ class BlastNSeedregionFilter(BlastNSeedregionFilterBase):
         :return: The BLAST search results with added seed region information.
         :rtype: pd.DataFrame
         """
-        oligo_attributes_calculator = OligoAttributes()
-        oligo_database = oligo_attributes_calculator.calculate_seedregion(
-            oligo_database=oligo_database,
-            region_ids=region_id,
-            start=self.seedregion_start,
-            end=self.seedregion_end,
+        # Calculate seedregion using new PropertyCalculator pattern
+        properties = [SeedregionProperty(start=self.seedregion_start, end=self.seedregion_end)]
+        calculator = PropertyCalculator(properties=properties)
+        oligo_database = calculator.apply(
+            oligo_database=oligo_database, sequence_type=self.sequence_type, n_jobs=1
         )
 
-        seedregion = oligo_database.get_oligo_attribute_table(
-            ["seedregion_start", "seedregion_end"], region_id
+        seedregion = oligo_database.get_oligo_property_table(
+            properties=["seedregion_start", "seedregion_end"], flatten=True, region_ids=region_id, 
         )
         search_results = pd.merge(
             left=search_results,
@@ -749,7 +753,7 @@ class BlastNSeedregionSiteFilter(BlastNSeedregionFilterBase):
 
     :param seedregion_size: The size of the seed region around the seed region site to consider.
     :type seedregion_size: int
-    :param seedregion_site_name: The attribute name of the seed region site stored in the OligoDatabase.
+    :param seedregion_site_name: The property name of the seed region site stored in the OligoDatabase.
     :type seedregion_site_name: str
     :param remove_hits: If True, oligos overlapping variants are removed. If False, they are flagged.
     :type remove_hits: bool
@@ -804,7 +808,7 @@ class BlastNSeedregionSiteFilter(BlastNSeedregionFilterBase):
         This method calculates the seed region around the seed region site for each oligonucleotide in the OligoDatabase and
         merges this information with the BLASTN search results. The seed region is defined by the `seedregion_size` parameter.
 
-        :param oligo_database: The OligoDatabase containing the oligonucleotides and their associated attributes.
+        :param oligo_database: The OligoDatabase containing the oligonucleotides and their associated properties.
         :type oligo_database: OligoDatabase
         :param search_results: The DataFrame containing the results of the BLASTN search.
         :type search_results: pd.DataFrame
@@ -813,17 +817,22 @@ class BlastNSeedregionSiteFilter(BlastNSeedregionFilterBase):
         :return: The BLAST search results with added seed region information.
         :rtype: pd.DataFrame
         """
-        oligo_attributes_calculator = OligoAttributes()
-        oligo_database = oligo_attributes_calculator.calculate_seedregion_site(
-            oligo_database=oligo_database,
-            seedregion_size=self.seedregion_size,
-            seedregion_site_name=self.seedregion_site_name,
-            sequence_type=self.sequence_type,
-            region_ids=region_id,
+        # Calculate seedregion site using new PropertyCalculator pattern
+        properties = [
+            SeedregionSiteProperty(
+                seedregion_size=self.seedregion_size,
+                seedregion_site_name=self.seedregion_site_name,
+            )
+        ]
+        calculator = PropertyCalculator(properties=properties)
+        oligo_database = calculator.apply(
+            oligo_database=oligo_database, sequence_type=self.sequence_type, n_jobs=1
         )
 
-        seedregion = oligo_database.get_oligo_attribute_table(
-            ["seedregion_start", "seedregion_end"], region_id
+        seedregion = oligo_database.get_oligo_property_table(
+            properties=["seedregion_start", "seedregion_end"],
+            flatten=True,
+            region_ids=region_id,
         )
         search_results = pd.merge(
             left=search_results,

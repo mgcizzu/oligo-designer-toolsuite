@@ -17,12 +17,19 @@ import yaml
 from Bio.SeqUtils import MeltingTemp as mt
 from Bio.SeqUtils import Seq
 
-from oligo_designer_toolsuite.database import OligoAttributes, OligoDatabase, ReferenceDatabase
+from oligo_designer_toolsuite.database import OligoDatabase, ReferenceDatabase
 from oligo_designer_toolsuite.oligo_efficiency_filter import (
     AverageSetScoring,
     DeviationFromOptimalTmScorer,
     IsoformConsensusScorer,
     OligoScoring,
+)
+from oligo_designer_toolsuite.oligo_property_calculator import (
+    IsoformConsensusProperty,
+    NumTargetedTranscriptsProperty,
+    PropertyCalculator,
+    SplitSequenceProperty,
+    TmNNProperty,
 )
 from oligo_designer_toolsuite.oligo_property_filter import (
     GCContentFilter,
@@ -102,7 +109,6 @@ class CycleHCRProbeDesigner:
         ##### set class parameters #####
         self.write_intermediate_steps = write_intermediate_steps
         self.n_jobs = n_jobs
-        self.oligo_attributes_calculator = OligoAttributes()
         self.set_developer_parameters()
 
     def set_developer_parameters(
@@ -436,7 +442,7 @@ class CycleHCRProbeDesigner:
         """
         Design encoding probes by combining target probes with readout probe sequences based on the codebook.
 
-        :param target_probe_database: Database of target probes containing sequence and attribute information.
+        :param target_probe_database: Database of target probes containing sequence and property information.
         :type target_probe_database: OligoDatabase
         :param codebook: A DataFrame containing barcodes for each region. Each row corresponds to a region,
             with columns representing bits in the barcode.
@@ -446,7 +452,7 @@ class CycleHCRProbeDesigner:
         :type readout_probe_table: pd.DataFrame
         :param linker_sequence: Sequence used to link target probes and readout probes in the encoding probe.
         :type linker_sequence: str
-        :return: Updated target_probe_database with attributes for encoding probes, including sequences
+        :return: Updated target_probe_database with properties for encoding probes, including sequences
             for target probes, readout probes, and the full encoding probe sequence.
         :rtype: OligoDatabase
         """
@@ -476,39 +482,39 @@ class CycleHCRProbeDesigner:
             bits = barcode[barcode == 1].index
             readout_probe_sequences = readout_probe_table.loc[bits, "readout_probe_sequence"]
 
-            new_probe_attributes_encoding_probe = {}
+            new_probe_properties_encoding_probe = {}
 
             for probe_id in target_probe_database.database[region_id].keys():
 
                 sequence_readout_probe_L = readout_probe_sequences.iloc[0]
                 sequence_readout_probe_R = readout_probe_sequences.iloc[1]
 
-                new_probe_attributes_encoding_probe[probe_id] = {
+                new_probe_properties_encoding_probe[probe_id] = {
                     "barcode": barcode,
-                    "sequence_target": target_probe_database.get_oligo_attribute_value(
-                        attribute="target", region_id=region_id, oligo_id=probe_id, flatten=True
+                    "sequence_target": target_probe_database.get_oligo_property_value(
+                        property="target", region_id=region_id, oligo_id=probe_id, flatten=True
                     ),
-                    "sequence_target_probe_L": target_probe_database.get_oligo_attribute_value(
-                        attribute="oligo_pair_L", region_id=region_id, oligo_id=probe_id, flatten=True
+                    "sequence_target_probe_L": target_probe_database.get_oligo_property_value(
+                        property="oligo_pair_L", region_id=region_id, oligo_id=probe_id, flatten=True
                     ),
-                    "sequence_target_probe_R": target_probe_database.get_oligo_attribute_value(
-                        attribute="oligo_pair_R", region_id=region_id, oligo_id=probe_id, flatten=True
+                    "sequence_target_probe_R": target_probe_database.get_oligo_property_value(
+                        property="oligo_pair_R", region_id=region_id, oligo_id=probe_id, flatten=True
                     ),
                     "sequence_readout_probe_L": sequence_readout_probe_L,
                     "sequence_readout_probe_R": sequence_readout_probe_R,
-                    "sequence_encoding_probe_L": target_probe_database.get_oligo_attribute_value(
-                        attribute="oligo_pair_L", region_id=region_id, oligo_id=probe_id, flatten=True
+                    "sequence_encoding_probe_L": target_probe_database.get_oligo_property_value(
+                        property="oligo_pair_L", region_id=region_id, oligo_id=probe_id, flatten=True
                     )
                     + linker_sequence
                     + str(Seq(sequence_readout_probe_L).reverse_complement()),
                     "sequence_encoding_probe_R": str(Seq(sequence_readout_probe_R).reverse_complement())
                     + linker_sequence
-                    + target_probe_database.get_oligo_attribute_value(
-                        attribute="oligo_pair_R", region_id=region_id, oligo_id=probe_id, flatten=True
+                    + target_probe_database.get_oligo_property_value(
+                        property="oligo_pair_R", region_id=region_id, oligo_id=probe_id, flatten=True
                     ),
                 }
 
-            target_probe_database.update_oligo_attributes(new_probe_attributes_encoding_probe)
+            target_probe_database.update_oligo_properties(new_probe_properties_encoding_probe)
 
         return target_probe_database
 
@@ -553,7 +559,7 @@ class CycleHCRProbeDesigner:
         reverse_primer_sequence: str,
         forward_primer_sequence: str,
         top_n_sets: int = 3,
-        attributes=[
+        properties: list = [
             "source",
             "species",
             "annotation_release",
@@ -584,7 +590,7 @@ class CycleHCRProbeDesigner:
         """
         Generate the final output files for the CycleHCR probe design pipeline.
 
-        :param encoding_probe_database: Database of encoding probes with associated attributes and sequences.
+        :param encoding_probe_database: Database of encoding probes with associated properties and sequences.
         :type encoding_probe_database: OligoDatabase
         :param reverse_primer_sequence: Sequence of the reverse primer.
         :type reverse_primer_sequence: str
@@ -592,29 +598,29 @@ class CycleHCRProbeDesigner:
         :type forward_primer_sequence: str
         :param top_n_sets: Number of top probe sets to include in the output, defaults to 3.
         :type top_n_sets: int
-        :param attributes: List of attributes to include in the output files, defaults to a comprehensive list of probe attributes.
-        :type attributes: list
+        :param properties: List of properties to include in the output files, defaults to a comprehensive list of probe properties.
+        :type properties: list
 
         :return: None
         """
-        new_probe_attributes_primer = {}
+        new_probe_properties_primer = {}
 
         for region_id in encoding_probe_database.database.keys():
             for probe_id in encoding_probe_database.database[region_id].keys():
-                new_probe_attributes_primer[probe_id] = {
+                new_probe_properties_primer[probe_id] = {
                     "sequence_reverse_primer": reverse_primer_sequence,
                     "sequence_forward_primer": forward_primer_sequence,
                     "sequence_cyclehcr_probe_L": forward_primer_sequence
-                    + encoding_probe_database.get_oligo_attribute_value(
-                        attribute="sequence_encoding_probe_L",
+                    + encoding_probe_database.get_oligo_property_value(
+                        property="sequence_encoding_probe_L",
                         region_id=region_id,
                         oligo_id=probe_id,
                         flatten=True,
                     )
                     + reverse_primer_sequence,
                     "sequence_cyclehcr_probe_R": forward_primer_sequence
-                    + encoding_probe_database.get_oligo_attribute_value(
-                        attribute="sequence_encoding_probe_R",
+                    + encoding_probe_database.get_oligo_property_value(
+                        property="sequence_encoding_probe_R",
                         region_id=region_id,
                         oligo_id=probe_id,
                         flatten=True,
@@ -622,8 +628,8 @@ class CycleHCRProbeDesigner:
                     + reverse_primer_sequence,
                     "sequence_encoding_probe_L_rc": str(
                         Seq(
-                            encoding_probe_database.get_oligo_attribute_value(
-                                attribute="sequence_encoding_probe_L",
+                            encoding_probe_database.get_oligo_property_value(
+                                property="sequence_encoding_probe_L",
                                 region_id=region_id,
                                 oligo_id=probe_id,
                                 flatten=True,
@@ -632,8 +638,8 @@ class CycleHCRProbeDesigner:
                     ),
                     "sequence_encoding_probe_R_rc": str(
                         Seq(
-                            encoding_probe_database.get_oligo_attribute_value(
-                                attribute="sequence_encoding_probe_R",
+                            encoding_probe_database.get_oligo_property_value(
+                                property="sequence_encoding_probe_R",
                                 region_id=region_id,
                                 oligo_id=probe_id,
                                 flatten=True,
@@ -641,31 +647,34 @@ class CycleHCRProbeDesigner:
                         ).reverse_complement()
                     ),
                 }
-        encoding_probe_database.update_oligo_attributes(new_probe_attributes_primer)
+        encoding_probe_database.update_oligo_properties(new_probe_properties_primer)
 
-        encoding_probe_database = self.oligo_attributes_calculator.calculate_TmNN(
-            oligo_database=encoding_probe_database,
-            Tm_parameters=self.target_probe_Tm_parameters,
-            Tm_chem_correction_parameters=self.target_probe_Tm_chem_correction_parameters,
-            Tm_salt_correction_parameters=self.target_probe_Tm_salt_correction_parameters,
-            sequence_type="oligo_pair_L",
+        # Calculate Tm for oligo_pair_L
+        properties = [
+            TmNNProperty(
+                Tm_parameters=self.target_probe_Tm_parameters,
+                Tm_chem_correction_parameters=self.target_probe_Tm_chem_correction_parameters,
+                Tm_salt_correction_parameters=self.target_probe_Tm_salt_correction_parameters,
+            )
+        ]
+        calculator = PropertyCalculator(properties=properties)
+        encoding_probe_database = calculator.apply(
+            oligo_database=encoding_probe_database, sequence_type="oligo_pair_L", n_jobs=self.n_jobs
         )
-        encoding_probe_database = self.oligo_attributes_calculator.calculate_TmNN(
-            oligo_database=encoding_probe_database,
-            Tm_parameters=self.target_probe_Tm_parameters,
-            Tm_chem_correction_parameters=self.target_probe_Tm_chem_correction_parameters,
-            Tm_salt_correction_parameters=self.target_probe_Tm_salt_correction_parameters,
-            sequence_type="oligo_pair_R",
+        # Calculate Tm for oligo_pair_R
+        encoding_probe_database = calculator.apply(
+            oligo_database=encoding_probe_database, sequence_type="oligo_pair_R", n_jobs=self.n_jobs
         )
-        encoding_probe_database = self.oligo_attributes_calculator.calculate_num_targeted_transcripts(
-            oligo_database=encoding_probe_database
+        # Calculate num targeted transcripts and isoform consensus
+        properties = [NumTargetedTranscriptsProperty(), IsoformConsensusProperty()]
+        calculator = PropertyCalculator(properties=properties)
+        encoding_probe_database = calculator.apply(
+            oligo_database=encoding_probe_database, sequence_type="oligo", n_jobs=self.n_jobs
         )
-        encoding_probe_database = self.oligo_attributes_calculator.calculate_isoform_consensus(
-            oligo_database=encoding_probe_database
-        )
+        # Calculate isoform consensus using new PropertyCalculator pattern
 
         encoding_probe_database.write_oligosets_to_yaml(
-            attributes=attributes,
+            properties=properties,
             top_n_sets=top_n_sets,
             ascending=True,
             filename="cyclehcr_probes",
@@ -680,7 +689,7 @@ class CycleHCRProbeDesigner:
             oligosets_oligo_columns = [col for col in oligosets_region.columns if col.startswith("oligo_")]
             oligosets_score_columns = [col for col in oligosets_region.columns if col.startswith("score_")]
 
-            oligosets_region.sort_values(by=oligosets_score_columns, ascending=True)
+            oligosets_region.sort_values(by=oligosets_score_columns, ascending=True, inplace=True)
             oligosets_region = oligosets_region.head(top_n_sets)[oligosets_oligo_columns]
             oligosets_region.reset_index(inplace=True, drop=True)
 
@@ -690,26 +699,26 @@ class CycleHCRProbeDesigner:
                 yaml_dict_order[region_id][oligoset_id] = {}
                 for oligo_id in oligoset:
                     yaml_dict_order[region_id][oligoset_id][oligo_id] = {
-                        "sequence_cyclehcr_probe_L": encoding_probe_database.get_oligo_attribute_value(
-                            attribute="sequence_cyclehcr_probe_L",
+                        "sequence_cyclehcr_probe_L": encoding_probe_database.get_oligo_property_value(
+                            property="sequence_cyclehcr_probe_L",
                             region_id=region_id,
                             oligo_id=oligo_id,
                             flatten=True,
                         ),
-                        "sequence_cyclehcr_probe_R": encoding_probe_database.get_oligo_attribute_value(
-                            attribute="sequence_cyclehcr_probe_R",
+                        "sequence_cyclehcr_probe_R": encoding_probe_database.get_oligo_property_value(
+                            property="sequence_cyclehcr_probe_R",
                             region_id=region_id,
                             oligo_id=oligo_id,
                             flatten=True,
                         ),
-                        "sequence_readout_probe_L": encoding_probe_database.get_oligo_attribute_value(
-                            attribute="sequence_readout_probe_L",
+                        "sequence_readout_probe_L": encoding_probe_database.get_oligo_property_value(
+                            property="sequence_readout_probe_L",
                             region_id=region_id,
                             oligo_id=oligo_id,
                             flatten=True,
                         ),
-                        "sequence_readout_probe_R": encoding_probe_database.get_oligo_attribute_value(
-                            attribute="sequence_readout_probe_R",
+                        "sequence_readout_probe_R": encoding_probe_database.get_oligo_property_value(
+                            property="sequence_readout_probe_R",
                             region_id=region_id,
                             oligo_id=oligo_id,
                             flatten=True,
@@ -748,7 +757,6 @@ class TargetProbeDesigner:
         self.subdir_db_reference = "db_reference"
 
         self.n_jobs = n_jobs
-        self.oligo_attributes_calculator = OligoAttributes()
 
     @pipeline_step_basic(step_name="Target Probe Generation - Create Database")
     def create_oligo_database(
@@ -826,20 +834,28 @@ class TargetProbeDesigner:
                 + target_probe_R_probe_sequence_length,
             ),
         ]
-        oligo_database = self.oligo_attributes_calculator.calculate_split_sequence(
-            oligo_database=oligo_database,
-            split_start_end=split_start_end,
-            split_names=["oligo_pair_L", "spacer", "oligo_pair_R"],
-            sequence_type="target",
+        # Calculate split sequence using new PropertyCalculator pattern
+        properties = [
+            SplitSequenceProperty(
+                split_start_end=split_start_end,
+                split_names=["oligo_pair_L", "spacer", "oligo_pair_R"],
+            )
+        ]
+        calculator = PropertyCalculator(properties=properties)
+        oligo_database = calculator.apply(
+            oligo_database=oligo_database, sequence_type="target", n_jobs=self.n_jobs
         )
 
-        ##### pre-filter oligo database for certain attributes #####
-        oligo_database = self.oligo_attributes_calculator.calculate_isoform_consensus(
-            oligo_database=oligo_database
+        ##### pre-filter oligo database for certain properties #####
+        # Calculate isoform consensus using new PropertyCalculator pattern
+        properties = [IsoformConsensusProperty()]
+        calculator = PropertyCalculator(properties=properties)
+        oligo_database = calculator.apply(
+            oligo_database=oligo_database, sequence_type="oligo", n_jobs=self.n_jobs
         )
-        oligo_database.filter_database_by_attribute_threshold(
-            attribute_name="isoform_consensus",
-            attribute_thr=isoform_consensus,
+        oligo_database.filter_database_by_property_threshold(
+            property_name="isoform_consensus",
+            property_thr=isoform_consensus,
             remove_if_smaller_threshold=True,
         )
         oligo_database.remove_regions_with_insufficient_oligos(pipeline_step="Pre-Filters")
@@ -985,8 +1001,8 @@ class TargetProbeDesigner:
 
         if junction_region_size > 0:
             oligo_ids = oligo_database.get_oligoid_list()
-            oligo_database.update_oligo_attributes(
-                new_oligo_attribute={oligo_id: {"junction_site": junction_site} for oligo_id in oligo_ids}
+            oligo_database.update_oligo_properties(
+                new_oligo_property={oligo_id: {"junction_site": junction_site} for oligo_id in oligo_ids}
             )
             specificity = BlastNSeedregionSiteFilter(
                 seedregion_size=junction_region_size,

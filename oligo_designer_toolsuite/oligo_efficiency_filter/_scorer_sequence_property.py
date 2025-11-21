@@ -3,8 +3,9 @@
 ############################################
 
 from oligo_designer_toolsuite._constants import _TYPES_SEQ
-from oligo_designer_toolsuite.database import OligoAttributes, OligoDatabase
+from oligo_designer_toolsuite.database import OligoDatabase
 from oligo_designer_toolsuite.oligo_efficiency_filter import BaseScorer
+from oligo_designer_toolsuite.oligo_property_calculator import calc_gc_content, calc_tm_nn
 
 ############################################
 # Sequence Property Scorer Classes
@@ -66,7 +67,7 @@ class DeviationFromOptimalGCContentScorer(SequencePropertyScorer):
         """
         Calculate a score based on the absolute deviation of GC content from the optimal value.
 
-        :param oligo_database: The OligoDatabase containing the oligonucleotides and their associated attributes.
+        :param oligo_database: The OligoDatabase containing the oligonucleotides and their associated properties.
         :type oligo_database: OligoDatabase
         :param region_id: Region ID to process.
         :type region_id: str
@@ -77,10 +78,10 @@ class DeviationFromOptimalGCContentScorer(SequencePropertyScorer):
         :return: Weighted score based on GC content deviation.
         :rtype: float
         """
-        sequence = oligo_database.get_oligo_attribute_value(
-            attribute=sequence_type, region_id=region_id, oligo_id=oligo_id, flatten=True
+        sequence = oligo_database.get_oligo_property_value(
+            property=sequence_type, region_id=region_id, oligo_id=oligo_id, flatten=True
         )
-        GC_content_oligo = OligoAttributes._calc_GC_content(sequence=sequence)
+        GC_content_oligo = calc_gc_content(sequence=sequence)
         GC_content_dev = abs(self.GC_content_opt - GC_content_oligo)
 
         score = self.score_weight * GC_content_dev
@@ -124,7 +125,7 @@ class DeviationFromOptimalTmScorer(SequencePropertyScorer):
         """
         Calculate a score based on the absolute deviation of Tm from the optimal value.
 
-        :param oligo_database: The OligoDatabase containing the oligonucleotides and their associated attributes.
+        :param oligo_database: The OligoDatabase containing the oligonucleotides and their associated properties.
         :type oligo_database: OligoDatabase
         :param region_id: Region ID to process.
         :type region_id: str
@@ -135,10 +136,10 @@ class DeviationFromOptimalTmScorer(SequencePropertyScorer):
         :return: Weighted score based on Tm deviation.
         :rtype: float
         """
-        sequence = oligo_database.get_oligo_attribute_value(
-            attribute=sequence_type, region_id=region_id, oligo_id=oligo_id, flatten=True
+        sequence = oligo_database.get_oligo_property_value(
+            property=sequence_type, region_id=region_id, oligo_id=oligo_id, flatten=True
         )
-        Tm_oligo = OligoAttributes._calc_TmNN(
+        Tm_oligo = calc_tm_nn(
             sequence=sequence,
             Tm_parameters=self.Tm_parameters,
             Tm_salt_correction_parameters=self.Tm_salt_correction_parameters,
@@ -188,7 +189,7 @@ class NormalizedDeviationFromOptimalGCContentScorer(SequencePropertyScorer):
         """
         Calculate a score based on normalized deviation of GC content from optimal value.
 
-        :param oligo_database: The OligoDatabase containing the oligonucleotides and their associated attributes.
+        :param oligo_database: The OligoDatabase containing the oligonucleotides and their associated properties.
         :type oligo_database: OligoDatabase
         :param region_id: Region ID to process.
         :type region_id: str
@@ -199,10 +200,10 @@ class NormalizedDeviationFromOptimalGCContentScorer(SequencePropertyScorer):
         :return: Weighted score based on normalized GC content deviation.
         :rtype: float
         """
-        sequence = oligo_database.get_oligo_attribute_value(
-            attribute=sequence_type, region_id=region_id, oligo_id=oligo_id, flatten=True
+        sequence = oligo_database.get_oligo_property_value(
+            property=sequence_type, region_id=region_id, oligo_id=oligo_id, flatten=True
         )
-        GC_content_oligo = OligoAttributes._calc_GC_content(sequence=sequence)
+        GC_content_oligo = calc_gc_content(sequence=sequence)
         GC_content_dev = GC_content_oligo - self.GC_content_opt
         GC_content_dev_norm = self._normalize_deviation(
             GC_content_dev, self.GC_content_min, self.GC_content_opt, self.GC_content_max
@@ -262,7 +263,7 @@ class NormalizedDeviationFromOptimalTmScorer(SequencePropertyScorer):
         """
         Calculate a score based on normalized deviation of Tm from the optimal value.
 
-        :param oligo_database: The OligoDatabase containing the oligonucleotides and their associated attributes.
+        :param oligo_database: The OligoDatabase containing the oligonucleotides and their associated properties.
         :type oligo_database: OligoDatabase
         :param region_id: Region ID to process.
         :type region_id: str
@@ -273,10 +274,10 @@ class NormalizedDeviationFromOptimalTmScorer(SequencePropertyScorer):
         :return: Weighted score based on normalized Tm deviation.
         :rtype: float
         """
-        sequence = oligo_database.get_oligo_attribute_value(
-            attribute=sequence_type, region_id=region_id, oligo_id=oligo_id, flatten=True
+        sequence = oligo_database.get_oligo_property_value(
+            property=sequence_type, region_id=region_id, oligo_id=oligo_id, flatten=True
         )
-        Tm_oligo = OligoAttributes._calc_TmNN(
+        Tm_oligo = calc_tm_nn(
             sequence=sequence,
             Tm_parameters=self.Tm_parameters,
             Tm_salt_correction_parameters=self.Tm_salt_correction_parameters,

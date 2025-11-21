@@ -17,13 +17,22 @@ import yaml
 from Bio.SeqUtils import MeltingTemp as mt
 from Bio.SeqUtils import Seq
 
-from oligo_designer_toolsuite.database import OligoAttributes, OligoDatabase, ReferenceDatabase
+from oligo_designer_toolsuite.database import OligoDatabase, ReferenceDatabase
 from oligo_designer_toolsuite.oligo_efficiency_filter import (
     DeviationFromOptimalGCContentScorer,
     LowestSetScoring,
     OligoScoring,
     OverlapUTRScorer,
 )
+from oligo_designer_toolsuite.oligo_property_calculator import (
+    GCContentProperty,
+    IsoformConsensusProperty,
+    LengthProperty,
+    NumTargetedTranscriptsProperty,
+    PropertyCalculator,
+    ReverseComplementSequenceProperty,
+)
+from oligo_designer_toolsuite.oligo_property_calculator._property_functions import calc_tm_nn
 from oligo_designer_toolsuite.oligo_property_filter import (
     ComplementFilter,
     GCClampFilter,
@@ -108,7 +117,6 @@ class SeqFishPlusProbeDesigner:
         ##### set class parameters #####
         self.write_intermediate_steps = write_intermediate_steps
         self.n_jobs = n_jobs
-        self.oligo_attributes_calculator = OligoAttributes()
         self.set_developer_parameters()
 
     def set_developer_parameters(
@@ -574,7 +582,7 @@ class SeqFishPlusProbeDesigner:
         """
         Design encoding probes by combining target probes with readout probe sequences based on the codebook.
 
-        :param target_probe_database: Database of target probes containing sequence and attribute information.
+        :param target_probe_database: Database of target probes containing sequence and property information.
         :type target_probe_database: OligoDatabase
         :param codebook: A DataFrame containing barcodes for each region. Each row corresponds to a region,
             with columns representing bits in the barcode.
@@ -582,7 +590,7 @@ class SeqFishPlusProbeDesigner:
         :param readout_probe_table: A DataFrame containing readout probe sequences and their associated bit
             identifiers.
         :type readout_probe_table: pd.DataFrame
-        :return: Updated target_probe_database with attributes for encoding probes, including sequences
+        :return: Updated target_probe_database with properties for encoding probes, including sequences
             for target probes, readout probes, and the full encoding probe sequence.
         :rtype: OligoDatabase
         """
@@ -602,7 +610,7 @@ class SeqFishPlusProbeDesigner:
             bits = barcode[barcode == 1].index
             readout_probe_sequences = readout_probe_table.loc[bits, "readout_probe_sequence"]
 
-            new_probe_attributes_encoding_probe = {}
+            new_probe_properties_encoding_probe = {}
 
             for probe_id in target_probe_database.database[region_id].keys():
 
@@ -611,13 +619,13 @@ class SeqFishPlusProbeDesigner:
                 sequence_readout_probe_3 = readout_probe_sequences.iloc[2]
                 sequence_readout_probe_4 = readout_probe_sequences.iloc[3]
 
-                new_probe_attributes_encoding_probe[probe_id] = {
+                new_probe_properties_encoding_probe[probe_id] = {
                     "barcode": barcode,
-                    "sequence_target": target_probe_database.get_oligo_attribute_value(
-                        attribute="target", region_id=region_id, oligo_id=probe_id, flatten=True
+                    "sequence_target": target_probe_database.get_oligo_property_value(
+                        property="target", region_id=region_id, oligo_id=probe_id, flatten=True
                     ),
-                    "sequence_target_probe": target_probe_database.get_oligo_attribute_value(
-                        attribute="oligo", region_id=region_id, oligo_id=probe_id, flatten=True
+                    "sequence_target_probe": target_probe_database.get_oligo_property_value(
+                        property="oligo", region_id=region_id, oligo_id=probe_id, flatten=True
                     ),
                     "sequence_readout_probe_1": sequence_readout_probe_1,
                     "sequence_readout_probe_2": sequence_readout_probe_2,
@@ -627,8 +635,8 @@ class SeqFishPlusProbeDesigner:
                         str(Seq(sequence_readout_probe_1).reverse_complement())
                         + str(Seq(sequence_readout_probe_2).reverse_complement())
                         + "T"
-                        + target_probe_database.get_oligo_attribute_value(
-                            attribute="oligo", region_id=region_id, oligo_id=probe_id, flatten=True
+                        + target_probe_database.get_oligo_property_value(
+                            property="oligo", region_id=region_id, oligo_id=probe_id, flatten=True
                         )
                         + "T"
                         + str(Seq(sequence_readout_probe_3).reverse_complement())
@@ -636,7 +644,7 @@ class SeqFishPlusProbeDesigner:
                     ),
                 }
 
-            target_probe_database.update_oligo_attributes(new_probe_attributes_encoding_probe)
+            target_probe_database.update_oligo_properties(new_probe_properties_encoding_probe)
 
         return target_probe_database
 
@@ -761,7 +769,7 @@ class SeqFishPlusProbeDesigner:
         min_dif_Tm = 100
 
         # calculate Tm for the reverse primer
-        Tm_reverse_primer = OligoAttributes._calc_TmNN(
+        Tm_reverse_primer = calc_tm_nn(
             sequence=reverse_primer_sequence,
             Tm_parameters=self.primer_Tm_parameters,
             Tm_chem_correction_parameters=self.primer_Tm_chem_correction_parameters,
@@ -770,9 +778,9 @@ class SeqFishPlusProbeDesigner:
 
         # iterate over all primers in the database to find the one with Tm closest to the reverse primer Tm
         for database_region in oligo_database.database.values():
-            for primer_attributes in database_region.values():
-                Tm_forward_primer = OligoAttributes._calc_TmNN(
-                    sequence=primer_attributes["oligo"],
+            for primer_properties in database_region.values():
+                Tm_forward_primer = calc_tm_nn(
+                    sequence=primer_properties["oligo"],
                     Tm_parameters=self.primer_Tm_parameters,
                     Tm_chem_correction_parameters=self.primer_Tm_chem_correction_parameters,
                     Tm_salt_correction_parameters=self.primer_Tm_salt_correction_parameters,
@@ -780,7 +788,7 @@ class SeqFishPlusProbeDesigner:
                 dif_Tm = abs(Tm_forward_primer - Tm_reverse_primer)
                 if dif_Tm < min_dif_Tm:
                     min_dif_Tm = dif_Tm
-                    forward_primer_sequence = primer_attributes["oligo"]
+                    forward_primer_sequence = primer_properties["oligo"]
 
         os.remove(file_fasta_encoding_probes_database)
 
@@ -792,7 +800,7 @@ class SeqFishPlusProbeDesigner:
         reverse_primer_sequence: str,
         forward_primer_sequence: str,
         top_n_sets: int,
-        attributes=[
+        properties: list = [
             "source",
             "species",
             "annotation_release",
@@ -824,10 +832,10 @@ class SeqFishPlusProbeDesigner:
         Generate the final output files for the SeqFish+ probe design pipeline.
 
         This method updates the encoding probe database with primer sequences, computes
-        additional attributes, and writes the results to YAML files, including a file
+        additional properties, and writes the results to YAML files, including a file
         for probe order information.
 
-        :param encoding_probe_database: Database of encoding probes with associated attributes and sequences.
+        :param encoding_probe_database: Database of encoding probes with associated properties and sequences.
         :type encoding_probe_database: OligoDatabase
         :param reverse_primer_sequence: Sequence of the reverse primer.
         :type reverse_primer_sequence: str
@@ -835,44 +843,43 @@ class SeqFishPlusProbeDesigner:
         :type forward_primer_sequence: str
         :param top_n_sets: Number of top probe sets to include in the output, defaults to 3.
         :type top_n_sets: int
-        :param attributes: List of attributes to include in the output files, defaults to a comprehensive list of probe attributes.
-        :type attributes: list
+        :param properties: List of properties to include in the output files, defaults to a comprehensive list of probe properties.
+        :type properties: list
 
         :return: None
         """
-        new_probe_attributes_primer = {}
+        new_probe_properties_primer = {}
 
         for region_id in encoding_probe_database.database.keys():
             for probe_id in encoding_probe_database.database[region_id].keys():
-                new_probe_attributes_primer[probe_id] = {
+                new_probe_properties_primer[probe_id] = {
                     "sequence_reverse_primer": reverse_primer_sequence,
                     "sequence_forward_primer": forward_primer_sequence,
                     "sequence_seqfish_plus_probe": forward_primer_sequence
-                    + encoding_probe_database.get_oligo_attribute_value(
-                        attribute="sequence_encoding_probe",
+                    + encoding_probe_database.get_oligo_property_value(
+                        property="sequence_encoding_probe",
                         region_id=region_id,
                         oligo_id=probe_id,
                         flatten=True,
                     )
                     + reverse_primer_sequence,
                 }
-        encoding_probe_database.update_oligo_attributes(new_probe_attributes_primer)
+        encoding_probe_database.update_oligo_properties(new_probe_properties_primer)
 
-        encoding_probe_database = self.oligo_attributes_calculator.calculate_oligo_length(
-            oligo_database=encoding_probe_database
-        )
-        encoding_probe_database = self.oligo_attributes_calculator.calculate_GC_content(
-            oligo_database=encoding_probe_database, sequence_type="oligo"
-        )
-        encoding_probe_database = self.oligo_attributes_calculator.calculate_num_targeted_transcripts(
-            oligo_database=encoding_probe_database
-        )
-        encoding_probe_database = self.oligo_attributes_calculator.calculate_isoform_consensus(
-            oligo_database=encoding_probe_database
+        # Calculate oligo length, GC content, num targeted transcripts, and isoform consensus
+        properties = [
+            LengthProperty(),
+            GCContentProperty(),
+            NumTargetedTranscriptsProperty(),
+            IsoformConsensusProperty(),
+        ]
+        calculator = PropertyCalculator(properties=properties)
+        encoding_probe_database = calculator.apply(
+            oligo_database=encoding_probe_database, sequence_type="oligo", n_jobs=self.n_jobs
         )
 
         encoding_probe_database.write_oligosets_to_yaml(
-            attributes=attributes,
+            properties=properties,
             top_n_sets=top_n_sets,
             ascending=True,
             filename="seqfish_plus_probes.yml",
@@ -887,7 +894,7 @@ class SeqFishPlusProbeDesigner:
             oligosets_oligo_columns = [col for col in oligosets_region.columns if col.startswith("oligo_")]
             oligosets_score_columns = [col for col in oligosets_region.columns if col.startswith("score_")]
 
-            oligosets_region.sort_values(by=oligosets_score_columns, ascending=True)
+            oligosets_region.sort_values(by=oligosets_score_columns, ascending=True, inplace=True)
             oligosets_region = oligosets_region.head(top_n_sets)[oligosets_oligo_columns]
             oligosets_region.reset_index(inplace=True, drop=True)
 
@@ -897,32 +904,32 @@ class SeqFishPlusProbeDesigner:
                 yaml_dict_order[region_id][oligoset_id] = {}
                 for oligo_id in oligoset:
                     yaml_dict_order[region_id][oligoset_id][oligo_id] = {
-                        "sequence_seqfish_plus_probe": encoding_probe_database.get_oligo_attribute_value(
-                            attribute="sequence_seqfish_plus_probe",
+                        "sequence_seqfish_plus_probe": encoding_probe_database.get_oligo_property_value(
+                            property="sequence_seqfish_plus_probe",
                             region_id=region_id,
                             oligo_id=oligo_id,
                             flatten=True,
                         ),
-                        "sequence_readout_probe_1": encoding_probe_database.get_oligo_attribute_value(
-                            attribute="sequence_readout_probe_1",
+                        "sequence_readout_probe_1": encoding_probe_database.get_oligo_property_value(
+                            property="sequence_readout_probe_1",
                             region_id=region_id,
                             oligo_id=oligo_id,
                             flatten=True,
                         ),
-                        "sequence_readout_probe_2": encoding_probe_database.get_oligo_attribute_value(
-                            attribute="sequence_readout_probe_2",
+                        "sequence_readout_probe_2": encoding_probe_database.get_oligo_property_value(
+                            property="sequence_readout_probe_2",
                             region_id=region_id,
                             oligo_id=oligo_id,
                             flatten=True,
                         ),
-                        "sequence_readout_probe_3": encoding_probe_database.get_oligo_attribute_value(
-                            attribute="sequence_readout_probe_3",
+                        "sequence_readout_probe_3": encoding_probe_database.get_oligo_property_value(
+                            property="sequence_readout_probe_3",
                             region_id=region_id,
                             oligo_id=oligo_id,
                             flatten=True,
                         ),
-                        "sequence_readout_probe_4": encoding_probe_database.get_oligo_attribute_value(
-                            attribute="sequence_readout_probe_4",
+                        "sequence_readout_probe_4": encoding_probe_database.get_oligo_property_value(
+                            property="sequence_readout_probe_4",
                             region_id=region_id,
                             oligo_id=oligo_id,
                             flatten=True,
@@ -961,7 +968,6 @@ class TargetProbeDesigner:
         self.subdir_db_reference = "db_reference"
 
         self.n_jobs = n_jobs
-        self.oligo_attributes_calculator = OligoAttributes()
 
     @pipeline_step_basic(step_name="Target Probe Generation - Create Database")
     def create_oligo_database(
@@ -1017,17 +1023,20 @@ class TargetProbeDesigner:
             sequence_type="target",
             region_ids=gene_ids,
         )
-        oligo_database = self.oligo_attributes_calculator.calculate_reverse_complement_sequence(
-            oligo_database=oligo_database, sequence_type="target", sequence_type_reverse_complement="oligo"
+        # Calculate reverse complement and isoform consensus
+        properties = [
+            ReverseComplementSequenceProperty(sequence_type_reverse_complement="oligo"),
+            IsoformConsensusProperty(),
+        ]
+        calculator = PropertyCalculator(properties=properties)
+        oligo_database = calculator.apply(
+            oligo_database=oligo_database, sequence_type="target", n_jobs=self.n_jobs
         )
 
-        ##### pre-filter oligo database for certain attributes #####
-        oligo_database = self.oligo_attributes_calculator.calculate_isoform_consensus(
-            oligo_database=oligo_database
-        )
-        oligo_database.filter_database_by_attribute_threshold(
-            attribute_name="isoform_consensus",
-            attribute_thr=isoform_consensus,
+        ##### pre-filter oligo database for certain properties #####
+        oligo_database.filter_database_by_property_threshold(
+            property_name="isoform_consensus",
+            property_thr=isoform_consensus,
             remove_if_smaller_threshold=True,
         )
         oligo_database.remove_regions_with_insufficient_oligos(pipeline_step="Pre-Filters")
@@ -1043,7 +1052,7 @@ class TargetProbeDesigner:
         oligo_database: OligoDatabase,
         GC_content_min: float,
         GC_content_max: float,
-        homopolymeric_base_n: str,
+        homopolymeric_base_n: int,
         T_secondary_structure: float,
         secondary_structures_threshold_deltaG: float,
     ) -> OligoDatabase:

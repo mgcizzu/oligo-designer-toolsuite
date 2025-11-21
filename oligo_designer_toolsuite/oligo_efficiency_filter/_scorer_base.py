@@ -33,7 +33,7 @@ class BaseScorer(ABC):
         This method must be implemented by all subclasses. It computes a float score for the
         oligonucleotide identified by `oligo_id` within the specified region and sequence type.
 
-        :param oligo_database: The OligoDatabase containing the oligonucleotides and their associated attributes.
+        :param oligo_database: The OligoDatabase containing the oligonucleotides and their associated properties.
         :type oligo_database: OligoDatabase
         :param region_id: Region ID to process.
         :type region_id: str

@@ -43,15 +43,15 @@ def merge_databases(
 
     def _get_sequence_as_key(database: dict, regions: list, sequence_type: _TYPES_SEQ) -> dict:
         """
-        Converts oligo sequences to dictionary keys, grouping oligo attributes by sequence for each specified region.
+        Converts oligo sequences to dictionary keys, grouping oligo properties by sequence for each specified region.
 
-        :param database: The database containing sequences and their attributes.
+        :param database: The database containing sequences and their properties.
         :type database: dict
         :param regions: List of regions within the database to process.
         :type regions: list
         :param sequence_type: The type of sequence being loaded, must be one of the predefined sequence types, i.e. "oligo" or "target".
         :type sequence_type: _TYPES_SEQ["oligo", "target"]
-        :return: A dictionary with sequences as keys and oligo attributes as values.
+        :return: A dictionary with sequences as keys and oligo properties as values.
         :rtype: dict
         """
         backend = PickleBackend(storage_path=dir_cache_files)
@@ -61,32 +61,32 @@ def merge_databases(
         for region in regions:
             database_modified[region] = {}
             database_region = database[region]
-            for oligo_id, oligo_attributes in database_region.items():
-                oligo_sequence = oligo_attributes[sequence_type]
-                oligo_attributes.pop(sequence_type)
-                database_modified[region][oligo_sequence] = oligo_attributes
+            for oligo_id, oligo_properties in database_region.items():
+                oligo_sequence = oligo_properties[sequence_type]
+                oligo_properties.pop(sequence_type)
+                database_modified[region][oligo_sequence] = oligo_properties
         return database_modified
 
     def _add_database_content(database_merged_tmp: dict, database_in_tmp: dict) -> dict:
         """
-        Merges oligo attributes from two databases, ensuring sequences with the same oligo are combined and attributes are updated.
+        Merges oligo properties from two databases, ensuring sequences with the same oligo are combined and properties are updated.
 
         :param database_merged_tmp: The dictionary to which content is added.
         :type database_merged_tmp: dict
         :param database_in_tmp: The dictionary containing new content to merge.
         :type database_in_tmp: dict
-        :return: The updated dictionary with merged oligo attributes.
+        :return: The updated dictionary with merged oligo properties.
         :rtype: dict
         """
         for region, database_region in database_in_tmp.items():
-            for oligo_sequence, oligo_attributes in database_region.items():
+            for oligo_sequence, oligo_properties in database_region.items():
                 if oligo_sequence in database_merged_tmp[region]:
-                    oligo_attributes_merged = collapse_attributes_for_duplicated_sequences(
-                        database_merged_tmp[region][oligo_sequence], oligo_attributes
+                    oligo_properties_merged = collapse_properties_for_duplicated_sequences(
+                        database_merged_tmp[region][oligo_sequence], oligo_properties
                     )
-                    database_merged_tmp[region][oligo_sequence] = oligo_attributes_merged
+                    database_merged_tmp[region][oligo_sequence] = oligo_properties_merged
                 else:
-                    database_merged_tmp[region][oligo_sequence] = oligo_attributes
+                    database_merged_tmp[region][oligo_sequence] = oligo_properties
         return database_merged_tmp
 
     # keys that are in both dicts
@@ -115,9 +115,9 @@ def merge_databases(
 
     for region, database_merged_region in database_merged.items():
         i = 1
-        for oligo_sequence, oligo_attributes in database_merged_region.items():
+        for oligo_sequence, oligo_properties in database_merged_region.items():
             oligo_id = f"{region}{SEPARATOR_OLIGO_ID}{i}"
-            oligo_seq_info = {sequence_type: oligo_sequence} | oligo_attributes
+            oligo_seq_info = {sequence_type: oligo_sequence} | oligo_properties
             database_concat[region][oligo_id] = oligo_seq_info
             i += 1
 
@@ -130,35 +130,35 @@ def merge_databases(
     return database_concat
 
 
-def collapse_attributes_for_duplicated_sequences(oligo_attributes1: dict, oligo_attributes2: dict) -> dict:
+def collapse_properties_for_duplicated_sequences(oligo_properties1: dict, oligo_properties2: dict) -> dict:
     """
-    Merges two dictionaries of oligo attributes, combining values for non-sequence keys and issuing warnings if sequences for the same oligo ID.
+    Merges two dictionaries of oligo properties, combining values for non-sequence keys and issuing warnings if sequences for the same oligo ID.
 
-    :param oligo_attributes1: The first dictionary of oligo attributes.
-    :type oligo_attributes1: dict
-    :param oligo_attributes2: The second dictionary of oligo attributes.
-    :type oligo_attributes2: dict
-    :return: A merged dictionary with combined oligo attributes.
+    :param oligo_properties1: The first dictionary of oligo properties.
+    :type oligo_properties1: dict
+    :param oligo_properties2: The second dictionary of oligo properties.
+    :type oligo_properties2: dict
+    :return: A merged dictionary with combined oligo properties.
     :rtype: dict
     """
-    oligo_attributes = {}
+    oligo_properties = {}
 
-    if oligo_attributes1 == oligo_attributes2:
-        return oligo_attributes1
+    if oligo_properties1 == oligo_properties2:
+        return oligo_properties1
 
-    for d in (oligo_attributes1, oligo_attributes2):
+    for d in (oligo_properties1, oligo_properties2):
         for key, values in d.items():
-            if key not in oligo_attributes:
-                oligo_attributes[key] = values
+            if key not in oligo_properties:
+                oligo_properties[key] = values
             else:
-                if key in get_args(_TYPES_SEQ) and oligo_attributes[key] != values:
+                if key in get_args(_TYPES_SEQ) and oligo_properties[key] != values:
                     warnings.warn(
-                        f"Values for key {key} are different in the two oligo_attributes dictionaries."
+                        f"Values for key {key} are different in the two oligo_properties dictionaries."
                     )
                 elif key not in get_args(_TYPES_SEQ):
-                    oligo_attributes[key].extend(values)
+                    oligo_properties[key].extend(values)
 
-    return oligo_attributes
+    return oligo_properties
 
 
 def check_if_region_in_database(
@@ -185,35 +185,35 @@ def check_if_region_in_database(
                     hanlde.write(f"{region_id}\t{'Not in Annotation'}\n")
 
 
-def format_oligo_attributes(oligo_attributes: dict) -> dict:
+def format_oligo_properties(oligo_properties: dict) -> dict:
     """
-    Ensures that the values in an oligo attributes dictionary are formatted as lists of lists.
+    Ensures that the values in an oligo properties dictionary are formatted as lists of lists.
 
-    :param oligo_attributes: The dictionary of oligo attributes to format.
-    :type oligo_attributes: dict
+    :param oligo_properties: The dictionary of oligo properties to format.
+    :type oligo_properties: dict
     :return: The formatted dictionary with lists of lists for non-sequence keys.
     :rtype: dict
     """
-    for key, value in oligo_attributes.items():
+    for key, value in oligo_properties.items():
         if key not in get_args(_TYPES_SEQ):
-            oligo_attributes[key] = check_if_list_of_lists(value)
-    return oligo_attributes
+            oligo_properties[key] = check_if_list_of_lists(value)
+    return oligo_properties
 
 
-def flatten_attribute_list(attribute: list) -> Union[list, str, int, float, bool]:
+def flatten_property_list(property: list) -> Union[list, str, int, float, bool]:
     """
-    Flattens a nested list of attributes into a single list, or returns the item if only one element remains.
+    Flattens a nested list of properties into a single list, or returns the item if only one element remains.
 
-    :param attribute: The list or nested list of attributes to flatten.
-    :type attribute: list
+    :param property: The list or nested list of properties to flatten.
+    :type property: list
     :return: A flattened list or a single item if only one element exists.
     :rtype: Union[list, str, int, float, bool]
     """
-    flattened_attribute_list = [
+    flattened_property_list = [
         item
-        for sublist in (attribute if isinstance(attribute, list) else [attribute])
+        for sublist in (property if isinstance(property, list) else [property])
         for item in (sublist if isinstance(sublist, list) else [sublist])
     ]
-    if len(flattened_attribute_list) == 1:
-        return check_if_list(flattened_attribute_list[0])
-    return check_if_list(flattened_attribute_list)
+    if len(flattened_property_list) == 1:
+        return check_if_list(flattened_property_list[0])
+    return check_if_list(flattened_property_list)

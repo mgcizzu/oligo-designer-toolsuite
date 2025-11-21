@@ -42,7 +42,7 @@ class OligoScoring:
         for each oligo using the list of scoring strategies provided at initialization. The scores are
         added to the oligo entries under the key 'oligo_score' and also returned as a pandas Series.
 
-        :param oligo_database: The OligoDatabase containing the oligonucleotides and their associated attributes.
+        :param oligo_database: The OligoDatabase containing the oligonucleotides and their associated properties.
         :type oligo_database: OligoDatabase
         :param region_id: Region ID to process.
         :type region_id: str
