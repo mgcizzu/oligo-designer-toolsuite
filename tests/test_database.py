@@ -307,7 +307,7 @@ class TestOligoDatabase(unittest.TestCase):
 
         self.oligo_database.oligosets["region_1"] = oligoset
 
-        file_yaml = self.oligo_database.write_oligosets_to_yaml(
+        self.oligo_database.write_oligosets_to_yaml(
             properties=[
                 "test_property",
                 "ligation_site",
@@ -321,6 +321,8 @@ class TestOligoDatabase(unittest.TestCase):
             ascending=True,
         )
 
+        # Construct file path since function returns None
+        file_yaml = os.path.join(os.path.dirname(self.oligo_database.dir_output), "oligosets.yml")
         with open(file_yaml, "r") as handle:
             yaml_oligosets = yaml.safe_load(handle)
 
@@ -337,6 +339,57 @@ class TestOligoDatabase(unittest.TestCase):
             ["NM_001605.3"],
             ["XM_047433666.1"],
         ], f"error: wrong oligoset loaded"
+
+    def test_write_ready_to_order_yaml(self) -> None:
+        self.oligo_database.load_database_from_table(
+            FILE_DATABASE_OLIGO_PROPERTIES,
+            database_overwrite=True,
+            region_ids="region_1",
+            merge_databases_on_sequence_type="oligo",
+        )
+
+        oligoset = pd.DataFrame(
+            data=[
+                [0, "region_1::1", "region_1::2", "region_1::5", 1.59, 2.36],
+                [1, "region_1::6", "region_1::4", "region_1::9", 2.15, 4.93],
+            ],
+            columns=[
+                "oligoset_id",
+                "oligo_0",
+                "oligo_1",
+                "oligo_2",
+                "set_score_lowest",
+                "set_score_sum",
+            ],
+        )
+
+        self.oligo_database.oligosets["region_1"] = oligoset
+
+        self.oligo_database.write_ready_to_order_yaml(
+            properties=["oligo", "target", "test_property"],
+            top_n_sets=2,
+            ascending=True,
+            filename="test_ready_to_order",
+        )
+
+        # Verify YAML file exists
+        file_yaml = os.path.join(os.path.dirname(self.oligo_database.dir_output), "test_ready_to_order.yml")
+        assert os.path.exists(file_yaml), f"error: YAML file {file_yaml} was not created"
+
+        # Load and verify YAML structure
+        with open(file_yaml, "r") as handle:
+            yaml_order = yaml.safe_load(handle)
+
+        # Verify structure: region_id -> oligoset_id -> oligo_id -> properties
+        assert "region_1" in yaml_order, "error: region_1 should be in YAML"
+        assert "oligoset_1" in yaml_order["region_1"], "error: oligoset_1 should be in region_1"
+        assert "oligoset_2" in yaml_order["region_1"], "error: oligoset_2 should be in region_1"
+
+        # Verify first oligoset contains expected oligos
+        oligoset_1 = yaml_order["region_1"]["oligoset_1"]
+        assert "region_1::1" in oligoset_1, "error: region_1::1 should be in oligoset_1"
+        assert "region_1::2" in oligoset_1, "error: region_1::2 should be in oligoset_1"
+        assert "region_1::5" in oligoset_1, "error: region_1::5 should be in oligoset_1"
 
     def test_write_oligosets_to_table(self) -> None:
         self.oligo_database.load_database_from_table(
@@ -363,11 +416,49 @@ class TestOligoDatabase(unittest.TestCase):
 
         self.oligo_database.oligosets["region_1"] = oligoset
 
-        folder_oligosets = self.oligo_database.write_oligosets_to_table()
-        file_oligosets = os.path.join(folder_oligosets, "oligosets_region_1.tsv")
+        self.oligo_database.write_oligosets_to_table(
+            properties=["oligo", "target", "test_property"],
+            top_n_sets=3,
+            ascending=True,
+        )
+
+        # Construct file path since function returns None
+        file_oligosets_tsv = os.path.join(os.path.dirname(self.oligo_database.dir_output), "oligosets.tsv")
+
+        # Verify TSV file exists and has correct format
+        assert os.path.exists(file_oligosets_tsv), f"error: TSV file {file_oligosets_tsv} was not created"
         assert (
-            check_tsv_format(file=file_oligosets) == True
-        ), f"error: incorrect file format of {file_oligosets}"
+            check_tsv_format(file=file_oligosets_tsv) == True
+        ), f"error: incorrect file format of {file_oligosets_tsv}"
+
+        # Verify Excel file exists (same directory, .xlsx extension)
+        file_oligosets_excel = file_oligosets_tsv.replace(".tsv", ".xlsx")
+        assert os.path.exists(
+            file_oligosets_excel
+        ), f"error: Excel file {file_oligosets_excel} was not created"
+
+        # Verify Excel file structure (one sheet per region_id)
+        try:
+            excel_data = pd.read_excel(file_oligosets_excel, sheet_name=None, engine="openpyxl")
+            # Check that at least one sheet exists (should be one for region_1)
+            assert len(excel_data) > 0, "error: Excel file should contain at least one sheet"
+            # Verify the sheet doesn't have region_id column (it should be removed)
+            region_sheet = list(excel_data.values())[0]
+            assert (
+                "region_id" not in region_sheet.columns
+            ), "error: region_id column should not be in individual Excel sheets"
+            # Verify the sheet contains expected columns
+            assert (
+                "oligoset_id" in region_sheet.columns
+            ), "error: Excel sheet should contain oligoset_id column"
+            assert "oligo_id" in region_sheet.columns, "error: Excel sheet should contain oligo_id column"
+            # Verify that specified properties are included
+            assert "oligo" in region_sheet.columns, "error: Excel sheet should contain oligo property"
+            assert "target" in region_sheet.columns, "error: Excel sheet should contain target property"
+            assert "test_property" in region_sheet.columns, "error: Excel sheet should contain test_property"
+        except ImportError:
+            # Skip Excel verification if openpyxl is not installed
+            pass
 
     def test_remove_regions_with_insufficient_oligos(self) -> None:
         self.load_database_from_fasta()
