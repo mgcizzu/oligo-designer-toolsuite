@@ -759,6 +759,8 @@ class OligoDatabase:
                                     == 1
                                 ):
                                     oligo_property = flatten_property_list(oligo_property)
+                                    if len(oligo_property) == 1:
+                                        oligo_property = oligo_property[0]
                             entry[property] = oligo_property
 
                     csv_table.append(entry)
