@@ -60,8 +60,8 @@ readout_probe_homopolymeric_base_n: # minimum number of nucleotides to consider 
   G: 3
 readout_probe_set_size: 16 # total number of readout probes
 readout_probe_homogeneous_properties_weights: # readout probes in one set should have similar properties, the weighted sum of variance of the properties is minimized
-  TmNN_oligo: 1 # melting temperature
-  GC_content_oligo: 1 # GC content
+  TmNN_oligo: 1.0 # melting temperature
+  GC_content_oligo: 1.0 # GC content
 n_bits: 16 # number of bits contained in each barcode
 min_hamming_dist: 4 # minimum distance between two valid barcodes
 hamming_weight: 4 # number of bits containing one in each barcode
@@ -227,8 +227,8 @@ primer_specificity_refrence_blastn_search_parameters:
   -max_hsps: 1000
 primer_specificity_refrence_blastn_hit_parameters:
   min_alignment_length: 14 # can be turned into coverage
-# Specificity filter with BlastN against encoding rpobes
-primer_specificity_encoding_probes_blastn_search_parameters:
+# Specificity filter with BlastN against hybridization rpobes
+primer_specificity_hybridization_probes_blastn_search_parameters:
   -perc_identity: 100
   -strand: "minus" # this parameter is fixed, if reference is whole genome, consider using "both"
   -word_size: 7
@@ -236,5 +236,5 @@ primer_specificity_encoding_probes_blastn_search_parameters:
   -soft_masking: "false"
   -max_target_seqs: 10
   -max_hsps: 1000
-primer_specificity_encoding_probes_blastn_hit_parameters:
+primer_specificity_hybridization_probes_blastn_hit_parameters:
   min_alignment_length: 11 # can be turned into coverage
