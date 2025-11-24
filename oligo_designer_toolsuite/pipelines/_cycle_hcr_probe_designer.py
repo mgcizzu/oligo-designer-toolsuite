@@ -136,9 +136,21 @@ class CycleHCRProbeDesigner:
     :param dir_output: Directory path where output files will be saved. The directory will be created
         if it does not exist.
     :type dir_output: str
+    :param write_intermediate_steps: Whether to save intermediate results during the probe design pipeline.
+        If True, intermediate databases and results will be saved at each pipeline step, which is useful
+        for debugging and analysis but increases disk usage.
+    :type write_intermediate_steps: bool
+    :param n_jobs: Number of parallel jobs to use for processing. Set to 1 for serial processing or higher
+        values for parallel processing.
+    :type n_jobs: int
     """
 
-    def __init__(self, dir_output: str) -> None:
+    def __init__(
+        self,
+        dir_output: str,
+        write_intermediate_steps: bool,
+        n_jobs: int,
+    ) -> None:
         """Constructor for the CycleHCRProbeDesigner class."""
 
         # create the output folder
@@ -151,12 +163,14 @@ class CycleHCRProbeDesigner:
             pipeline_name="cyclehcr_probe_designer",
             log_start_message=True,
         )
+        self.write_intermediate_steps = write_intermediate_steps
+        self.n_jobs = n_jobs
 
-    def load_parameter_settings(
+    def design_target_probes(
         self,
-        # Pipeline Configuration
-        write_intermediate_steps: bool,
-        n_jobs: int,
+        region_ids: list[str] | None,
+        files_fasta_target_probe_database: list[str],
+        files_fasta_reference_database_target_probe: list[str],
         # Target Probe Design
         target_probe_isoform_consensus: float,
         target_probe_L_probe_sequence_length: int,
@@ -191,27 +205,33 @@ class CycleHCRProbeDesigner:
         n_attempts: int,
         heuristic: bool,
         heuristic_n_attempts: int,
-        # Assembly and Output Parameters
-        linker_sequence: str,
-        output_properties: list[str] | None = None,
-    ) -> None:
+    ) -> OligoDatabase:
         """
-        Load and configure all parameter settings for the CycleHCR probe designer pipeline.
+        Design target probes for CycleHCR experiments through a multi-step pipeline.
 
-        This method must be called after initializing the CycleHCRProbeDesigner instance and before
-        running any design methods. It configures all parameters needed for target probe design,
-        filtering, scoring, set selection, and output generation. Parameters are organized into
-        several categories: pipeline configuration, target probe design, property filters, specificity
-        filters, scoring weights, set selection, and output configuration.
+        This method performs the complete target probe design process, which includes:
+        1. Creating an initial oligo database from input FASTA files using a sliding window approach
+        2. Filtering probes based on sequence properties (GC content, melting temperature, homopolymeric
+           runs, secondary structure)
+        3. Filtering probes based on specificity to remove off-target binding and cross-hybridization
+           using BLASTN searches
+        4. Organizing filtered probes into optimal sets based on scoring criteria and distance constraints
 
-        **Pipeline Configuration:**
-        :param write_intermediate_steps: Whether to save intermediate results during the probe design pipeline.
-            If True, intermediate databases and results will be saved at each pipeline step, which is useful
-            for debugging and analysis but increases disk usage.
-        :type write_intermediate_steps: bool
-        :param n_jobs: Number of parallel jobs to use for processing. Set to 1 for serial processing or higher
-            values for parallel processing.
-        :type n_jobs: int
+        The resulting probes are split into left (L) and right (R) halves that hybridize to adjacent
+        regions on the target transcript, separated by a gap. These probes are designed with high
+        melting temperatures to remain bound during stripping cycles.
+
+        :param region_ids: List of region IDs (e.g., gene IDs) to target for probe design. If None,
+            all regions present in the input FASTA files will be used.
+        :type region_ids: list[str] | None
+        :param files_fasta_target_probe_database: List of paths to FASTA files containing sequences
+            from which target probes will be generated. These files should contain genomic regions
+            of interest (e.g., exons, exon-exon junctions).
+        :type files_fasta_target_probe_database: list[str]
+        :param files_fasta_reference_database_target_probe: List of paths to FASTA files containing
+            reference sequences used for specificity filtering. These files are used to identify
+            off-target binding sites and potential cross-hybridization events (e.g., whole gene sequences).
+        :type files_fasta_reference_database_target_probe: list[str]
 
         **Target Probe Design:**
         :param target_probe_isoform_consensus: Isoform consensus threshold for filtering target probes.
@@ -343,144 +363,20 @@ class CycleHCRProbeDesigner:
             heuristic is True.
         :type heuristic_n_attempts: int
 
-        **Assembly and Output Parameters:**
-        :param linker_sequence: DNA sequence used to link target probes and readout probes in the hybridization probe.
-            This sequence is inserted between the target probe sequence and the readout probe sequence during assembly.
-            Typically a short spacer sequence (e.g., "TT").
-        :type linker_sequence: str
-        :param output_properties: List of property names to include in the output files. If None, a default set of
-            properties will be included. Available properties include: 'source', 'species', 'gene_id', 'chromosome',
-            'start', 'end', 'strand', 'sequence_target', 'sequence_hybridization_probe_L', 'sequence_hybridization_probe_R',
-            'sequence_dna_template_probe_L', 'sequence_dna_template_probe_R', 'TmNN_sequence_target_L', etc.
-        :type output_properties: list[str] | None
-
-        :return: None
-        """
-        self.write_intermediate_steps = write_intermediate_steps
-        self.n_jobs = n_jobs
-        self.target_probe_isoform_consensus = target_probe_isoform_consensus
-        self.target_probe_L_probe_sequence_length = target_probe_L_probe_sequence_length
-        self.target_probe_gap_sequence_length = target_probe_gap_sequence_length
-        self.target_probe_R_probe_sequence_length = target_probe_R_probe_sequence_length
-        self.target_probe_GC_content_min = target_probe_GC_content_min
-        self.target_probe_GC_content_max = target_probe_GC_content_max
-        self.target_probe_Tm_min = target_probe_Tm_min
-        self.target_probe_Tm_max = target_probe_Tm_max
-        self.target_probe_homopolymeric_base_n = target_probe_homopolymeric_base_n
-        self.target_probe_T_secondary_structure = target_probe_T_secondary_structure
-        self.target_probe_secondary_structures_threshold_deltaG = (
-            target_probe_secondary_structures_threshold_deltaG
-        )
-        self.target_probe_junction_region_size = target_probe_junction_region_size
-        self.target_probe_Tm_weight = target_probe_Tm_weight
-        self.target_probe_isoform_weight = target_probe_isoform_weight
-        self.set_size_opt = set_size_opt
-        self.set_size_min = set_size_min
-        self.distance_between_target_probes = distance_between_target_probes
-        self.linker_sequence = linker_sequence
-        self.n_sets = n_sets
-        self.target_probe_specificity_blastn_search_parameters = (
-            target_probe_specificity_blastn_search_parameters
-        )
-        self.target_probe_specificity_blastn_hit_parameters = target_probe_specificity_blastn_hit_parameters
-        self.target_probe_cross_hybridization_blastn_search_parameters = (
-            target_probe_cross_hybridization_blastn_search_parameters
-        )
-        self.target_probe_cross_hybridization_blastn_hit_parameters = (
-            target_probe_cross_hybridization_blastn_hit_parameters
-        )
-        self.max_graph_size = max_graph_size
-        self.heuristic = heuristic
-        self.n_attempts = n_attempts
-        self.heuristic_n_attempts = heuristic_n_attempts
-
-        target_probe_Tm_parameters["nn_table"] = getattr(mt, target_probe_Tm_parameters["nn_table"])
-        target_probe_Tm_parameters["tmm_table"] = getattr(mt, target_probe_Tm_parameters["tmm_table"])
-        target_probe_Tm_parameters["imm_table"] = getattr(mt, target_probe_Tm_parameters["imm_table"])
-        target_probe_Tm_parameters["de_table"] = getattr(mt, target_probe_Tm_parameters["de_table"])
-
-        self.target_probe_Tm_parameters = target_probe_Tm_parameters
-        self.target_probe_Tm_chem_correction_parameters = target_probe_Tm_chem_correction_parameters
-        self.target_probe_Tm_salt_correction_parameters = target_probe_Tm_salt_correction_parameters
-
-        if output_properties is None:
-            self.output_properties = [
-                "source",
-                "species",
-                "annotation_release",
-                "genome_assembly",
-                "gene_id",
-                "chromosome",
-                "start",
-                "end",
-                "strand",
-                "regiontype",
-                "transcript_id",
-                "exon_number",
-                "sequence_target",
-                "sequence_spacer",
-                "sequence_readout_probe_L",
-                "sequence_readout_probe_R",
-                "sequence_hybridization_probe_L",
-                "sequence_hybridization_probe_R",
-                "sequence_forward_primer",
-                "sequence_reverse_primer",
-                "sequence_dna_template_probe_L",
-                "sequence_dna_template_probe_R",
-                "TmNN_sequence_target_L",
-                "TmNN_sequence_target_R",
-                "isoform_consensus",
-            ]
-        else:
-            self.output_properties = output_properties
-
-    def design_target_probes(
-        self,
-        region_ids: list[str] | None,
-        files_fasta_target_probe_database: list[str],
-        files_fasta_reference_database_target_probe: list[str],
-    ) -> OligoDatabase:
-        """
-        Design target probes for CycleHCR experiments through a multi-step pipeline.
-
-        This method performs the complete target probe design process, which includes:
-        1. Creating an initial oligo database from input FASTA files using a sliding window approach
-        2. Filtering probes based on sequence properties (GC content, melting temperature, homopolymeric
-           runs, secondary structure)
-        3. Filtering probes based on specificity to remove off-target binding and cross-hybridization
-           using BLASTN searches
-        4. Organizing filtered probes into optimal sets based on scoring criteria and distance constraints
-
-        The resulting probes are split into left (L) and right (R) halves that hybridize to adjacent
-        regions on the target transcript, separated by a gap. These probes are designed with high
-        melting temperatures to remain bound during stripping cycles.
-
-        :param region_ids: List of region IDs (e.g., gene IDs) to target for probe design. If None,
-            all regions present in the input FASTA files will be used.
-        :type region_ids: list[str] | None
-        :param files_fasta_target_probe_database: List of paths to FASTA files containing sequences
-            from which target probes will be generated. These files should contain genomic regions
-            of interest (e.g., exons, exon-exon junctions).
-        :type files_fasta_target_probe_database: list[str]
-        :param files_fasta_reference_database_target_probe: List of paths to FASTA files containing
-            reference sequences used for specificity filtering. These files are used to identify
-            off-target binding sites and potential cross-hybridization events (e.g., whole gene sequences).
-        :type files_fasta_reference_database_target_probe: list[str]
         :return: An `OligoDatabase` object containing the designed target probes organized into sets.
             The database includes probe sequences, properties, and set assignments for each target region.
         :rtype: OligoDatabase
         """
-
         target_probe_designer = TargetProbeDesigner(self.dir_output, self.n_jobs)
 
         oligo_database: OligoDatabase = target_probe_designer.create_oligo_database(
             region_ids=region_ids,
-            target_probe_L_probe_sequence_length=self.target_probe_L_probe_sequence_length,
-            target_probe_gap_sequence_length=self.target_probe_gap_sequence_length,
-            target_probe_R_probe_sequence_length=self.target_probe_R_probe_sequence_length,
+            target_probe_L_probe_sequence_length=target_probe_L_probe_sequence_length,
+            target_probe_gap_sequence_length=target_probe_gap_sequence_length,
+            target_probe_R_probe_sequence_length=target_probe_R_probe_sequence_length,
             files_fasta_oligo_database=files_fasta_target_probe_database,
-            min_oligos_per_gene=self.set_size_min,
-            isoform_consensus=self.target_probe_isoform_consensus,
+            min_oligos_per_gene=set_size_min,
+            isoform_consensus=target_probe_isoform_consensus,
         )
 
         if self.write_intermediate_steps:
@@ -491,16 +387,16 @@ class CycleHCRProbeDesigner:
 
         oligo_database = target_probe_designer.filter_by_property(
             oligo_database=oligo_database,
-            GC_content_min=self.target_probe_GC_content_min,
-            GC_content_max=self.target_probe_GC_content_max,
-            Tm_min=self.target_probe_Tm_min,
-            Tm_max=self.target_probe_Tm_max,
-            homopolymeric_base_n=self.target_probe_homopolymeric_base_n,
-            T_secondary_structure=self.target_probe_T_secondary_structure,
-            secondary_structures_threshold_deltaG=self.target_probe_secondary_structures_threshold_deltaG,
-            Tm_parameters=self.target_probe_Tm_parameters,
-            Tm_chem_correction_parameters=self.target_probe_Tm_chem_correction_parameters,
-            Tm_salt_correction_parameters=self.target_probe_Tm_salt_correction_parameters,
+            GC_content_min=target_probe_GC_content_min,
+            GC_content_max=target_probe_GC_content_max,
+            Tm_min=target_probe_Tm_min,
+            Tm_max=target_probe_Tm_max,
+            homopolymeric_base_n=target_probe_homopolymeric_base_n,
+            T_secondary_structure=target_probe_T_secondary_structure,
+            secondary_structures_threshold_deltaG=target_probe_secondary_structures_threshold_deltaG,
+            Tm_parameters=target_probe_Tm_parameters,
+            Tm_chem_correction_parameters=target_probe_Tm_chem_correction_parameters,
+            Tm_salt_correction_parameters=target_probe_Tm_salt_correction_parameters,
         )
 
         if self.write_intermediate_steps:
@@ -512,13 +408,12 @@ class CycleHCRProbeDesigner:
         oligo_database = target_probe_designer.filter_by_specificity(
             oligo_database=oligo_database,
             files_fasta_reference_database=files_fasta_reference_database_target_probe,
-            junction_region_size=self.target_probe_junction_region_size,
-            junction_site=self.target_probe_L_probe_sequence_length
-            + self.target_probe_gap_sequence_length // 2,
-            specificity_blastn_search_parameters=self.target_probe_specificity_blastn_search_parameters,
-            specificity_blastn_hit_parameters=self.target_probe_specificity_blastn_hit_parameters,
-            cross_hybridization_blastn_search_parameters=self.target_probe_cross_hybridization_blastn_search_parameters,
-            cross_hybridization_blastn_hit_parameters=self.target_probe_cross_hybridization_blastn_hit_parameters,
+            junction_region_size=target_probe_junction_region_size,
+            junction_site=target_probe_L_probe_sequence_length + target_probe_gap_sequence_length // 2,
+            specificity_blastn_search_parameters=target_probe_specificity_blastn_search_parameters,
+            specificity_blastn_hit_parameters=target_probe_specificity_blastn_hit_parameters,
+            cross_hybridization_blastn_search_parameters=target_probe_cross_hybridization_blastn_search_parameters,
+            cross_hybridization_blastn_hit_parameters=target_probe_cross_hybridization_blastn_hit_parameters,
         )
 
         if self.write_intermediate_steps:
@@ -529,20 +424,35 @@ class CycleHCRProbeDesigner:
 
         oligo_database = target_probe_designer.create_oligo_sets(
             oligo_database=oligo_database,
-            isoform_weight=self.target_probe_isoform_weight,
-            Tm_max=self.target_probe_Tm_max,
-            Tm_weight=self.target_probe_Tm_weight,
-            Tm_parameters=self.target_probe_Tm_parameters,
-            Tm_chem_correction_parameters=self.target_probe_Tm_chem_correction_parameters,
-            Tm_salt_correction_parameters=self.target_probe_Tm_salt_correction_parameters,
-            set_size_opt=self.set_size_opt,
-            set_size_min=self.set_size_min,
-            distance_between_oligos=self.distance_between_target_probes,
-            n_sets=self.n_sets,
-            max_graph_size=self.max_graph_size,
-            n_attempts=self.n_attempts,
-            heuristic=self.heuristic,
-            heuristic_n_attempts=self.heuristic_n_attempts,
+            isoform_weight=target_probe_isoform_weight,
+            Tm_max=target_probe_Tm_max,
+            Tm_weight=target_probe_Tm_weight,
+            Tm_parameters=target_probe_Tm_parameters,
+            Tm_chem_correction_parameters=target_probe_Tm_chem_correction_parameters,
+            Tm_salt_correction_parameters=target_probe_Tm_salt_correction_parameters,
+            set_size_opt=set_size_opt,
+            set_size_min=set_size_min,
+            distance_between_oligos=distance_between_target_probes,
+            n_sets=n_sets,
+            max_graph_size=max_graph_size,
+            n_attempts=n_attempts,
+            heuristic=heuristic,
+            heuristic_n_attempts=heuristic_n_attempts,
+        )
+
+        # Caculate all required properties for output
+        tm_nn_property: BaseProperty = TmNNProperty(
+            Tm_parameters=target_probe_Tm_parameters,
+            Tm_chem_correction_parameters=target_probe_Tm_chem_correction_parameters,
+            Tm_salt_correction_parameters=target_probe_Tm_salt_correction_parameters,
+        )
+
+        calculator = PropertyCalculator(properties=[tm_nn_property])
+        oligo_database = calculator.apply(
+            oligo_database=oligo_database, sequence_type="oligo_L", n_jobs=self.n_jobs
+        )
+        oligo_database = calculator.apply(
+            oligo_database=oligo_database, sequence_type="oligo_R", n_jobs=self.n_jobs
         )
 
         if self.write_intermediate_steps:
@@ -629,6 +539,7 @@ class CycleHCRProbeDesigner:
         target_probe_database: OligoDatabase,
         codebook: pd.DataFrame,
         readout_probe_table: pd.DataFrame,
+        linker_sequence: str,
     ) -> OligoDatabase:
         """
         Assemble hybridization probes by combining target probes with readout probe sequences based on the codebook.
@@ -659,6 +570,10 @@ class CycleHCRProbeDesigner:
             'readout_probe_sequence' containing the probe sequences. The table should also include 'L/R'
             column to distinguish left and right readout probes.
         :type readout_probe_table: pd.DataFrame
+        :param linker_sequence: DNA sequence used to link target probes and readout probes in the hybridization probe.
+            This sequence is inserted between the target probe sequence and the readout probe sequence during assembly.
+            Typically a short spacer sequence (e.g., "TT").
+        :type linker_sequence: str
         :return: An updated `OligoDatabase` object containing the assembled hybridization probes with all
             component sequences (target, oligo L/R, readout probe L/R, and complete hybridization probe L/R)
             stored as properties for each probe.
@@ -712,7 +627,7 @@ class CycleHCRProbeDesigner:
 
                 new_properties[probe_id]["sequence_hybridization_probe_L"] = (
                     sequence_readout_probe_L
-                    + str(Seq(self.linker_sequence).reverse_complement())
+                    + str(Seq(linker_sequence).reverse_complement())
                     + format_sequence(
                         database=target_probe_database,
                         property="oligo_L",
@@ -728,7 +643,7 @@ class CycleHCRProbeDesigner:
                         region_id=region_id,
                         oligo_id=probe_id,
                     )
-                    + str(Seq(self.linker_sequence).reverse_complement())
+                    + str(Seq(linker_sequence).reverse_complement())
                     + sequence_readout_probe_R
                 )
 
@@ -799,6 +714,7 @@ class CycleHCRProbeDesigner:
         hybridization_probe_database: OligoDatabase,
         forward_primer_sequence: str,
         reverse_primer_sequence: str,
+        linker_sequence: str,
     ) -> OligoDatabase:
         """
         Assemble DNA template probes by combining hybridization probes with forward and reverse primers.
@@ -827,6 +743,10 @@ class CycleHCRProbeDesigner:
         :param reverse_primer_sequence: DNA sequence of the reverse primer that will be placed at the
             3' end of all DNA template probes.
         :type reverse_primer_sequence: str
+        :param linker_sequence: DNA sequence used to link target probes and readout probes in the hybridization probe.
+            This sequence is inserted between the target probe sequence and the readout probe sequence during assembly.
+            Typically a short spacer sequence (e.g., "TT").
+        :type linker_sequence: str
         :return: An updated `OligoDatabase` object containing the assembled DNA template probes with
             all sequences stored as properties, including: sequence_forward_primer, sequence_reverse_primer,
             sequence_dna_template_probe_L, and sequence_dna_template_probe_R for each probe.
@@ -862,7 +782,7 @@ class CycleHCRProbeDesigner:
                             )
                         ).reverse_complement()
                     )
-                    + self.linker_sequence
+                    + linker_sequence
                     + str(
                         Seq(
                             format_sequence(
@@ -887,7 +807,7 @@ class CycleHCRProbeDesigner:
                             )
                         ).reverse_complement()
                     )
-                    + self.linker_sequence
+                    + linker_sequence
                     + str(
                         Seq(
                             format_sequence(
@@ -911,6 +831,7 @@ class CycleHCRProbeDesigner:
         codebook: pd.DataFrame,
         readout_probe_table: pd.DataFrame,
         top_n_sets: int = 3,
+        output_properties: list[str] | None = None,
     ) -> None:
         """
         Generate the final output files for the CycleHCR probe design pipeline.
@@ -940,6 +861,11 @@ class CycleHCRProbeDesigner:
             Only the best-performing sets up to this number will be written to the YAML and table
             output files. Defaults to 3.
         :type top_n_sets: int
+        :param output_properties: List of property names to include in the output files. If None, a default set of
+            properties will be included. Available properties include: 'source', 'species', 'gene_id', 'chromosome',
+            'start', 'end', 'strand', 'sequence_target', 'sequence_hybridization_probe_L', 'sequence_hybridization_probe_R',
+            'sequence_dna_template_probe_L', 'sequence_dna_template_probe_R', 'TmNN_sequence_target_L', etc.
+        :type output_properties: list[str] | None
 
         :return: None
 
@@ -953,6 +879,35 @@ class CycleHCRProbeDesigner:
         - ``cyclehcr_probes.tsv``: Probe sets in tabular format
         - ``cyclehcr_probes.xlsx``: Probe sets in Excel format with one sheet per region
         """
+        if output_properties is None:
+            output_properties = [
+                "source",
+                "species",
+                "annotation_release",
+                "genome_assembly",
+                "gene_id",
+                "chromosome",
+                "start",
+                "end",
+                "strand",
+                "regiontype",
+                "transcript_id",
+                "exon_number",
+                "sequence_target",
+                "sequence_spacer",
+                "sequence_readout_probe_L",
+                "sequence_readout_probe_R",
+                "sequence_hybridization_probe_L",
+                "sequence_hybridization_probe_R",
+                "sequence_forward_primer",
+                "sequence_reverse_primer",
+                "sequence_dna_template_probe_L",
+                "sequence_dna_template_probe_R",
+                "TmNN_oligo_L",
+                "TmNN_oligo_R",
+                "isoform_consensus",
+            ]
+
         # write codebook and readout probe table
         codebook.to_csv(os.path.join(self.dir_output, "codebook.tsv"), sep="\t", index_label="region_id")
         readout_probe_table.to_csv(os.path.join(self.dir_output, "readout_probes.tsv"), sep="\t")
@@ -968,22 +923,8 @@ class CycleHCRProbeDesigner:
             ["region_id", "channel", "readout_probe_id", "L/R", "readout_probe_sequence"]
         ].to_csv(os.path.join(self.dir_output, "readout_probes_regions.tsv"), sep="\t", index=False)
 
-        tm_nn_property: BaseProperty = TmNNProperty(
-            Tm_parameters=self.target_probe_Tm_parameters,
-            Tm_chem_correction_parameters=self.target_probe_Tm_chem_correction_parameters,
-            Tm_salt_correction_parameters=self.target_probe_Tm_salt_correction_parameters,
-        )
-
-        calculator = PropertyCalculator(properties=[tm_nn_property])
-        probe_database = calculator.apply(
-            oligo_database=probe_database, sequence_type="sequence_oligo_L", n_jobs=self.n_jobs
-        )
-        probe_database = calculator.apply(
-            oligo_database=probe_database, sequence_type="sequence_oligo_R", n_jobs=self.n_jobs
-        )
-
         probe_database.write_oligosets_to_yaml(
-            properties=self.output_properties,
+            properties=output_properties,
             top_n_sets=top_n_sets,
             ascending=True,
             filename="cyclehcr_probes",
@@ -1002,7 +943,7 @@ class CycleHCRProbeDesigner:
         )
 
         probe_database.write_oligosets_to_table(
-            properties=self.output_properties,
+            properties=output_properties,
             top_n_sets=top_n_sets,
             ascending=True,
             filename="cyclehcr_probes",
@@ -2028,16 +1969,25 @@ def main() -> None:
             # ensure that the list contains unique gene ids
             gene_ids = list(set([line.rstrip() for line in lines]))
 
+    ##### preprocess melting temperature params #####
+    target_probe_Tm_parameters = config["target_probe_Tm_parameters"]
+    target_probe_Tm_parameters["nn_table"] = getattr(mt, target_probe_Tm_parameters["nn_table"])
+    target_probe_Tm_parameters["tmm_table"] = getattr(mt, target_probe_Tm_parameters["tmm_table"])
+    target_probe_Tm_parameters["imm_table"] = getattr(mt, target_probe_Tm_parameters["imm_table"])
+    target_probe_Tm_parameters["de_table"] = getattr(mt, target_probe_Tm_parameters["de_table"])
+
     ##### initialize probe designer pipeline #####
     pipeline = CycleHCRProbeDesigner(
         dir_output=config["dir_output"],
-    )
-
-    ##### set custom developer parameters #####
-    pipeline.load_parameter_settings(
-        # Pipeline Configuration
         write_intermediate_steps=config["write_intermediate_steps"],
         n_jobs=config["n_jobs"],
+    )
+
+    ##### design probes #####
+    target_probe_database = pipeline.design_target_probes(
+        region_ids=gene_ids,
+        files_fasta_target_probe_database=config["files_fasta_target_probe_database"],
+        files_fasta_reference_database_target_probe=config["files_fasta_reference_database_target_probe"],
         # Target Probe Design
         target_probe_isoform_consensus=config["target_probe_isoform_consensus"],
         target_probe_L_probe_sequence_length=config["target_probe_L_probe_sequence_length"],
@@ -2054,7 +2004,7 @@ def main() -> None:
             "target_probe_secondary_structures_threshold_deltaG"
         ],
         # Melting Temperature Calculation Parameters
-        target_probe_Tm_parameters=config["target_probe_Tm_parameters"],
+        target_probe_Tm_parameters=target_probe_Tm_parameters,
         target_probe_Tm_chem_correction_parameters=config["target_probe_Tm_chem_correction_parameters"],
         target_probe_Tm_salt_correction_parameters=config["target_probe_Tm_salt_correction_parameters"],
         # Specificity Filter Parameters
@@ -2082,15 +2032,6 @@ def main() -> None:
         n_attempts=config["n_attempts"],
         heuristic=config["heuristic"],
         heuristic_n_attempts=config["heuristic_n_attempts"],
-        # Assembly and Output Parameters
-        linker_sequence=config["linker_sequence"],
-    )
-
-    ##### design probes #####
-    target_probe_database = pipeline.design_target_probes(
-        region_ids=gene_ids,
-        files_fasta_target_probe_database=config["files_fasta_target_probe_database"],
-        files_fasta_reference_database_target_probe=config["files_fasta_reference_database_target_probe"],
     )
 
     codebook, readout_probe_table = pipeline.design_readout_probes(
@@ -2103,6 +2044,7 @@ def main() -> None:
         target_probe_database=target_probe_database,
         codebook=codebook,
         readout_probe_table=readout_probe_table,
+        linker_sequence=config["linker_sequence"],
     )
 
     reverse_primer_sequence, forward_primer_sequence = pipeline.design_primers(
@@ -2114,6 +2056,7 @@ def main() -> None:
         hybridization_probe_database=hybridization_probe_database,
         forward_primer_sequence=forward_primer_sequence,
         reverse_primer_sequence=reverse_primer_sequence,
+        linker_sequence=config["linker_sequence"],
     )
 
     pipeline.generate_output(
