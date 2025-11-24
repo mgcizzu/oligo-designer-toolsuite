@@ -822,10 +822,10 @@ class OligoDatabase:
         properties = check_if_list(properties)
         region_ids = check_if_list(region_ids) if region_ids else self.database.keys()
 
-        yaml_dict_order: dict[str, dict] = {}
+        yaml_dict: dict[str, dict] = {}
 
         for region_id in region_ids:
-            yaml_dict_order[region_id] = {}
+            yaml_dict[region_id] = {}
             oligosets_region = self.oligosets[region_id]
             oligosets_oligo_columns = [col for col in oligosets_region.columns if col.startswith("oligo_")]
             oligosets_score_columns = [col for col in oligosets_region.columns if col.startswith("score_")]
@@ -837,7 +837,7 @@ class OligoDatabase:
             # iterate through all oligo sets
             for oligoset_idx, oligoset in oligosets_region.iterrows():
                 oligoset_id = f"oligoset_{oligoset_idx + 1}"
-                yaml_dict_order[region_id][oligoset_id] = {}
+                yaml_dict[region_id][oligoset_id] = {}
                 for oligo_id in oligoset:
                     entry = {}
                     for property in properties:
@@ -851,13 +851,13 @@ class OligoDatabase:
                                 ):
                                     oligo_property = flatten_property_list(oligo_property)
                             entry[property] = oligo_property
-                    yaml_dict_order[region_id][oligoset_id][oligo_id] = entry
+                    yaml_dict[region_id][oligoset_id][oligo_id] = entry
 
         dir_output = dir_output if dir_output else self.dir_output
         file_yaml = os.path.join(os.path.dirname(dir_output), f"{filename}.yml")
 
         with open(file_yaml, "w") as outfile:
-            yaml.dump(yaml_dict_order, outfile, default_flow_style=False, sort_keys=False)
+            yaml.dump(yaml_dict, outfile, Dumper=CustomYamlDumper, default_flow_style=False, sort_keys=False)
 
     def remove_regions_with_insufficient_oligos(self, pipeline_step: str) -> None:
         """
