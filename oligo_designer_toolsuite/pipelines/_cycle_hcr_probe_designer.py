@@ -1947,18 +1947,18 @@ def main() -> None:
     Main entry point for running the CycleHCR probe design pipeline.
 
     This function orchestrates the complete CycleHCR probe design workflow:
-    1. Parses command-line arguments to get the configuration file path
-    2. Loads the YAML configuration file containing all pipeline parameters
-    3. Processes the region/gene ID list (if provided) or uses all regions from FASTA files
-    4. Initializes the CycleHCRProbeDesigner pipeline
-    5. Loads parameter settings from the configuration
-    6. Executes the probe design pipeline:
-       - Designs target probes for each region
-       - Loads/generates readout probes and codebook
-       - Assembles hybridization probes
-       - Loads/validates PCR primers
-       - Assembles final DNA template probes
-    7. Generates output files (TSV, YAML, Excel formats)
+    1. Parses command-line arguments using the base parser
+    2. Reads the configuration YAML file containing all pipeline parameters
+    3. Reads the gene IDs file (if provided) or uses all genes from FASTA files
+    4. Preprocesses melting temperature parameters for target probes
+    5. Initializes the CycleHCRProbeDesigner pipeline
+    6. Designs target probes for specified genes
+    7. Loads readout probes and generates the codebook
+    8. Assembles hybridization probes by combining target probes with readout probe barcodes
+    9. Loads/validates forward and reverse primers for PCR amplification
+    10. Assembles final DNA template probes with primers
+    11. Generates output files (codebook, readout probe table, probe sequences, etc.)
+
 
     The function is typically called from the command line:
     ``cycle_hcr_probe_designer --config <path_to_config.yaml>``
