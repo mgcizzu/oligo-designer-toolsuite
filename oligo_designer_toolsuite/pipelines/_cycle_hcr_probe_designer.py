@@ -78,9 +78,23 @@ class CycleHCRProbeDesigner:
     """
     A class for designing hybridization probes for CycleHCR (Cyclic Hybridization Chain Reaction) experiments.
 
-    This class provides a comprehensive pipeline for designing CycleHCR hybridization probes, which are
-    fluorescent probes used for multiplexed RNA detection. The pipeline includes target probe design,
-    readout probe assignment, hybridization probe assembly, primer design, and DNA template probe assembly.
+    This class provides a complete pipeline for designing CycleHCR hybridization probes, which are
+    fluorescent probes used for multiplexed RNA detection.
+
+    **CycleHCR Pipeline Overview:**
+    1. **Target Probe Design**: Design split left/right (L/R) gene-specific targeting sequences that bind
+       to adjacent regions on RNA transcripts, separated by a gap. Probes are designed with high melting
+       temperature to remain bound during stripping cycles.
+    2. **Readout Probe Assignment**: Load or generate readout probe sequences and create a codebook that
+       assigns unique barcode pairs to each target region for multiplexed detection.
+    3. **Hybridization Probe Assembly**: Combine target probe L/R halves with readout probe barcodes
+       based on the codebook, creating complete hybridization probes with linker sequences.
+    4. **Primer Design**: Load and validate PCR primers for amplifying DNA template probes. The forward
+       primer is selected to match the reverse primer's melting temperature.
+    5. **DNA Template Probe Assembly**: Assemble final DNA template probes by combining forward primers,
+       target probe sequences, linker sequences, readout probe sequences, and reverse primers.
+    6. **Output Generation**: Generate output files in multiple formats (TSV, YAML, Excel) containing
+       probe sequences, properties, and codebook information.
 
     Overview
     --------
@@ -92,7 +106,7 @@ class CycleHCRProbeDesigner:
 
     Probe Structure
     ---------------
-    **Hybridization Probes**
+    **Hybridization (primary) Probes**
     - Each RNA hybridization probe is divided into two ~45 nt halves: Left (L) and Right (R).
       They hybridize to adjacent regions on the target transcript, separated by a 2 nt gap.
     - The complete hybridization probe contains a 92-nt targeting sequence (divided into 45-nt segments
@@ -104,9 +118,6 @@ class CycleHCRProbeDesigner:
       both halves to bind adjacently, minimizing false positives.
     - Each hybridization probe also contains two 14-nt barcode sequences, TT-nucleotide spacers between
       readout and gene-specific regions.
-    - The DNA template probe is assembled with a forward primer at the 5' end, followed by the target L/R
-      sequences, a linker sequence, the reverse complement of the readout oligo sequences and a reverse
-      primer at the 3' end, enabling PCR amplification.
 
     **Readout Probes**
     - Each target carries two short barcode sequences (L-barcode, R-barcode) within the hybridization probe.
@@ -116,6 +127,12 @@ class CycleHCRProbeDesigner:
       polymerization of fluorescent HCR hairpins (e.g., B2/B3/B4 hairpin sets).
     - The specific readout sequences contained by a hybridization probe are determined by the binary
       barcode assigned to that RNA target, enabling multiplexed detection of multiple RNA species.
+
+    **DNA Template Probes**
+    - The DNA template probe is assembled with a forward primer at the 5' end, followed by the target L/R
+      sequences, a linker sequence, the reverse complement of the readout oligo sequences and a reverse
+      primer at the 3' end, enabling PCR amplification.
+
 
     Probe Library Preparation
     -------------------------
