@@ -70,29 +70,11 @@ from oligo_designer_toolsuite.sequence_generator import OligoSequenceGenerator
 
 
 class HcrProbeDesigner:
-    """
-    A class for designing encoding probes for the HCR experiments.
-
-    A HCR encoding probe is a fluorescent probe that contains a 92-nt targeting sequence (divided into
-    45-nt segments for the left and right probe pairs, separated by a 2-nt gap), which directs their binding
-    to the specific RNA, two 14-nt barcode sequences, which are read out by fluorescent secondary readout probes,
-    TT-nucleotide spacers between readout and gene-specific regions, and two PCR primer binding sites.
-    The specific readout sequences contained by an encoding probe are determined by the binary barcode assigned to that RNA.
-
-    :param write_intermediate_steps: Whether to save intermediate results during the probe design pipeline.
-    :type write_intermediate_steps: bool
-    :param dir_output: Directory path where output files will be saved.
-    :type dir_output: str
-    :param n_jobs: Number of parallel jobs to use for processing.
-    :type n_jobs: int
-    """
-
     def __init__(
         self,
         write_intermediate_steps: bool,
         dir_output: str,
         n_jobs: int,
-        output_properties: list[str] | None = None,
     ) -> None:
         """Constructor for the HcrProbeDesigner class."""
 
@@ -111,121 +93,6 @@ class HcrProbeDesigner:
         self.write_intermediate_steps = write_intermediate_steps
         self.n_jobs = n_jobs
 
-        ##### define output properties #####
-        if output_properties is None:
-            self.output_properties = [
-                "source",
-                "species",
-                "annotation_release",
-                "genome_assembly",
-                "gene_id",
-                "chromosome",
-                "start",
-                "end",
-                "strand",
-                "regiontype",
-                "transcript_id",
-                "exon_number",
-                "sequence_target",
-                "sequence_linker",
-                "sequence_initiator_probe_L",
-                "sequence_initiator_probe_R",
-                "sequence_hybridization_probe_L",
-                "sequence_hybridization_probe_R",
-                "TmNN_sequence_target_L",
-                "TmNN_sequence_target_R",
-                "isoform_consensus",
-            ]
-        else:
-            self.output_properties = output_properties
-
-    def set_developer_parameters(
-        self,
-        target_probe_specificity_blastn_search_parameters: dict,
-        target_probe_specificity_blastn_hit_parameters: dict,
-        target_probe_cross_hybridization_blastn_search_parameters: dict,
-        target_probe_cross_hybridization_blastn_hit_parameters: dict,
-        target_probe_Tm_parameters: dict,
-        target_probe_Tm_chem_correction_parameters: dict | None,
-        target_probe_Tm_salt_correction_parameters: dict | None,
-        max_graph_size: int,
-        n_attempts: int,
-        heuristic: bool,
-        heuristic_n_attempts: int,
-    ) -> None:
-        """
-        Set developer-specific parameters for HCR probe designer pipeline.
-        These parameters can be used to customize and fine-tune the pipeline.
-
-        :param target_probe_specificity_blastn_search_parameters: Parameters for the BlastN specificity
-            search for target probes.
-        :type target_probe_specificity_blastn_search_parameters: dict
-        :param target_probe_specificity_blastn_hit_parameters: Parameters for filtering BlastN hits
-            for target probe specificity.
-        :type target_probe_specificity_blastn_hit_parameters: dict
-        :param target_probe_cross_hybridization_blastn_search_parameters: Parameters for the BlastN
-            cross-hybridization search for target probes.
-        :type target_probe_cross_hybridization_blastn_search_parameters: dict
-        :param target_probe_cross_hybridization_blastn_hit_parameters: Parameters for filtering
-            BlastN hits for target probe cross-hybridization.
-        :type target_probe_cross_hybridization_blastn_hit_parameters: dict
-        :param target_probe_Tm_parameters: Parameters for calculating melting temperature (Tm) of target probes.
-            For using Bio.SeqUtils.MeltingTemp default parameters set to ``{}``. For more information on parameters,
-            see: https://biopython.org/docs/1.75/api/Bio.SeqUtils.MeltingTemp.html#Bio.SeqUtils.MeltingTemp.Tm_NN
-        :type target_probe_Tm_parameters: dict
-        :param target_probe_Tm_chem_correction_parameters: Chemical correction parameters for Tm calculation of target probes.
-            For using Bio.SeqUtils.MeltingTemp default parameters set to ``{}``. For more information on parameters,
-            see: https://biopython.org/docs/1.75/api/Bio.SeqUtils.MeltingTemp.html#Bio.SeqUtils.MeltingTemp.salt_correction
-        :type target_probe_Tm_chem_correction_parameters: dict
-        :param target_probe_Tm_salt_correction_parameters: Salt correction parameters for Tm calculation of target probes.
-            For using Bio.SeqUtils.MeltingTemp default parameters set to ``{}``. For more information on parameters,
-            see: https://biopython.org/docs/1.75/api/Bio.SeqUtils.MeltingTemp.html#Bio.SeqUtils.MeltingTemp.chem_correction
-        :type target_probe_Tm_salt_correction_parameters: dict
-        :param max_graph_size: Maximum size of the graph used in set selection.
-        :type max_graph_size: int
-        :param n_attempts: Maximum number of attempts for selecting oligo sets.
-        :type n_attempts: int
-        :param heuristic: Whether to apply heuristic methods in oligo set selection.
-        :type heuristic: bool
-        :param heuristic_n_attempts: Maximum number of attempts for heuristic selecting oligo sets.
-        :type heuristic_n_attempts: int
-        """
-        ### Parameters for the specificity filters
-        # Specificity filter with BlastN
-        self.target_probe_specificity_blastn_search_parameters = (
-            target_probe_specificity_blastn_search_parameters
-        )
-        self.target_probe_specificity_blastn_hit_parameters = target_probe_specificity_blastn_hit_parameters
-
-        # Crosshybridization filter with BlastN
-        self.target_probe_cross_hybridization_blastn_search_parameters = (
-            target_probe_cross_hybridization_blastn_search_parameters
-        )
-        self.target_probe_cross_hybridization_blastn_hit_parameters = (
-            target_probe_cross_hybridization_blastn_hit_parameters
-        )
-
-        ### Parameters for Melting Temperature
-        # The melting temperature is used in 2 different stages (property filters and padlock detection probe design), where a few parameters are shared and the others differ.
-        # parameters for melting temperature -> for more information on parameters, see: https://biopython.org/docs/1.75/api/Bio.SeqUtils.MeltingTemp.html#Bio.SeqUtils.MeltingTemp.Tm_NN
-
-        # preprocess melting temperature params
-        target_probe_Tm_parameters["nn_table"] = getattr(mt, target_probe_Tm_parameters["nn_table"])
-        target_probe_Tm_parameters["tmm_table"] = getattr(mt, target_probe_Tm_parameters["tmm_table"])
-        target_probe_Tm_parameters["imm_table"] = getattr(mt, target_probe_Tm_parameters["imm_table"])
-        target_probe_Tm_parameters["de_table"] = getattr(mt, target_probe_Tm_parameters["de_table"])
-
-        ## target probe
-        self.target_probe_Tm_parameters = target_probe_Tm_parameters
-        self.target_probe_Tm_chem_correction_parameters = target_probe_Tm_chem_correction_parameters
-        self.target_probe_Tm_salt_correction_parameters = target_probe_Tm_salt_correction_parameters
-
-        ### Parameters for the Oligo set selection
-        self.max_graph_size = max_graph_size
-        self.heuristic = heuristic
-        self.n_attempts = n_attempts
-        self.heuristic_n_attempts = heuristic_n_attempts
-
     def design_target_probes(
         self,
         files_fasta_target_probe_database: list[str],
@@ -239,59 +106,27 @@ class HcrProbeDesigner:
         target_probe_GC_content_max: float,
         target_probe_Tm_min: float,
         target_probe_Tm_max: float,
+        target_probe_Tm_parameters: dict,
+        target_probe_Tm_chem_correction_parameters: dict | None,
+        target_probe_Tm_salt_correction_parameters: dict | None,
         target_probe_homopolymeric_base_n: dict,
         target_probe_T_secondary_structure: float,
         target_probe_secondary_structures_threshold_deltaG: float,
+        target_probe_specificity_blastn_search_parameters: dict,
+        target_probe_specificity_blastn_hit_parameters: dict,
+        target_probe_cross_hybridization_blastn_search_parameters: dict,
+        target_probe_cross_hybridization_blastn_hit_parameters: dict,
         target_probe_junction_region_size: int,
         target_probe_isoform_weight: float,
         set_size_opt: int,
         set_size_min: int,
         distance_between_target_probes: int,
         n_sets: int,
+        max_graph_size: int,
+        n_attempts: int,
+        heuristic: bool,
+        heuristic_n_attempts: int,
     ) -> OligoDatabase:
-        """
-        Design target probes based on specified parameters, including property and specificity filters.
-        The designed probes are organized into sets based on customizable constraints.
-
-        :param files_fasta_target_probe_database: List of input FASTA files for the target probe database.
-        :type files_fasta_target_probe_database: list[str]
-        :param files_fasta_reference_database_target_probe: List of input FASTA files for the reference database.
-        :type files_fasta_reference_database_target_probe: list[str]
-        :param region_ids: List of region IDs to target, or None to target all regions.
-        :type region_ids: list[str]
-        :param target_probe_isoform_consensus: Isoform consensus threshold for filtering.
-        :type target_probe_isoform_consensus: float
-        :param target_probe_L_probe_sequence_length: Length of the left probe sequence.
-        :type target_probe_L_probe_sequence_length: int
-        :param target_probe_gap_sequence_length: Length of the gap sequence between left and right probes.
-        :type target_probe_gap_sequence_length: int
-        :param target_probe_R_probe_sequence_length: Length of the right probe sequence.
-        :type target_probe_R_probe_sequence_length: int
-        :param target_probe_GC_content_min: Minimum GC content for target probes.
-        :type target_probe_GC_content_min: float
-        :param target_probe_GC_content_max: Maximum GC content for target probes.
-        :type target_probe_GC_content_max: float
-        :param target_probe_homopolymeric_base_n: Maximum allowed homopolymeric runs for each nucleotide.
-        :type target_probe_homopolymeric_base_n: dict[str, int]
-        :param target_probe_T_secondary_structure: Threshold temperature for secondary structure evaluation.
-        :type target_probe_T_secondary_structure: float
-        :param target_probe_secondary_structures_threshold_deltaG: DeltaG threshold for secondary structure stability.
-        :type target_probe_secondary_structures_threshold_deltaG: float
-        :param target_probe_junction_region_size: Size of the junction region for specificity filtering.
-        :type target_probe_junction_region_size: int
-        :param target_probe_isoform_weight: Weight for isoform consensus in probe scoring.
-        :type target_probe_isoform_weight: float
-        :param set_size_opt: Optimal size of oligo sets.
-        :type set_size_opt: int
-        :param set_size_min: Minimum size of oligo sets.
-        :type set_size_min: int
-        :param distance_between_target_probes: Minimum genomic distance between probes in a set.
-        :type distance_between_target_probes: int
-        :param n_sets: Number of oligo sets to generate.
-        :type n_sets: int
-        :return: An `OligoDatabase` object containing the designed target probes.
-        :rtype: OligoDatabase
-        """
 
         target_probe_designer = TargetProbeDesigner(self.dir_output, self.n_jobs)
 
@@ -320,9 +155,9 @@ class HcrProbeDesigner:
             homopolymeric_base_n=target_probe_homopolymeric_base_n,
             T_secondary_structure=target_probe_T_secondary_structure,
             secondary_structures_threshold_deltaG=target_probe_secondary_structures_threshold_deltaG,
-            Tm_parameters=self.target_probe_Tm_parameters,
-            Tm_chem_correction_parameters=self.target_probe_Tm_chem_correction_parameters,
-            Tm_salt_correction_parameters=self.target_probe_Tm_salt_correction_parameters,
+            Tm_parameters=target_probe_Tm_parameters,
+            Tm_chem_correction_parameters=target_probe_Tm_chem_correction_parameters,
+            Tm_salt_correction_parameters=target_probe_Tm_salt_correction_parameters,
         )
 
         if self.write_intermediate_steps:
@@ -336,10 +171,10 @@ class HcrProbeDesigner:
             files_fasta_reference_database=files_fasta_reference_database_target_probe,
             junction_region_size=target_probe_junction_region_size,
             junction_site=target_probe_L_probe_sequence_length + target_probe_gap_sequence_length // 2,
-            specificity_blastn_search_parameters=self.target_probe_specificity_blastn_search_parameters,
-            specificity_blastn_hit_parameters=self.target_probe_specificity_blastn_hit_parameters,
-            cross_hybridization_blastn_search_parameters=self.target_probe_cross_hybridization_blastn_search_parameters,
-            cross_hybridization_blastn_hit_parameters=self.target_probe_cross_hybridization_blastn_hit_parameters,
+            specificity_blastn_search_parameters=target_probe_specificity_blastn_search_parameters,
+            specificity_blastn_hit_parameters=target_probe_specificity_blastn_hit_parameters,
+            cross_hybridization_blastn_search_parameters=target_probe_cross_hybridization_blastn_search_parameters,
+            cross_hybridization_blastn_hit_parameters=target_probe_cross_hybridization_blastn_hit_parameters,
         )
 
         if self.write_intermediate_steps:
@@ -355,10 +190,24 @@ class HcrProbeDesigner:
             set_size_min=set_size_min,
             distance_between_oligos=distance_between_target_probes,
             n_sets=n_sets,
-            max_graph_size=self.max_graph_size,
-            n_attempts=self.n_attempts,
-            heuristic=self.heuristic,
-            heuristic_n_attempts=self.heuristic_n_attempts,
+            max_graph_size=max_graph_size,
+            n_attempts=n_attempts,
+            heuristic=heuristic,
+            heuristic_n_attempts=heuristic_n_attempts,
+        )
+
+        tm_nn_property: BaseProperty = TmNNProperty(
+            Tm_parameters=target_probe_Tm_parameters,
+            Tm_chem_correction_parameters=target_probe_Tm_chem_correction_parameters,
+            Tm_salt_correction_parameters=target_probe_Tm_salt_correction_parameters,
+        )
+
+        calculator = PropertyCalculator(properties=[tm_nn_property])
+        oligo_database = calculator.apply(
+            oligo_database=oligo_database, sequence_type="oligo_L", n_jobs=self.n_jobs
+        )
+        oligo_database = calculator.apply(
+            oligo_database=oligo_database, sequence_type="oligo_R", n_jobs=self.n_jobs
         )
 
         if self.write_intermediate_steps:
@@ -376,18 +225,7 @@ class HcrProbeDesigner:
         file_initiator_table: str,
         file_codebook: str,
     ) -> tuple[pd.DataFrame, pd.DataFrame]:
-        """
-        Design initiators based on specified parameters.
 
-        :param region_ids: List of region IDs for which initiators are to be designed.
-        :type region_ids: list[str]
-        :param file_initiator_table: Path to the input initiator table file.
-        :type file_initiator_table: str
-        :param file_codebook: Path to the input codebook file.
-        :type file_codebook: str
-        :return: A tuple containing the generated codebook and initiator table.
-        :rtype: tuple[pd.DataFrame, pd.DataFrame]
-        """
         initiator_designer = InitiatorDesigner(
             dir_output=self.dir_output,
             n_jobs=self.n_jobs,
@@ -427,22 +265,7 @@ class HcrProbeDesigner:
         initiator_table: pd.DataFrame,
         linker_sequence: str,
     ) -> OligoDatabase:
-        """
-        Assemble hybridization probes by combining target probes with initiator sequences based on the codebook.
 
-        :param target_probe_database: Database of target probes containing sequence and property information.
-        :type target_probe_database: OligoDatabase
-        :param codebook: A DataFrame containing barcodes for each region. Each row corresponds to a region,
-            with columns representing bits in the barcode.
-        :type codebook: pd.DataFrame
-        :param initiator_table: A DataFrame containing initiator sequences and their associated bit
-            identifiers.
-        :type initiator_table: pd.DataFrame
-        :param linker_sequence: Sequence used to link target probes and initiators in the encoding probe.
-        :type linker_sequence: str
-        :return: Database of assembled hybridization probes with properties and sequences.
-        :rtype: OligoDatabase
-        """
         region_ids = list(target_probe_database.database.keys())
 
         target_probe_database.set_database_sequence_types(
@@ -522,41 +345,40 @@ class HcrProbeDesigner:
         codebook: pd.DataFrame,
         initiator_table: pd.DataFrame,
         top_n_sets: int = 3,
+        output_properties: list[str] | None = None,
     ) -> None:
-        """
-        Generate the final output files for the HCR probe design pipeline.
 
-        :param probe_database: Database of encoding probes with associated properties and sequences.
-        :type probe_database: OligoDatabase
-        :param codebook: Codebook used for the encoding probes.
-        :type codebook: pd.DataFrame
-        :param initiator_table: Table of initiators used for the encoding probes.
-        :type initiator_table: pd.DataFrame
-        :param top_n_sets: Number of top probe sets to include in the output, defaults to 3.
-        :type top_n_sets: int
+        if output_properties is None:
+            output_properties = [
+                "source",
+                "species",
+                "annotation_release",
+                "genome_assembly",
+                "gene_id",
+                "chromosome",
+                "start",
+                "end",
+                "strand",
+                "regiontype",
+                "transcript_id",
+                "exon_number",
+                "sequence_target",
+                "sequence_linker",
+                "sequence_initiator_probe_L",
+                "sequence_initiator_probe_R",
+                "sequence_hybridization_probe_L",
+                "sequence_hybridization_probe_R",
+                "TmNN_sequence_target_L",
+                "TmNN_sequence_target_R",
+                "isoform_consensus",
+            ]
 
-        :return: None
-        """
         # write codebook and readout probe table
         codebook.to_csv(os.path.join(self.dir_output, "codebook.tsv"), sep="\t", index_label="region_id")
         initiator_table.to_csv(os.path.join(self.dir_output, "initiators.tsv"), sep="\t")
 
-        tm_nn_property: BaseProperty = TmNNProperty(
-            Tm_parameters=self.target_probe_Tm_parameters,
-            Tm_chem_correction_parameters=self.target_probe_Tm_chem_correction_parameters,
-            Tm_salt_correction_parameters=self.target_probe_Tm_salt_correction_parameters,
-        )
-
-        calculator = PropertyCalculator(properties=[tm_nn_property])
-        probe_database = calculator.apply(
-            oligo_database=probe_database, sequence_type="sequence_oligo_L", n_jobs=self.n_jobs
-        )
-        probe_database = calculator.apply(
-            oligo_database=probe_database, sequence_type="sequence_oligo_R", n_jobs=self.n_jobs
-        )
-
         probe_database.write_oligosets_to_yaml(
-            properties=self.output_properties,
+            properties=output_properties,
             top_n_sets=top_n_sets,
             ascending=True,
             filename="hcr_probes",
@@ -671,8 +493,6 @@ class HcrProbeDesigner:
             os.path.join(self.dir_output, "hcr_probes_order.tsv"), sep="\t", index=False
         )
 
-        logging.info("--------------END PIPELINE--------------")
-
 
 ############################################
 # HCR Target Probe Designer
@@ -680,16 +500,6 @@ class HcrProbeDesigner:
 
 
 class TargetProbeDesigner:
-    """
-    A class for designing target probes for HCR experiments.
-    This class provides methods for creating, filtering, and scoring oligos based
-    on specific properties and designing oligo sets for targeted probes.
-
-    :param dir_output: Directory path where output files will be saved.
-    :type dir_output: str
-    :param n_jobs: Number of parallel jobs to use for processing.
-    :type n_jobs: int
-    """
 
     def __init__(self, dir_output: str, n_jobs: int) -> None:
         """Constructor for the TargetProbeDesigner class."""
@@ -712,28 +522,7 @@ class TargetProbeDesigner:
         min_oligos_per_gene: int,
         isoform_consensus: float,
     ) -> OligoDatabase:
-        """
-        Creates an oligo database by generating sequences using a sliding window approach
-        and filtering based on specified criteria.
 
-        :param region_ids: List of region identifiers for which oligos should be generated.
-                        If None, all regions in the input fasta file are used.
-        :type region_ids: list[str] | None
-        :param target_probe_L_probe_sequence_length: Length of the left probe sequence.
-        :type target_probe_L_probe_sequence_length: int
-        :param target_probe_gap_sequence_length: Length of the gap sequence.
-        :type target_probe_gap_sequence_length: int
-        :param target_probe_R_probe_sequence_length: Length of the right probe sequence.
-        :type target_probe_R_probe_sequence_length: int
-        :param files_fasta_oligo_database: List of FASTA files containing sequences for oligo generation.
-        :type files_fasta_oligo_database: list[str]
-        :param min_oligos_per_gene: Minimum number of oligos required per gene in the database.
-        :type min_oligos_per_gene: int
-        :param isoform_consensus: Threshold for isoform consensus filtering.
-        :type isoform_consensus: float
-        :return: The generated oligo database.
-        :rtype: OligoDatabase
-        """
         ##### creating the oligo sequences #####
         oligo_length = (
             target_probe_L_probe_sequence_length
@@ -803,7 +592,7 @@ class TargetProbeDesigner:
         # first right then left sequence because we are splitting the oligo not the target sequence
         split_sequence_property: BaseProperty = SplitSequenceProperty(
             split_start_end=split_start_end,
-            split_names=["oligo_L", "spacer", "oligo_R"],
+            split_names=["oligo_R", "spacer", "oligo_L"],
         )
 
         calculator = PropertyCalculator(properties=[split_sequence_property])
@@ -834,36 +623,8 @@ class TargetProbeDesigner:
         Tm_chem_correction_parameters: dict | None,
         Tm_salt_correction_parameters: dict | None,
     ) -> OligoDatabase:
-        """
-        Filter the oligo database based on various sequence properties.
 
-        :param oligo_database: The OligoDatabase instance containing oligonucleotide sequences and their associated properties. This database stores oligo data organized by genomic regions and can be used for filtering, property calculations, set generation, and output operations.
-        :type oligo_database: OligoDatabase
-        :param GC_content_min: Minimum acceptable GC content for oligos.
-        :type GC_content_min: float
-        :param GC_content_max: Maximum acceptable GC content for oligos.
-        :type GC_content_max: float
-        :param Tm_min: Minimum acceptable melting temperature (Tm) for oligos.
-        :type Tm_min: float
-        :param Tm_max: Maximum acceptable melting temperature (Tm) for oligos.
-        :type Tm_max: float
-        :param homopolymeric_base_n: Maximum allowable length of homopolymeric base runs.
-        :type homopolymeric_base_n: dict
-        :param T_secondary_structure: Temperature for secondary structure analysis.
-        :type T_secondary_structure: float
-        :param secondary_structures_threshold_deltaG: Threshold for secondary structure deltaG.
-        :type secondary_structures_threshold_deltaG: float
-        :param Tm_parameters: Parameters for melting temperature calculation.
-        :type Tm_parameters: dict
-        :param Tm_chem_correction_parameters: Parameters for chemical correction in Tm calculation.
-        :type Tm_chem_correction_parameters: dict | None
-        :param Tm_salt_correction_parameters: Parameters for salt correction in Tm calculation.
-        :type Tm_salt_correction_parameters: dict | None
-        :return: The filtered oligo database.
-        :rtype: OligoDatabase
-        """
         # define the filters
-        # soft_masked_sequences = SoftMaskedSequenceFilter()
         hard_masked_sequences = HardMaskedSequenceFilter()
         gc_content = GCContentFilter(GC_content_min=GC_content_min, GC_content_max=GC_content_max)
         melting_temperature = MeltingTemperatureNNFilter(
@@ -882,7 +643,6 @@ class TargetProbeDesigner:
         )
 
         filters = [
-            # soft_masked_sequences,
             hard_masked_sequences,
             homopolymeric_runs,
             gc_content,
@@ -922,29 +682,7 @@ class TargetProbeDesigner:
         cross_hybridization_blastn_search_parameters: dict,
         cross_hybridization_blastn_hit_parameters: dict,
     ) -> OligoDatabase:
-        """
-        Filter the oligo database based on sequence specificity to remove sequences that
-        cross-hybridize to other oligos or hybridization to other genomic regions.
 
-        :param oligo_database: The OligoDatabase instance containing oligonucleotide sequences and their associated properties. This database stores oligo data organized by genomic regions and can be used for filtering, property calculations, set generation, and output operations.
-        :type oligo_database: OligoDatabase
-        :param files_fasta_reference_database: List of FASTA files containing reference sequences for specificity filtering.
-        :type files_fasta_reference_database: list[str]
-        :param junction_region_size: Size of the junction region for seed-based specificity filtering.
-        :type junction_region_size: int
-        :param junction_site: Position of the junction site within the oligo sequence.
-        :type junction_site: int
-        :param specificity_blastn_search_parameters: Parameters for BLASTN specificity search.
-        :type specificity_blastn_search_parameters: dict
-        :param specificity_blastn_hit_parameters: Parameters for filtering BLASTN specificity hits.
-        :type specificity_blastn_hit_parameters: dict
-        :param cross_hybridization_blastn_search_parameters: Parameters for BLASTN cross-hybridization search.
-        :type cross_hybridization_blastn_search_parameters: dict
-        :param cross_hybridization_blastn_hit_parameters: Parameters for filtering BLASTN cross-hybridization hits.
-        :type cross_hybridization_blastn_hit_parameters: dict
-        :return: The filtered oligo database.
-        :rtype: OligoDatabase
-        """
         ##### define reference database #####
         reference_database = ReferenceDatabase(
             database_name=self.subdir_db_reference, dir_output=self.dir_output
@@ -1062,32 +800,7 @@ class TargetProbeDesigner:
         heuristic: bool,
         heuristic_n_attempts: int,
     ) -> OligoDatabase:
-        """
-        Create optimal oligo sets based on weighted scoring criteria, distance constraints and selection policies.
 
-        :param oligo_database: The OligoDatabase instance containing oligonucleotide sequences and their associated properties. This database stores oligo data organized by genomic regions and can be used for filtering, property calculations, set generation, and output operations.
-        :type oligo_database: OligoDatabase
-        :param isoform_weight: Weight assigned to isoform specificity in scoring.
-        :type isoform_weight: float
-        :param set_size_opt: Optimal size for oligo sets.
-        :type set_size_opt: int
-        :param set_size_min: Minimum size for oligo sets.
-        :type set_size_min: int
-        :param distance_between_oligos: Minimum genomic distance between oligos in a set.
-        :type distance_between_oligos: int
-        :param n_sets: Number of oligo sets to generate.
-        :type n_sets: int
-        :param max_graph_size: Maximum size of the graph used in set selection.
-        :type max_graph_size: int
-        :param n_attempts: Maximum number of attempts for selecting oligo sets.
-        :type n_attempts: int
-        :param heuristic: Whether to apply heuristic methods in oligo set selection.
-        :type heuristic: bool
-        :param heuristic_n_attempts: Maximum number of attempts for heuristic selecting oligo sets.
-        :type heuristic_n_attempts: int
-        :return: The updated oligo database.
-        :rtype: OligoDatabase
-        """
         # Define all scorers
         isoform_consensus_scorer = IsoformConsensusScorer(normalize=True, score_weight=isoform_weight)
         oligos_scoring = OligoScoring(scorers=[isoform_consensus_scorer])
@@ -1179,16 +892,6 @@ class TargetProbeDesigner:
 
 
 class InitiatorDesigner:
-    """
-    A class for designing HCR initiators.
-    This class provides methods for creating, filtering, and scoring oligos based
-    on specific properties and designing oligo sets for initiators.
-
-    :param dir_output: Directory path where output files will be saved.
-    :type dir_output: str
-    :param n_jobs: Number of parallel jobs to use for processing.
-    :type n_jobs: int
-    """
 
     def __init__(
         self,
@@ -1201,54 +904,8 @@ class InitiatorDesigner:
         self.dir_output = os.path.abspath(dir_output)
         self.n_jobs = n_jobs
 
-    @pipeline_step_basic(step_name="Initiator Generation - Create Oligo Database")
-    def create_oligo_database(self) -> None:
-        """
-        Create an oligo database containing sequences of specific length and base probabilities.
-        """
-        raise FeatureNotImplementedError("Creation of oligo database is not yet implemented. ")
-
-    @pipeline_step_basic(step_name="Initiator Generation - Set Selection")
-    def create_oligo_sets(self) -> None:
-        """
-        Create oligo sets for the initiators.
-        """
-        raise FeatureNotImplementedError("Creation of oligo sets is not yet implemented. ")
-
-    @pipeline_step_basic(step_name="Initiator Generation - Property Filters")
-    def filter_by_property(self) -> None:
-        """
-        Filter the oligo database by property.
-        """
-        raise FeatureNotImplementedError("Filtering by property is not yet implemented. ")
-
-    @pipeline_step_basic(step_name="Initiator Generation - Specificity Filters")
-    def filter_by_specificity(self) -> None:
-        """
-        Filter the oligo database by specificity.
-        """
-        raise FeatureNotImplementedError("Filtering by specificity is not yet implemented. ")
-
-    def generate_codebook(
-        self,
-    ) -> None:
-        """
-        Generate a codebook for the initiators.
-        """
-
-        raise FeatureNotImplementedError("Generation of codebook is not yet implemented. ")
-
     def load_codebook(self, file_codebook: str) -> pd.DataFrame:
-        """
-        Load a codebook from a file.
 
-        :param file_codebook: Path to the file containing the codebook.
-        :type file_codebook: str
-        :return: The codebook with region IDs as index.
-        :rtype: pd.DataFrame
-        :raises FileFormatError: If the codebook doesn't contain at least one bit column,
-            at least one row, or if not all columns are named with "bit_*".
-        """
         codebook = pd.read_csv(file_codebook, sep=None, engine="python", index_col="region_id")
 
         # Check for at least one column
@@ -1270,24 +927,8 @@ class InitiatorDesigner:
 
         return codebook
 
-    def create_initiator_table(self) -> None:
-        """
-        Create a initiator table that maps bits to initiators.
-        """
-        raise FeatureNotImplementedError("Generation of initiator table is not yet implemented. ")
-
     def load_initiator_table(self, file_initiator_table: str) -> pd.DataFrame:
-        """
-        Load and validate a table containing initiator information.
 
-        The input table must include the required columns: 'bit', 'initiator_L_sequence',
-        and 'initiator_R_sequence'.
-
-        :param file_initiator_table: Path to the CSV/TSV file containing the initiator data.
-        :type file_initiator_table: str
-        :return: The formatted DataFrame.
-        :rtype: pd.DataFrame
-        """
         required_cols = ["bit", "initiator_L_sequence", "initiator_R_sequence"]
 
         initiator_table = pd.read_csv(file_initiator_table, sep=None, engine="python")
@@ -1313,15 +954,7 @@ class InitiatorDesigner:
 
 
 def main() -> None:
-    """
-    Main function for running the HCRProbeDesigner pipeline. This function reads the configuration file,
-    processes gene IDs, initializes the probe designer, sets developer parameters, and executes probe design
-    and output generation steps.
 
-    :param args: Command-line arguments parsed using the base parser. The arguments include:
-        - config: Path to the configuration YAML file containing parameters for the pipeline.
-    :type args: argparse.Namespace
-    """
     logging.info("--------------START PIPELINE--------------")
 
     args = base_parser()
@@ -1342,34 +975,18 @@ def main() -> None:
             # ensure that the list contains unique gene ids
             gene_ids = list(set([line.rstrip() for line in lines]))
 
+    # preprocess melting temperature params
+    target_probe_Tm_parameters = config["target_probe_Tm_parameters"]
+    target_probe_Tm_parameters["nn_table"] = getattr(mt, target_probe_Tm_parameters["nn_table"])
+    target_probe_Tm_parameters["tmm_table"] = getattr(mt, target_probe_Tm_parameters["tmm_table"])
+    target_probe_Tm_parameters["imm_table"] = getattr(mt, target_probe_Tm_parameters["imm_table"])
+    target_probe_Tm_parameters["de_table"] = getattr(mt, target_probe_Tm_parameters["de_table"])
+
     ##### initialize probe designer pipeline #####
     pipeline = HcrProbeDesigner(
         write_intermediate_steps=config["write_intermediate_steps"],
         dir_output=config["dir_output"],
         n_jobs=config["n_jobs"],
-    )
-
-    ##### set custom developer parameters #####
-    pipeline.set_developer_parameters(
-        target_probe_specificity_blastn_search_parameters=config[
-            "target_probe_specificity_blastn_search_parameters"
-        ],
-        target_probe_specificity_blastn_hit_parameters=config[
-            "target_probe_specificity_blastn_hit_parameters"
-        ],
-        target_probe_cross_hybridization_blastn_search_parameters=config[
-            "target_probe_cross_hybridization_blastn_search_parameters"
-        ],
-        target_probe_cross_hybridization_blastn_hit_parameters=config[
-            "target_probe_cross_hybridization_blastn_hit_parameters"
-        ],
-        target_probe_Tm_parameters=config["target_probe_Tm_parameters"],
-        target_probe_Tm_chem_correction_parameters=config["target_probe_Tm_chem_correction_parameters"],
-        target_probe_Tm_salt_correction_parameters=config["target_probe_Tm_salt_correction_parameters"],
-        max_graph_size=config["max_graph_size"],
-        n_attempts=config["n_attempts"],
-        heuristic=config["heuristic"],
-        heuristic_n_attempts=config["heuristic_n_attempts"],
     )
 
     ##### design probes #####
@@ -1385,11 +1002,30 @@ def main() -> None:
         target_probe_GC_content_max=config["target_probe_GC_content_max"],
         target_probe_Tm_min=config["target_probe_Tm_min"],
         target_probe_Tm_max=config["target_probe_Tm_max"],
+        target_probe_Tm_parameters=target_probe_Tm_parameters,
+        target_probe_Tm_chem_correction_parameters=config["target_probe_Tm_chem_correction_parameters"],
+        target_probe_Tm_salt_correction_parameters=config["target_probe_Tm_salt_correction_parameters"],
         target_probe_homopolymeric_base_n=config["target_probe_homopolymeric_base_n"],
         target_probe_T_secondary_structure=config["target_probe_T_secondary_structure"],
         target_probe_secondary_structures_threshold_deltaG=config[
             "target_probe_secondary_structures_threshold_deltaG"
         ],
+        target_probe_specificity_blastn_search_parameters=config[
+            "target_probe_specificity_blastn_search_parameters"
+        ],
+        target_probe_specificity_blastn_hit_parameters=config[
+            "target_probe_specificity_blastn_hit_parameters"
+        ],
+        target_probe_cross_hybridization_blastn_search_parameters=config[
+            "target_probe_cross_hybridization_blastn_search_parameters"
+        ],
+        target_probe_cross_hybridization_blastn_hit_parameters=config[
+            "target_probe_cross_hybridization_blastn_hit_parameters"
+        ],
+        max_graph_size=config["max_graph_size"],
+        n_attempts=config["n_attempts"],
+        heuristic=config["heuristic"],
+        heuristic_n_attempts=config["heuristic_n_attempts"],
         target_probe_junction_region_size=config["target_probe_junction_region_size"],
         target_probe_isoform_weight=config["target_probe_isoform_weight"],
         set_size_opt=config["set_size_opt"],
