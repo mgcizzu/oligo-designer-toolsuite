@@ -646,7 +646,7 @@ class OligoDatabase:
         filename: str = "oligosets",
         dir_output: str | None = None,
         region_ids: str | list[str] | None = None,
-    ) -> str:
+    ) -> None:
         """
         Writes the current top n oligosets and selected properties to a YAML file.
         The oligosets are sorted based on their scores in ascending or descending order.
@@ -715,33 +715,149 @@ class OligoDatabase:
         with open(file_yaml, "w") as handle:
             yaml.dump(yaml_dict, handle, Dumper=CustomYamlDumper, default_flow_style=False, sort_keys=False)
 
-        return file_yaml
-
     def write_oligosets_to_table(
-        self, dir_output: str = "oligosets", region_ids: str | list[str] | None = None
-    ) -> str:
-        """
-        Writes the current oligosets for each specified region to a tab-separated value (TSV) file, saved in the specified folder.
-
-        :param dir_output: Directory path where output files will be saved. Defaults to "oligosets".
-        :type dir_output: str
-        :param region_ids: Region identifier(s) to process. Can be a single region ID (str) or a list of region IDs (list[str]). If None, all regions in the database are processed, defaults to None.
-        :type region_ids: str | list[str] | None, optional
-        :return: Path to the directory where the oligoset TSV files were saved.
-        :rtype: str
-        """
+        self,
+        properties: str | list[str],
+        top_n_sets: int,
+        ascending: bool,
+        filename: str = "oligosets",
+        dir_output: str | None = None,
+        region_ids: str | list[str] | None = None,
+    ) -> None:
         # Check formatting
+        properties = check_if_list(properties)
         region_ids = check_if_list(region_ids) if region_ids else self.database.keys()
 
-        dir_oligosets = os.path.join(os.path.dirname(self.dir_output), dir_output)
-        Path(dir_oligosets).mkdir(parents=True, exist_ok=True)
+        csv_table = list()
 
-        for region_id in self.oligosets.keys():
-            if region_id in region_ids:
-                file_oligosets = os.path.join(dir_oligosets, f"oligosets_{region_id}.tsv")
-                self.oligosets[region_id].to_csv(file_oligosets, sep="\t", index=False)
+        for region_id in region_ids:
+            oligosets_region = self.oligosets[region_id]
+            oligosets_oligo_columns = [col for col in oligosets_region.columns if col.startswith("oligo_")]
+            oligosets_score_columns = [col for col in oligosets_region.columns if col.startswith("score_")]
 
-        return dir_oligosets
+            oligosets_region.sort_values(by=oligosets_score_columns, ascending=ascending, inplace=True)
+            oligosets_region = oligosets_region.head(top_n_sets)[oligosets_oligo_columns]
+            oligosets_region.reset_index(inplace=True, drop=True)
+
+            # iterate through all oligo sets
+            for oligoset_idx, oligoset in oligosets_region.iterrows():
+                oligoset_id = f"oligoset_{oligoset_idx + 1}"
+                for oligo_id in oligoset:
+                    entry = {
+                        "region_id": region_id,
+                        "oligoset_id": oligoset_id,
+                        "oligo_id": oligo_id,
+                    }
+
+                    for property in properties:
+                        if property in self.database[region_id][oligo_id]:
+                            oligo_property = self.database[region_id][oligo_id][property]
+                            # format oligo properties: flatten lists of lists, join string lists with comma, keep strings as-is, None -> empty list
+                            if oligo_property:
+                                if (
+                                    sum(len(sublist) for sublist in check_if_list_of_lists(oligo_property))
+                                    == 1
+                                ):
+                                    oligo_property = flatten_property_list(oligo_property)
+                                    if len(oligo_property) == 1:
+                                        oligo_property = oligo_property[0]
+                            entry[property] = oligo_property
+
+                    csv_table.append(entry)
+
+        dir_output = dir_output if dir_output else self.dir_output
+        file_table = os.path.join(os.path.dirname(dir_output), f"{filename}.tsv")
+
+        csv_table_df = pd.DataFrame(csv_table)
+        csv_table_df.to_csv(file_table, sep="\t", index=False)
+
+        # Also write Excel file with one sheet per region_id
+        file_excel = os.path.join(os.path.dirname(dir_output), f"{filename}.xlsx")
+        try:
+            with pd.ExcelWriter(file_excel, engine="openpyxl") as writer:
+                for region_id in region_ids:
+                    # Filter data for this region
+                    region_data = csv_table_df[csv_table_df["region_id"] == region_id].copy()
+                    if not region_data.empty:
+                        # Remove region_id column from individual sheets since it's redundant
+                        region_data = region_data.drop(columns=["region_id"])
+                        # Write to sheet (Excel sheet names are limited to 31 characters and cannot contain certain characters)
+                        sheet_name = str(region_id)[:31]
+                        # Replace invalid characters for Excel sheet names
+                        invalid_chars = ["\\", "/", "*", "[", "]", ":", "?"]
+                        for char in invalid_chars:
+                            sheet_name = sheet_name.replace(char, "_")
+                        region_data.to_excel(writer, sheet_name=sheet_name, index=False)
+        except ImportError:
+            warnings.warn(
+                "openpyxl is not installed. Excel file generation skipped. "
+                "Install openpyxl to enable Excel export: pip install openpyxl",
+                UserWarning,
+            )
+        except Exception as e:
+            warnings.warn(
+                f"Failed to write Excel file: {e}. TSV file was written successfully.",
+                UserWarning,
+            )
+
+    def write_ready_to_order_yaml(
+        self,
+        properties: str | list[str],
+        top_n_sets: int,
+        ascending: bool,
+        filename: str = "ready_to_order",
+        dir_output: str | None = None,
+        region_ids: str | list[str] | None = None,
+    ) -> None:
+        """
+        Writes a YAML file that only contains order information for the oligosets.
+
+        :param filename: Base name for the output YAML file, defaults to "ready_to_order".
+        :type filename: str
+        :param dir_output: Directory path where output files will be saved.
+        :type dir_output: str
+        :return: Path to the saved YAML file.
+        :rtype: str
+        """
+        properties = check_if_list(properties)
+        region_ids = check_if_list(region_ids) if region_ids else self.database.keys()
+
+        yaml_dict: dict[str, dict] = {}
+
+        for region_id in region_ids:
+            yaml_dict[region_id] = {}
+            oligosets_region = self.oligosets[region_id]
+            oligosets_oligo_columns = [col for col in oligosets_region.columns if col.startswith("oligo_")]
+            oligosets_score_columns = [col for col in oligosets_region.columns if col.startswith("score_")]
+
+            oligosets_region.sort_values(by=oligosets_score_columns, ascending=ascending, inplace=True)
+            oligosets_region = oligosets_region.head(top_n_sets)[oligosets_oligo_columns]
+            oligosets_region.reset_index(inplace=True, drop=True)
+
+            # iterate through all oligo sets
+            for oligoset_idx, oligoset in oligosets_region.iterrows():
+                oligoset_id = f"oligoset_{oligoset_idx + 1}"
+                yaml_dict[region_id][oligoset_id] = {}
+                for oligo_id in oligoset:
+                    entry = {}
+                    for property in properties:
+                        if property in self.database[region_id][oligo_id]:
+                            oligo_property = self.database[region_id][oligo_id][property]
+                            # format oligo properties: flatten lists of lists, join string lists with comma, keep strings as-is, None -> empty list
+                            if oligo_property:
+                                if (
+                                    sum(len(sublist) for sublist in check_if_list_of_lists(oligo_property))
+                                    == 1
+                                ):
+                                    oligo_property = flatten_property_list(oligo_property)
+                            entry[property] = oligo_property
+                    yaml_dict[region_id][oligoset_id][oligo_id] = entry
+
+        dir_output = dir_output if dir_output else self.dir_output
+        file_yaml = os.path.join(os.path.dirname(dir_output), f"{filename}.yml")
+
+        with open(file_yaml, "w") as outfile:
+            yaml.dump(yaml_dict, outfile, Dumper=CustomYamlDumper, default_flow_style=False, sort_keys=False)
 
     def remove_regions_with_insufficient_oligos(self, pipeline_step: str) -> None:
         """

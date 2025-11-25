@@ -43,8 +43,8 @@ linker_sequence: TT # linker sequence between readout probe and target sequence
 
 ### Readout Probe Parameters
 ### -----------------------------------------------
-file_readout_probe_table: data/readout_probes/cycle_hcr_readout_probes.tsv # csv/tsv file containing the readout probe table with the columns "bit", "channel", "readout_probe_id", "readout_probe__sequence", "L/R"
-file_codebook: # optional, file containing the codebook, where columns = "bits" and rows = "region_id" and the entries represent the bit encoding in 0/1 for the bits used for each region
+file_readout_probe_table: data/functional_oligos/cycle_hcr_readout_probes_with_codebook.tsv # csv/tsv file containing the readout probe table with the columns "bit", "channel", "readout_probe_id", "readout_probe__sequence", "L/R"
+file_codebook: data/functional_oligos/cycle_hcr_codebook.tsv # optional, file containing the codebook, where columns = "bits" and rows = "region_id" and the entries represent the bit encoding in 0/1 for the bits used for each region
 
 ### Primer Parameters
 ### -----------------------------------------------
