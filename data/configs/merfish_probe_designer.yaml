@@ -64,7 +64,7 @@ readout_probe_homogeneous_properties_weights: # readout probes in one set should
   GC_content_oligo: 1.0 # GC content
 n_bits: 16 # number of bits contained in each barcode
 min_hamming_dist: 4 # minimum distance between two valid barcodes
-hamming_weight: 4 # number of bits containing one in each barcode
+hamming_weight: 2 # number of bits containing one in each barcode
 channels_ids: # names of fluorescent channels
   - Alexa488
   - Cy3b
