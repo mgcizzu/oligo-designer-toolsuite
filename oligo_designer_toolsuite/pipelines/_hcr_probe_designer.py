@@ -212,9 +212,8 @@ class HcrProbeDesigner:
 
         if self.write_intermediate_steps:
             dir_database = oligo_database.save_database(name_database="4_db_target_probes_sets")
-            dir_oligosets = oligo_database.write_oligosets_to_table()
             logging.info(
-                f"Saved target probe database for step 4 (Specificity Filters) in directory {dir_database} and sets table in directory {dir_oligosets}"
+                f"Saved target probe database for step 4 (Specificity Filters) in directory {dir_database}."
             )
 
         return oligo_database
@@ -384,113 +383,35 @@ class HcrProbeDesigner:
             filename="hcr_probes",
         )
 
-        # write a second file that only contains order information
-        yaml_dict_order: dict[str, dict] = {}
-        csv_table_order = list()
+        probe_database.write_ready_to_order_yaml(
+            properties=[
+                "sequence_hybridization_probe_L",
+                "sequence_hybridization_probe_R",
+                "sequence_initiator_L",
+                "sequence_initiator_R",
+            ],
+            top_n_sets=top_n_sets,
+            ascending=True,
+            filename="hcr_probes_order",
+        )
 
-        for region_id in probe_database.database.keys():
-            yaml_dict_order[region_id] = {}
-            oligosets_region = probe_database.oligosets[region_id]
-            oligosets_oligo_columns = [col for col in oligosets_region.columns if col.startswith("oligo_")]
-            oligosets_score_columns = [col for col in oligosets_region.columns if col.startswith("score_")]
-
-            oligosets_region.sort_values(by=oligosets_score_columns, ascending=True, inplace=True)
-            oligosets_region = oligosets_region.head(top_n_sets)[oligosets_oligo_columns]
-            oligosets_region.reset_index(inplace=True, drop=True)
-
-            # iterate through all oligo sets
-            for oligoset_idx, oligoset in oligosets_region.iterrows():
-                oligoset_id = f"oligoset_{oligoset_idx + 1}"
-                yaml_dict_order[region_id][oligoset_id] = {}
-                for oligo_id in oligoset:
-                    yaml_dict_order[region_id][oligoset_id][oligo_id] = {
-                        "sequence_hybridization_probe_L": probe_database.get_oligo_property_value(
-                            property="sequence_hybridization_probe_L",
-                            region_id=region_id,
-                            oligo_id=oligo_id,
-                            flatten=True,
-                        ),
-                        "sequence_hybridization_probe_R": probe_database.get_oligo_property_value(
-                            property="sequence_hybridization_probe_R",
-                            region_id=region_id,
-                            oligo_id=oligo_id,
-                            flatten=True,
-                        ),
-                        "sequence_initiator_L": probe_database.get_oligo_property_value(
-                            property="sequence_initiator_L",
-                            region_id=region_id,
-                            oligo_id=oligo_id,
-                            flatten=True,
-                        ),
-                        "sequence_initiator_R": probe_database.get_oligo_property_value(
-                            property="sequence_initiator_R",
-                            region_id=region_id,
-                            oligo_id=oligo_id,
-                            flatten=True,
-                        ),
-                    }
-                    csv_table_order.append(
-                        {
-                            "region_id": region_id,
-                            "oligoset_id": oligoset_id,
-                            "oligo_id": oligo_id,
-                            "initiator_L": probe_database.get_oligo_property_value(
-                                property="sequence_initiator_L",
-                                region_id=region_id,
-                                oligo_id=oligo_id,
-                                flatten=True,
-                            ),
-                            "linker_L": probe_database.get_oligo_property_value(
-                                property="sequence_linker",
-                                region_id=region_id,
-                                oligo_id=oligo_id,
-                                flatten=True,
-                            ),
-                            "sequence_oligo_L": probe_database.get_oligo_property_value(
-                                property="sequence_oligo_L",
-                                region_id=region_id,
-                                oligo_id=oligo_id,
-                                flatten=True,
-                            ),
-                            "sequence_oligo_R": probe_database.get_oligo_property_value(
-                                property="sequence_oligo_R",
-                                region_id=region_id,
-                                oligo_id=oligo_id,
-                                flatten=True,
-                            ),
-                            "linker_R": probe_database.get_oligo_property_value(
-                                property="sequence_linker",
-                                region_id=region_id,
-                                oligo_id=oligo_id,
-                                flatten=True,
-                            ),
-                            "initiator_R": probe_database.get_oligo_property_value(
-                                property="sequence_initiator_R",
-                                region_id=region_id,
-                                oligo_id=oligo_id,
-                                flatten=True,
-                            ),
-                            "sequence_hybridization_probe_L": probe_database.get_oligo_property_value(
-                                property="sequence_hybridization_probe_L",
-                                region_id=region_id,
-                                oligo_id=oligo_id,
-                                flatten=True,
-                            ),
-                            "sequence_hybridization_probe_R": probe_database.get_oligo_property_value(
-                                property="sequence_hybridization_probe_R",
-                                region_id=region_id,
-                                oligo_id=oligo_id,
-                                flatten=True,
-                            ),
-                        }
-                    )
-
-        with open(os.path.join(self.dir_output, "hcr_probes_order.yml"), "w") as outfile:
-            yaml.dump(yaml_dict_order, outfile, default_flow_style=False, sort_keys=False)
-
-        csv_table_order_df = pd.DataFrame(csv_table_order)
-        csv_table_order_df.to_csv(
-            os.path.join(self.dir_output, "hcr_probes_order.tsv"), sep="\t", index=False
+        probe_database.write_oligosets_to_table(
+            properties=[
+                "region_id",
+                "oligoset_id",
+                "oligo_id",
+                "sequence_initiator_L",
+                "sequence_linker",
+                "sequence_oligo_L",
+                "sequence_oligo_R",
+                "sequence_linker",
+                "sequence_initiator_R",
+                "sequence_hybridization_probe_L",
+                "sequence_hybridization_probe_R",
+            ],
+            top_n_sets=top_n_sets,
+            ascending=True,
+            filename="hcr_probes",
         )
 
 
