@@ -1132,7 +1132,7 @@ class CustomGenomicRegionGenerator:
         :return: A string formatted as 'seqid:start_1base-end(strand)' for each annotation entry.
         :rtype: str
         """
-        region = str(
+        region: str = (
             annotation["seqid"].astype("str")
             + ":"
             + annotation["start_1base"].astype("str")
