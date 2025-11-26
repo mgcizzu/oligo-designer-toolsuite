@@ -733,7 +733,9 @@ class OligoDatabase:
         for region_id in region_ids:
             oligosets_region = self.oligosets[region_id]
             oligosets_oligo_columns = [col for col in oligosets_region.columns if col.startswith("oligo_")]
-            oligosets_score_columns = [col for col in oligosets_region.columns if col.startswith("score_")]
+            oligosets_score_columns = [
+                col for col in oligosets_region.columns if col.startswith("set_score_")
+            ]
 
             oligosets_region.sort_values(by=oligosets_score_columns, ascending=ascending, inplace=True)
             oligosets_region = oligosets_region.head(top_n_sets)[oligosets_oligo_columns]
@@ -828,7 +830,9 @@ class OligoDatabase:
             yaml_dict[region_id] = {}
             oligosets_region = self.oligosets[region_id]
             oligosets_oligo_columns = [col for col in oligosets_region.columns if col.startswith("oligo_")]
-            oligosets_score_columns = [col for col in oligosets_region.columns if col.startswith("score_")]
+            oligosets_score_columns = [
+                col for col in oligosets_region.columns if col.startswith("set_score_")
+            ]
 
             oligosets_region.sort_values(by=oligosets_score_columns, ascending=ascending, inplace=True)
             oligosets_region = oligosets_region.head(top_n_sets)[oligosets_oligo_columns]
