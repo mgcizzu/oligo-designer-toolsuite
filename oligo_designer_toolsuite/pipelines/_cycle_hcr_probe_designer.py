@@ -1264,6 +1264,9 @@ class TargetProbeDesigner:
             sequence_type="oligo_L",
             n_jobs=self.n_jobs,
         )
+        oligo_database.remove_regions_with_insufficient_oligos(pipeline_step="Property Filters")
+        check_content_oligo_database(oligo_database)
+
         oligo_database = property_filter.apply(
             oligo_database=oligo_database,
             sequence_type="oligo_R",
@@ -1387,6 +1390,8 @@ class TargetProbeDesigner:
             sequence_type="oligo",
             n_jobs=self.n_jobs,
         )
+        oligo_database.remove_regions_with_insufficient_oligos(pipeline_step="Specificity Filters")
+        check_content_oligo_database(oligo_database)
 
         ##### define cross hybridization filter #####
         cross_hybridization_aligner_oligo_pair_L = BlastNFilter(
@@ -1427,11 +1432,16 @@ class TargetProbeDesigner:
             sequence_type="oligo_L",
             n_jobs=self.n_jobs,
         )
+        oligo_database.remove_regions_with_insufficient_oligos(pipeline_step="Specificity Filters")
+        check_content_oligo_database(oligo_database)
+
         oligo_database = specificity_filter.apply(
             oligo_database=oligo_database,
             sequence_type="oligo_R",
             n_jobs=self.n_jobs,
         )
+        oligo_database.remove_regions_with_insufficient_oligos(pipeline_step="Specificity Filters")
+        check_content_oligo_database(oligo_database)
 
         ##### remove all directories of intermediate steps #####
         for directory in [
@@ -1443,9 +1453,6 @@ class TargetProbeDesigner:
         ]:
             if os.path.exists(directory):
                 shutil.rmtree(directory)
-
-        oligo_database.remove_regions_with_insufficient_oligos(pipeline_step="Specificity Filters")
-        check_content_oligo_database(oligo_database)
 
         return oligo_database
 

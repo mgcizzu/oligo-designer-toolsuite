@@ -6,7 +6,6 @@ import inspect
 import logging
 import os
 import sys
-import warnings
 from argparse import ArgumentParser, RawDescriptionHelpFormatter
 from datetime import datetime
 from typing import Any, Callable, TypeVar, cast
@@ -236,7 +235,7 @@ def check_content_oligo_database(oligo_database: OligoDatabase) -> None:
     """
     if len(oligo_database.get_regionid_list()) == 0:
         logging.error("The oligo database is empty. Exiting program...")
-        warnings.warn("The oligo database is empty. Exiting program...", UserWarning)
+        print("The oligo database is empty. Exiting program...")
         sys.exit(1)  # Exit the program with a status code of 1
 
 
