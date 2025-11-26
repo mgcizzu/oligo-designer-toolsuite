@@ -307,5 +307,5 @@ class TestOligoProperties(unittest.TestCase):
         )
 
         assert detect_oligo_even == "AGGGAATCGAAT", "error: wrong detection oligo even calculated"
-        assert detect_oligo_long_left == None, "error: wrong detection oligo left calculated"
-        assert detect_oligo_long_right == None, "error: wrong detection oligo right calculated"
+        assert detect_oligo_long_left is None, "error: wrong detection oligo left calculated"
+        assert detect_oligo_long_right is None, "error: wrong detection oligo right calculated"
