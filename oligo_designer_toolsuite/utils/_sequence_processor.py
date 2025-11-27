@@ -3,11 +3,13 @@
 ############################################
 
 import os
+from collections import Counter
 from subprocess import Popen
 
 from Bio import SeqIO
 
 from ._checkers_and_helpers import check_if_list
+from ._sequence_parser import FastaParser
 
 ############################################
 # Collection of utility functions
@@ -124,3 +126,135 @@ def append_nucleotide_to_sequences(input_fasta: str, nucleotide: str) -> str:
             SeqIO.write(record, outfile, "fasta")
 
     return output_fasta
+
+
+def remove_index_files(file_reference: str, dir_output: str) -> None:
+    """
+    Removes the index files for a reference file.
+    For FASTA files, it removes .fai index files.
+    For VCF files, it removes .csi and .tbi index files.
+    For BLAST databases, it removes .nhr, .nin, .nsq index files.
+    For Bowtie/Bowtie2 indexes, it removes .ebwt and .bt2 index files.
+
+    :param file_reference: The base name of the reference file.
+    :type file_reference: str
+    :param dir_output: The directory where the reference file is located.
+    :type dir_output: str
+    """
+    file_reference_basename = os.path.basename(file_reference)
+
+    # Index files are extensions of the input file: input_file.extension
+    # So we remove any file that starts with input_file. (with a dot)
+    prefix = file_reference_basename + "."
+
+    for root, _, files in os.walk(dir_output):
+        for file in files:
+            # Remove files that start with the prefix (index files)
+            # but not the reference file itself
+            if file.startswith(prefix):
+                file_path = os.path.join(root, file)
+                os.remove(file_path)
+
+
+def count_kmer_abundance(
+    files_fasta: str | list[str],
+    k: int | tuple[int, int] | list[int],
+) -> dict[int, dict[str, float]]:
+    """
+    Counts k-mer abundances across multiple FASTA files and returns fractional abundances.
+
+    This function iterates through one or more FASTA files, extracts k-mers of specified length(s),
+    counts their occurrences, and calculates fractional abundances (each k-mer count divided by
+    the total k-mer count for that k value). The function supports processing a single k value,
+    a range of k values, or a list of specific k values.
+
+    :param files_fasta: Path(s) to FASTA file(s) to process. Can be a single file path (str) or
+        a list of file paths (list[str]).
+    :type files_fasta: str | list[str]
+    :param k: K-mer length(s) to process. Can be:
+        - A single integer (e.g., 4) to process one k value
+        - A tuple of two integers (k_min, k_max) to process an inclusive range of k values
+        - A list of integers to process specific k values (e.g., [3, 5, 7])
+    :type k: int | tuple[int, int] | list[int]
+    :return: A nested dictionary mapping k value to a dictionary of k-mer sequences and their
+        fractional abundances. The inner dictionaries are sorted by abundance in descending order.
+        Format: {k: {kmer: fraction, ...}, ...}
+    :rtype: dict[int, dict[str, float]]
+    :raises ValueError: If k is invalid (e.g., negative values, empty range, or invalid tuple/list format).
+
+    Examples:
+        >>> # Count k-mers for k=4
+        >>> kmer_fractions = count_kmer_abundance(files_fasta=["file1.fna", "file2.fna"], k=4)
+        >>> # Returns: {4: {"ATCG": 0.001, "GCTA": 0.002, ...}}
+
+        >>> # Count k-mers for range k=3 to k=5
+        >>> kmer_fractions = count_kmer_abundance(files_fasta=["file1.fna"], k=(3, 5))
+        >>> # Returns: {3: {...}, 4: {...}, 5: {...}}
+
+        >>> # Count k-mers for specific k values
+        >>> kmer_fractions = count_kmer_abundance(files_fasta=["file1.fna"], k=[3, 5, 7])
+        >>> # Returns: {3: {...}, 5: {...}, 7: {...}}
+
+        >>> # Filter top 10 most abundant for k=4
+        >>> k4_fractions = kmer_fractions[4]
+        >>> top_10 = dict(list(sorted(k4_fractions.items(), key=lambda x: x[1], reverse=True))[:10])
+
+        >>> # Filter k-mers with fraction > 0.01 for k=4
+        >>> high_abundance = {k: v for k, v in kmer_fractions[4].items() if v > 0.01}
+    """
+    # Normalize k input to a list of k values
+    if isinstance(k, int):
+        k_values = [k]
+    elif isinstance(k, tuple):
+        if len(k) != 2:
+            raise ValueError(f"Tuple for k must have exactly 2 elements (k_min, k_max), got {len(k)}")
+        k_min, k_max = k
+        if k_min > k_max:
+            raise ValueError(f"k_min ({k_min}) must be <= k_max ({k_max})")
+        if k_min < 1:
+            raise ValueError(f"k values must be >= 1, got k_min={k_min}")
+        k_values = list(range(k_min, k_max + 1))
+    elif isinstance(k, list):
+        if len(k) == 0:
+            raise ValueError("List of k values cannot be empty")
+        if any(not isinstance(ki, int) or ki < 1 for ki in k):
+            raise ValueError("All k values must be positive integers")
+        k_values = k
+    else:
+        raise ValueError(f"k must be int, tuple[int, int], or list[int], got {type(k)}")
+
+    # Normalize files_fasta input to a list
+    files_fasta = check_if_list(files_fasta)
+
+    # Initialize FastaParser
+    fasta_parser = FastaParser()
+
+    # Initialize result dictionary
+    result: dict[int, dict[str, float]] = {}
+
+    # Process each k value
+    for k_val in k_values:
+        kmer_counts: Counter[str] = Counter()
+
+        # Process each FASTA file
+        for file_fasta in files_fasta:
+            # Read sequences from FASTA file using FastaParser
+            fasta_sequences = fasta_parser.read_fasta_sequences(file_fasta)
+            for record in fasta_sequences:
+                sequence = str(record.seq).upper()
+
+                # Extract and count k-mers
+                kmers = (sequence[i : i + k_val] for i in range(len(sequence) - k_val + 1))
+                kmer_counts.update(kmers)
+
+        # Calculate fractional abundances
+        total_kmers = sum(kmer_counts.values())
+        if total_kmers > 0:
+            kmer_fractions = {kmer: count / total_kmers for kmer, count in kmer_counts.items()}
+            # Sort by abundance (descending) for convenience
+            result[k_val] = dict(sorted(kmer_fractions.items(), key=lambda x: x[1], reverse=True))
+        else:
+            # No k-mers found for this k value
+            result[k_val] = {}
+
+    return result

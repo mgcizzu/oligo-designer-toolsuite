@@ -3,7 +3,6 @@
 ############################################
 
 import os
-import re
 from abc import ABC, abstractmethod
 from pathlib import Path
 
@@ -14,7 +13,7 @@ from joblib_progress import joblib_progress
 from oligo_designer_toolsuite._constants import SEPARATOR_FASTA_HEADER_FIELDS, SEPARATOR_OLIGO_ID
 from oligo_designer_toolsuite._exceptions import ConfigurationError
 from oligo_designer_toolsuite.database import OligoDatabase, ReferenceDatabase
-from oligo_designer_toolsuite.utils import check_if_list
+from oligo_designer_toolsuite.utils import check_if_list, remove_index_files
 
 ############################################
 # Oligo Specificity Filter Classes
@@ -187,16 +186,19 @@ class ReferenceSpecificityFilter(BaseSpecificityFilter):
         """
         Removes the reference files created for the filter.
 
+        This method removes the reference file and all associated index files.
+        For FASTA files, it removes .fai index files.
+        For VCF files, it removes .csi and .tbi index files.
+        For BLAST databases, it removes .nhr, .nin, .nsq index files.
+        For Bowtie/Bowtie2 indexes, it removes .ebwt and .bt2 index files.
+
         :param file_reference: The base name of the reference files to be removed.
         :type file_reference: str
         """
-        file_reference_basename = os.path.basename(file_reference)
-        regex = re.compile(file_reference_basename + "\\..*")
-        for root, _, files in os.walk(self.dir_output):
-            for file in files:
-                if regex.match(file):
-                    os.remove(os.path.join(root, file))
-        os.remove(file_reference)
+        remove_index_files(file_reference=file_reference, dir_output=self.dir_output)
+
+        if os.path.exists(file_reference):
+            os.remove(file_reference)
 
     def _read_search_output(
         self,
