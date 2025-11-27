@@ -62,7 +62,7 @@ def check_if_dna_sequence(seq: str, valid_characters: list[str] | None = None) -
     :rtype: bool
     """
     if valid_characters is None:
-        valid_characters = ["A", "C", "T", "G"]
+        valid_characters = ["A", "C", "T", "G", "U"]
     if any(len(char) > 1 for char in valid_characters):
         raise ConfigurationError(f"Valid characters must be single characters. Received: {valid_characters}.")
 
