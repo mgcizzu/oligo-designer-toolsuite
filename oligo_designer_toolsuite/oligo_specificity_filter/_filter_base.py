@@ -172,7 +172,7 @@ class ReferenceSpecificityFilter(BaseSpecificityFilter):
         self.reference_database = reference_database
 
     @abstractmethod
-    def create_reference(self, n_jobs: int) -> str:
+    def _create_reference(self, n_jobs: int) -> str:
         """
         Abstract method to write a reference database to file and create an index in case of alignment based methods.
 
@@ -182,7 +182,7 @@ class ReferenceSpecificityFilter(BaseSpecificityFilter):
         :rtype: str
         """
 
-    def remove_reference(self, file_reference: str) -> None:
+    def _remove_reference(self, file_reference: str) -> None:
         """
         Removes the reference files created for the filter.
 
@@ -302,7 +302,7 @@ class AlignmentSpecificityFilter(ReferenceSpecificityFilter):
         # when applying filters we don't want to consider hits within the same region
         consider_hits_from_input_region = False
 
-        file_reference = self.create_reference(n_jobs=n_jobs)
+        file_reference = self._create_reference(n_jobs=n_jobs)
 
         # run search in parallel for each region
         region_ids = list(oligo_database.database.keys())
@@ -319,7 +319,7 @@ class AlignmentSpecificityFilter(ReferenceSpecificityFilter):
                 for region_id in region_ids
             )
 
-        self.remove_reference(file_reference)
+        self._remove_reference(file_reference)
 
         return oligo_database
 
@@ -349,7 +349,7 @@ class AlignmentSpecificityFilter(ReferenceSpecificityFilter):
         # when getting oligo pair hits we want to consider hits within the same region
         consider_hits_from_input_region = True
 
-        file_reference = self.create_reference(n_jobs=n_jobs)
+        file_reference = self._create_reference(n_jobs=n_jobs)
 
         region_ids = list(oligo_database.database.keys())
         name = " ".join(string.capitalize() for string in self.filter_name.split("_"))
@@ -368,7 +368,7 @@ class AlignmentSpecificityFilter(ReferenceSpecificityFilter):
         table_hits = pd.concat(table_hits, ignore_index=True)
         oligo_pair_hits = list(zip(table_hits["query"].values, table_hits["reference"].values))
 
-        self.remove_reference(file_reference)
+        self._remove_reference(file_reference)
 
         return oligo_pair_hits
 
