@@ -211,17 +211,16 @@ def count_kmer_abundance(
         k_min, k_max = k
         if k_min > k_max:
             raise ValueError(f"k_min ({k_min}) must be <= k_max ({k_max})")
-        if k_min < 1:
-            raise ValueError(f"k values must be >= 1, got k_min={k_min}")
         k_values = list(range(k_min, k_max + 1))
     elif isinstance(k, list):
         if len(k) == 0:
             raise ValueError("List of k values cannot be empty")
-        if any(not isinstance(ki, int) or ki < 1 for ki in k):
-            raise ValueError("All k values must be positive integers")
         k_values = k
     else:
         raise ValueError(f"k must be int, tuple[int, int], or list[int], got {type(k)}")
+
+    if any(not isinstance(ki, int) or ki < 1 for ki in k_values):
+        raise ValueError("All k values must be positive integers")
 
     # Normalize files_fasta input to a list
     files_fasta = check_if_list(files_fasta)

@@ -85,9 +85,9 @@ class ReferenceDatabase:
         # remove all files if database should be overwritten
         if self.database_file is not None and database_overwrite:
             # Remove the main database file
+            remove_index_files(file_reference=self.database_file, dir_output=self.dir_output)
             if os.path.exists(self.database_file):
                 os.remove(self.database_file)
-            remove_index_files(file_reference=self.database_file, dir_output=self.dir_output)
 
             self.database_file = None
             self.database_type = None
