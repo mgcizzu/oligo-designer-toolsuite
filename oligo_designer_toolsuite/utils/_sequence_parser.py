@@ -527,8 +527,8 @@ class FastaParser:
             os.remove(index_file)
 
         # Use samtools faidx to create the index (same tool that bedtools getfasta uses)
-        cmd = f"samtools faidx {file_fasta}"
-        process = Popen(cmd, shell=True)
+        cmd = ["samtools", "faidx", file_fasta]
+        process = Popen(cmd)
         process.wait()
 
         if process.returncode != 0:

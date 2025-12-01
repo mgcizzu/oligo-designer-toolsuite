@@ -131,10 +131,22 @@ def append_nucleotide_to_sequences(input_fasta: str, nucleotide: str) -> str:
 def remove_index_files(file_reference: str, dir_output: str) -> None:
     """
     Removes the index files for a reference file.
-    For FASTA files, it removes .fai index files.
-    For VCF files, it removes .csi and .tbi index files.
-    For BLAST databases, it removes .nhr, .nin, .nsq index files.
-    For Bowtie/Bowtie2 indexes, it removes .ebwt and .bt2 index files.
+
+    This function removes all files in the output directory that start with
+    `file_reference.` (the reference file basename followed by a dot). This
+    approach handles various index file naming patterns:
+
+    - FASTA files: removes .fai index files (e.g., reference.fna.fai)
+    - VCF files: removes .csi and .tbi index files (e.g., reference.vcf.gz.csi)
+    - BLAST databases: removes .nhr, .nin, .nsq index files (e.g., reference.fna.nhr)
+    - Bowtie/Bowtie2 indexes: removes .ebwt and .bt2 index files, including
+      multi-part indexes (e.g., reference.fna.1.ebwt, reference.fna.rev.1.ebwt)
+
+    **Note**: This function removes ALL files starting with `file_reference.`, not
+    just known index file extensions. This ensures compatibility with complex index
+    naming patterns (e.g., Bowtie files with multiple dots) but means any file
+    matching this prefix pattern will be removed. The reference file itself is
+    never removed.
 
     :param file_reference: The base name of the reference file.
     :type file_reference: str
