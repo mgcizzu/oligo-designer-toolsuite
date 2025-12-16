@@ -620,8 +620,6 @@ class MerfishProbeDesigner:
         :raises ConfigurationError: If the number of valid barcodes (meeting Hamming distance constraints)
             is insufficient for the number of regions.
         """
-        len(region_ids)
-
         readout_probe_designer = ReadoutProbeDesigner(
             dir_output=self.dir_output,
             n_jobs=self.n_jobs,
