@@ -1221,7 +1221,7 @@ class OligoDatabase:
                 property_values = self.get_oligo_property_value(
                     property=property_name, region_id=region_id, oligo_id=oligo_id, flatten=True
                 )
-                if property_values:
+                if property_values is not None:
                     property_values = cast_to_list(property_values)
                     if (
                         remove_if_smaller_threshold and any(item < property_thr for item in property_values)
