@@ -734,9 +734,9 @@ class OligoDatabase:
                 col for col in oligosets_region.columns if col.startswith("set_score_")
             ]
 
-            oligosets_region.sort_values(by=oligosets_score_columns, ascending=ascending, inplace=True)
+            oligosets_region = oligosets_region.sort_values(by=oligosets_score_columns, ascending=ascending)
             oligosets_region = oligosets_region.head(top_n_sets)[oligosets_oligo_columns]
-            oligosets_region.reset_index(inplace=True, drop=True)
+            oligosets_region = oligosets_region.reset_index(drop=True)
 
             # iterate through all oligo sets
             for oligoset_idx, oligoset in oligosets_region.iterrows():
@@ -830,9 +830,9 @@ class OligoDatabase:
                 col for col in oligosets_region.columns if col.startswith("set_score_")
             ]
 
-            oligosets_region.sort_values(by=oligosets_score_columns, ascending=ascending, inplace=True)
+            oligosets_region = oligosets_region.sort_values(by=oligosets_score_columns, ascending=ascending)
             oligosets_region = oligosets_region.head(top_n_sets)[oligosets_oligo_columns]
-            oligosets_region.reset_index(inplace=True, drop=True)
+            oligosets_region = oligosets_region.reset_index(drop=True)
 
             # iterate through all oligo sets
             for oligoset_idx, oligoset in oligosets_region.iterrows():
