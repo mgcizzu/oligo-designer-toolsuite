@@ -228,6 +228,20 @@ class TestDatabaseProcessor(unittest.TestCase):
         assert dict_merged["end"] == [[2000], [2020]], "error: different dicts should have been merged"
         assert dict_merged["strand"] == [["+"], ["-"]], "error: different dicts should have been merged"
 
+    def test_collapse_properties_for_duplicated_sequences_warns_on_different_sequence_values(self) -> None:
+        """Test that a warning is issued when sequence type values differ between dictionaries."""
+        dict1 = {"oligo": "ATCGATCGATCG", "chromosome": [["10"]], "start": [[1000]]}
+        dict2 = {"oligo": "GCTAGCTAGCTA", "chromosome": [["10"]], "start": [[1000]]}
+
+        with self.assertWarns(UserWarning) as warning_context:
+            collapse_properties_for_duplicated_sequences(dict1, dict2, database_sequence_types=["oligo"])
+
+        self.assertIn(
+            "oligo",
+            str(warning_context.warning),
+            "error: warning should mention the key with different values",
+        )
+
     def test_format_oligo_properties(self) -> None:
         oligo_properties = {"chromosome": "10", "start": [1000], "end": [[2000]], "strand": [["+"], ["-"]]}
 

@@ -367,8 +367,6 @@ class OligoDatabase:
 
             :param file: The path to the database file to be loaded.
             :type file: str
-            :param region_ids: Region identifier(s) to process. Can be a single region ID (str) or a list of region IDs (list[str]). If None, all regions in the database are processed, defaults to None.
-            :type region_ids: str | list[str] | None, optional
             :return: None
             """
             # extract region ID and content from the file
@@ -664,8 +662,7 @@ class OligoDatabase:
         :type dir_output: str
         :param region_ids: Region identifier(s) to process. Can be a single region ID (str) or a list of region IDs (list[str]). If None, all regions in the database are processed, defaults to None.
         :type region_ids: str | list[str] | None, optional
-        :return: Path to the saved YAML file.
-        :rtype: str
+        :return: None
         """
         # Check formatting
         properties = cast_to_list(properties)
@@ -818,8 +815,7 @@ class OligoDatabase:
         :type filename: str
         :param dir_output: Directory path where output files will be saved.
         :type dir_output: str
-        :return: Path to the saved YAML file.
-        :rtype: str
+        :return: None
         """
         properties = cast_to_list(properties)
         region_ids = cast_to_list(region_ids) if region_ids else self.database.keys()

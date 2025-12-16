@@ -117,16 +117,16 @@ class GffParser:
         else:
             return dataframe
 
-    def load_annotation_from_pickle(self, file_pickel: str) -> Any:
+    def load_annotation_from_pickle(self, file_pickel: str) -> pd.DataFrame:
         """
         Loads a GFF annotation DataFrame from a pickle file.
 
         :param file_pickel: The path to the pickle file containing the GFF annotation DataFrame.
         :type file_pickel: str
         :return: The loaded DataFrame containing the GFF annotation.
-        :rtype: Any
+        :rtype: pd.DataFrame
         """
-        dataframe_gff = pickle.load(open(file_pickel, "rb"))
+        dataframe_gff: pd.DataFrame = pickle.load(open(file_pickel, "rb"))
 
         return dataframe_gff
 
