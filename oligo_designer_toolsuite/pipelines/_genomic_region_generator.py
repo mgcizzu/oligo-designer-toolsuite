@@ -11,7 +11,6 @@ from typing import Annotated, TypeAlias
 import yaml
 from pydantic import Field, TypeAdapter, ValidationError
 
-from oligo_designer_toolsuite._exceptions import ConfigurationError
 from oligo_designer_toolsuite.pipelines._config_models import (
     GenomicRegions,
     SourceParamsCustom,
@@ -22,8 +21,14 @@ from oligo_designer_toolsuite.pipelines._config_pipelines import (
     GenomicRegionGeneratorCustomConfig,
     GenomicRegionGeneratorEnsemblConfig,
     GenomicRegionGeneratorNcbiConfig,
+    PipelineBaseConfig,
 )
-from oligo_designer_toolsuite.pipelines._utils import base_log_parameters, base_parser, setup_logging
+from oligo_designer_toolsuite.pipelines._utils import (
+    base_log_parameters,
+    base_parser,
+    setup_logging,
+    write_config_to_yaml,
+)
 from oligo_designer_toolsuite.sequence_generator import (
     CustomGenomicRegionGenerator,
     EnsemblGenomicRegionGenerator,
@@ -44,11 +49,14 @@ class GenomicRegionGenerator:
     :type dir_output: str
     """
 
-    def __init__(self, dir_output: str) -> None:
+    def __init__(self, dir_output: str, config: PipelineBaseConfig) -> None:
         """Constructor for the GenomicRegionGenerator class."""
         # create the output folder
         self.dir_output = os.path.abspath(dir_output)
         Path(dir_output).mkdir(parents=True, exist_ok=True)
+
+        # write used config
+        write_config_to_yaml(config=config, dir_output=dir_output)
 
         # setup logger
         setup_logging(
@@ -160,11 +168,6 @@ class GenomicRegionGenerator:
                     file_fasta = region_generator.get_sequence_UTR()
                 elif genomic_region == "exon_exon_junction":
                     file_fasta = region_generator.get_sequence_exon_exon_junction(block_size=block_size)
-                else:
-                    raise ConfigurationError(
-                        f"Genomic region type '{genomic_region}' is not supported. "
-                        f"Supported types are: 'gene', 'intergenic', 'exon', 'intron', 'cds', 'utr', 'exon_exon_junction'."
-                    )
 
                 files_fasta.append(file_fasta)
                 logging.info(f"The genomic region '{genomic_region}' was stored in :{file_fasta}.")
@@ -210,7 +213,7 @@ def main() -> None:
         logging.error("Invalid configuration file:\n%s", e)
         raise
 
-    pipeline = GenomicRegionGenerator(dir_output=config.dir_output)
+    pipeline = GenomicRegionGenerator(dir_output=config.dir_output, config=config)
 
     # generate the genomic regions
     # as the pydantic model is chosen depending on the `source` field,

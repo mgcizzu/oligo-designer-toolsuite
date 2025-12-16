@@ -14,9 +14,13 @@ from ._config_models import (
 )
 
 
-class GenomicRegionGeneratorCustomConfig(BaseModel):
+class PipelineBaseConfig(BaseModel):
     model_config = ConfigDict(extra="forbid", validate_by_name=True, validate_by_alias=True)
 
+    dir_output: DirOutputT
+
+
+class GenomicRegionGeneratorCustomConfig(PipelineBaseConfig):
     dir_output: DirOutputT = "output_genomic_region_generator_custom"
     source: Annotated[
         Literal["custom"], Field(description="indicate which annotation should be used", default="custom")
@@ -43,9 +47,7 @@ class GenomicRegionGeneratorCustomConfig(BaseModel):
     exon_exon_junction_block_size: ExonExonJunctionBlockSizeT
 
 
-class GenomicRegionGeneratorEnsemblConfig(BaseModel):
-    model_config = ConfigDict(extra="forbid", validate_by_name=True, validate_by_alias=True)
-
+class GenomicRegionGeneratorEnsemblConfig(PipelineBaseConfig):
     dir_output: DirOutputT = "output_genomic_region_generator_ensembl"
     source: Annotated[
         Literal["ensembl"], Field(description="indicate which annotation should be used", default="ensembl")
@@ -72,9 +74,7 @@ class GenomicRegionGeneratorEnsemblConfig(BaseModel):
     exon_exon_junction_block_size: ExonExonJunctionBlockSizeT
 
 
-class GenomicRegionGeneratorNcbiConfig(BaseModel):
-    model_config = ConfigDict(extra="forbid", validate_by_name=True, validate_by_alias=True)
-
+class GenomicRegionGeneratorNcbiConfig(PipelineBaseConfig):
     dir_output: DirOutputT = "output_genomic_region_generator_ncbi"
     source: Annotated[
         Literal["ncbi"], Field(description="indicate which annotation should be used", default="ncbi")
