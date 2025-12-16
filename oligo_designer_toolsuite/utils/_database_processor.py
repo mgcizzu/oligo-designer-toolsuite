@@ -236,13 +236,16 @@ def check_if_key_in_database(database: EffiDict, key: str, region_ids: str | lis
     # --- Case: region restriction ---
     if region_ids is not None:
         region_ids = check_if_list(region_ids)
+        regions_found = False  # check if at least one region is found in the database
         for region_id in region_ids:
             if region_id not in database:
                 continue
+            else:
+                regions_found = True
             region_data = database[region_id]
             if not recursive_contains(region_data, key):
                 return False
-        return True
+        return regions_found
 
     # --- Case: no region restriction → any region may match ---
     return any(recursive_contains(region_data, key) for region_data in database.values())
