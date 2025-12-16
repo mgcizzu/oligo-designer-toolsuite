@@ -5,7 +5,7 @@
 from oligo_designer_toolsuite.database import OligoDatabase
 from oligo_designer_toolsuite.oligo_efficiency_filter import BaseScorer
 from oligo_designer_toolsuite.oligo_property_calculator._property_functions import calc_isoform_consensus
-from oligo_designer_toolsuite.utils import check_if_list
+from oligo_designer_toolsuite.utils import cast_to_list
 
 ############################################
 # Sequence Property Scorer Classes
@@ -51,7 +51,7 @@ class OverlapTargetedExonsScorer(BaseScorer):
         exon_numbers = oligo_database.get_oligo_property_value(
             "exon_number", flatten=True, region_id=region_id, oligo_id=oligo_id
         )
-        exon_numbers = check_if_list(exon_numbers) if exon_numbers else None
+        exon_numbers = cast_to_list(exon_numbers) if exon_numbers else None
 
         if exon_numbers is None:
             in_targeted_exons = False
@@ -158,8 +158,8 @@ class IsoformConsensusScorer(BaseScorer):
 
         if transcript_id and number_transcripts:
             isoform_consensus = calc_isoform_consensus(
-                transcript_id=check_if_list(transcript_id),
-                number_total_transcripts=check_if_list(number_transcripts),
+                transcript_id=cast_to_list(transcript_id),
+                number_total_transcripts=cast_to_list(number_transcripts),
             )
             if self.normalize:
                 # isoform consensus is given in % (0-100), hence we devide by 100

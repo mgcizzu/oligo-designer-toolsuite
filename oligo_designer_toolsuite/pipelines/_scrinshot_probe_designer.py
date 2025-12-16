@@ -646,6 +646,7 @@ class ScrinshotProbeDesigner:
                     sequence_oligo = oligo_database.get_oligo_property_value(
                         property="oligo", region_id=region_id, oligo_id=oligo_id, flatten=True
                     )
+                    # required for type linting since get_oligo_property_value() could return None
                     if not isinstance(sequence_oligo, str) or not isinstance(ligation_site, int):
                         continue
                     sequence_padlock_arm1: str = sequence_oligo[ligation_site:]
@@ -1723,6 +1724,7 @@ class DetectionOligoDesigner:
                 sequence_oligo = oligo_database.get_oligo_property_value(
                     property="oligo", region_id=region_id, oligo_id=oligo_id, flatten=True
                 )
+                # required for type linting since get_oligo_property_value() could return None
                 if not isinstance(sequence_oligo, str) or not isinstance(ligation_site, int):
                     continue
 

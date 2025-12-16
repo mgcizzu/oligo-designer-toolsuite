@@ -847,7 +847,7 @@ class CycleHCRProbeDesigner:
         probe_database: OligoDatabase,
         codebook: pd.DataFrame,
         readout_probe_table: pd.DataFrame,
-        top_n_sets: int = 3,
+        top_n_sets: int,
         output_properties: list[str] | None = None,
     ) -> None:
         """
