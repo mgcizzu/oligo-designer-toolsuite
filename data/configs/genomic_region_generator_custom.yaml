@@ -12,7 +12,7 @@ source_params:
   file_sequence: data/annotations/custom_GCF_000001405.40_GRCh38.p14_genomic_chr16.fna # required: FASTA file with genome sequence
   files_source: NCBI # optional: original source of the genomic files
   species: Homo_sapiens # optional: species of provided annotation, leave empty if unknown
-  annotation_release: 110 # optional: release number of provided annotation, leave empty if unknown
+  annotation_release: "110" # optional: release number of provided annotation, leave empty if unknown
   genome_assembly: GRCh38 # optional: genome assembly of provided annotation, leave empty if unknown
 
 ### Parameters for sequences generation

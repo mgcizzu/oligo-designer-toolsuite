@@ -49,8 +49,8 @@ class SourceParamsCustom(BaseModel):
         Field(description="species of provided annotation, leave empty if unknown", default="Homo_sapiens"),
     ]
     annotation_release: Annotated[
-        int | str | None,
-        Field(description="release number of provided annotation, leave empty if unknown", default=110),
+        str | None,
+        Field(description="release number of provided annotation, leave empty if unknown", default="110"),
     ]
     genome_assembly: Annotated[
         str | None,
@@ -97,7 +97,7 @@ class SourceParamsNcbi(BaseModel):
     ]
     species: Annotated[str, Field(description="species of provided annotation", default="Homo_sapiens")]
     annotation_release: Annotated[
-        int | str, Field(description="release number of provided annotation", default=110)
+        str, Field(description="release number of provided annotation", default="110")
     ]
 
 
