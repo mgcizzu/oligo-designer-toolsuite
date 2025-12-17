@@ -115,22 +115,22 @@ class TestCheckers(unittest.TestCase):
         assert result == value, f"error: cast_to_list failed. Expected: {value}, got: {result}"
 
     def test_cast_to_list_of_lists_str(self) -> None:
-        """Test if cast_to_list works correctly for a string."""
+        """Test if cast_to_list_of_lists works correctly for a string."""
         value = "test"
         result = cast_to_list_of_lists(value)
-        assert result == [[value]], f"error: cast_to_list failed. Expected: [[{value}]], got: {result}"
+        assert result == [[value]], f"error: cast_to_list_of_lists failed. Expected: [[{value}]], got: {result}"
 
     def test_cast_to_list_of_lists_list(self) -> None:
-        """Test if cast_to_list works correctly for a list."""
+        """Test if cast_to_list_of_lists works correctly for a list."""
         value = ["test", ["test2"]]
         result = cast_to_list_of_lists(value)
-        assert result == [value], f"error: cast_to_list failed. Expected: [{value}], got: {result}"
+        assert result == [value], f"error: cast_to_list_of_lists failed. Expected: [{value}], got: {result}"
 
     def test_cast_to_list_of_lists_list_of_lists(self) -> None:
-        """Test if cast_to_list works correctly for a list."""
+        """Test if cast_to_list_of_lists works correctly for a list."""
         value = [["test", ["test2"]]]
         result = cast_to_list_of_lists(value)
-        assert result == value, f"error: cast_to_list failed. Expected: {value}, got: {result}"
+        assert result == value, f"error: cast_to_list_of_lists failed. Expected: {value}, got: {result}"
 
     def test_check_tsv_format(self) -> None:
         """Test if the parser extracts fasta header correctly."""
