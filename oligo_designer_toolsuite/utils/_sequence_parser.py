@@ -19,7 +19,7 @@ from oligo_designer_toolsuite._constants import (
 )
 from oligo_designer_toolsuite._exceptions import FileFormatError
 
-from ._checkers_and_helpers import check_if_list
+from ._checkers_and_helpers import cast_to_list
 
 ############################################
 # GFF Parser Class
@@ -117,16 +117,16 @@ class GffParser:
         else:
             return dataframe
 
-    def load_annotation_from_pickle(self, file_pickel: str) -> Any:
+    def load_annotation_from_pickle(self, file_pickel: str) -> pd.DataFrame:
         """
         Loads a GFF annotation DataFrame from a pickle file.
 
         :param file_pickel: The path to the pickle file containing the GFF annotation DataFrame.
         :type file_pickel: str
         :return: The loaded DataFrame containing the GFF annotation.
-        :rtype: Any
+        :rtype: pd.DataFrame
         """
-        dataframe_gff = pickle.load(open(file_pickel, "rb"))
+        dataframe_gff: pd.DataFrame = pickle.load(open(file_pickel, "rb"))
 
         return dataframe_gff
 
@@ -498,7 +498,7 @@ class FastaParser:
         :param overwrite: Whether to overwrite the output file if it exists, defaults to False.
         :type overwrite: bool
         """
-        files_in = check_if_list(files_in)
+        files_in = cast_to_list(files_in)
         file_out_mode = "w" if overwrite else "a"
         with open(file_out, file_out_mode) as handle_fasta:
             for file_in in files_in:

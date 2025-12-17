@@ -155,7 +155,7 @@ class ScrinshotProbeDesigner:
     def design_target_probes(
         self,
         # Step 1: Create Database Parameters
-        gene_ids: list | None,
+        region_ids: list | None,
         files_fasta_target_probe_database: list,
         target_probe_length_min: int,
         target_probe_length_max: int,
@@ -216,9 +216,9 @@ class ScrinshotProbeDesigner:
 
         **Step 1: Create Database Parameters**
 
-        :param gene_ids: List of gene identifiers (e.g., gene IDs) to target for probe design. If None,
+        :param region_ids: List of gene identifiers (e.g., gene IDs) to target for probe design. If None,
             all genes present in the input FASTA files will be used.
-        :type gene_ids: list[str] | None
+        :type region_ids: list[str] | None
         :param files_fasta_target_probe_database: List of paths to FASTA files containing sequences
             from which target probes will be generated. These files should contain genomic regions
             of interest (e.g., exons, exon-exon junctions).
@@ -367,7 +367,7 @@ class ScrinshotProbeDesigner:
         target_probe_designer = TargetProbeDesigner(self.dir_output, self.n_jobs)
 
         oligo_database: OligoDatabase = target_probe_designer.create_oligo_database(
-            gene_ids=gene_ids,
+            region_ids=region_ids,
             oligo_length_min=target_probe_length_min,
             oligo_length_max=target_probe_length_max,
             files_fasta_oligo_database=files_fasta_target_probe_database,
@@ -646,6 +646,7 @@ class ScrinshotProbeDesigner:
                     sequence_oligo = oligo_database.get_oligo_property_value(
                         property="oligo", region_id=region_id, oligo_id=oligo_id, flatten=True
                     )
+                    # required for type linting since get_oligo_property_value() could return None
                     if not isinstance(sequence_oligo, str) or not isinstance(ligation_site, int):
                         continue
                     sequence_padlock_arm1: str = sequence_oligo[ligation_site:]
@@ -841,7 +842,7 @@ class TargetProbeDesigner:
     @pipeline_step_basic(step_name="Create Database")
     def create_oligo_database(
         self,
-        gene_ids: list | None,
+        region_ids: list | None,
         oligo_length_min: int,
         oligo_length_max: int,
         files_fasta_oligo_database: list[str],
@@ -864,9 +865,9 @@ class TargetProbeDesigner:
         "oligo" (reverse complement). These sequences will later be split into padlock arms
         and used to create complete padlock probes.
 
-        :param gene_ids: List of gene identifiers (e.g., gene IDs) to target for probe design. If None,
+        :param region_ids: List of gene identifiers (e.g., gene IDs) to target for probe design. If None,
             all genes present in the input FASTA files will be used.
-        :type gene_ids: list[str] | None
+        :type region_ids: list[str] | None
         :param oligo_length_min: Minimum length (in nucleotides) for target probe sequences.
         :type oligo_length_min: int
         :param oligo_length_max: Maximum length (in nucleotides) for target probe sequences.
@@ -893,7 +894,7 @@ class TargetProbeDesigner:
         oligo_fasta_file = oligo_sequences.create_sequences_sliding_window(
             files_fasta_in=files_fasta_oligo_database,
             length_interval_sequences=(oligo_length_min, oligo_length_max),
-            region_ids=gene_ids,
+            region_ids=region_ids,
             n_jobs=self.n_jobs,
         )
 
@@ -910,7 +911,7 @@ class TargetProbeDesigner:
             files_fasta=oligo_fasta_file,
             database_overwrite=True,
             sequence_type="target",
-            region_ids=gene_ids,
+            region_ids=region_ids,
         )
         # Set all sequence types that will be used in this pipeline
         oligo_database.set_database_sequence_types(["target", "oligo"])
@@ -1723,6 +1724,7 @@ class DetectionOligoDesigner:
                 sequence_oligo = oligo_database.get_oligo_property_value(
                     property="oligo", region_id=region_id, oligo_id=oligo_id, flatten=True
                 )
+                # required for type linting since get_oligo_property_value() could return None
                 if not isinstance(sequence_oligo, str) or not isinstance(ligation_site, int):
                     continue
 
@@ -2016,12 +2018,12 @@ def main() -> None:
         warnings.warn(
             "No gene list file was provided! All genes from fasta file are used to generate the probes. This chioce can use a lot of resources."
         )
-        gene_ids = None
+        region_ids = None
     else:
         with open(config["file_regions"]) as handle:
             lines = handle.readlines()
             # ensure that the list contains unique gene ids
-            gene_ids = list(set([line.rstrip() for line in lines]))
+            region_ids = list(set([line.rstrip() for line in lines]))
 
     ##### Preprocess Tm parameters #####
     target_probe_Tm_parameters = preprocess_tm_parameters(config["target_probe_Tm_parameters"])
@@ -2036,7 +2038,7 @@ def main() -> None:
     ##### design probes #####
     oligo_database = pipeline.design_target_probes(
         # Step 1: Create Database Parameters
-        gene_ids=gene_ids,
+        region_ids=region_ids,
         files_fasta_target_probe_database=config["files_fasta_target_probe_database"],
         target_probe_length_min=config["target_probe_length_min"],
         target_probe_length_max=config["target_probe_length_max"],

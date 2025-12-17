@@ -134,7 +134,7 @@ class OligoSeqProbeDesigner:
     def design_target_probes(
         self,
         # Step 1: Create Database Parameters
-        gene_ids: list | None,
+        region_ids: list | None,
         files_fasta_target_probe_database: list,
         target_probe_length_min: int,
         target_probe_length_max: int,
@@ -200,9 +200,9 @@ class OligoSeqProbeDesigner:
 
         **Step 1: Create Database Parameters**
 
-        :param gene_ids: List of gene identifiers (e.g., gene IDs) to target for probe design. If None,
+        :param region_ids: List of gene identifiers (e.g., gene IDs) to target for probe design. If None,
             all genes present in the input FASTA files will be used.
-        :type gene_ids: list[str] | None
+        :type region_ids: list[str] | None
         :param files_fasta_target_probe_database: List of paths to FASTA files containing sequences
             from which target probes will be generated. These files should contain genomic regions
             of interest (e.g., exons, exon-exon junctions).
@@ -372,7 +372,7 @@ class OligoSeqProbeDesigner:
         target_probe_designer = TargetProbeDesigner(self.dir_output, self.n_jobs)
 
         oligo_database: OligoDatabase = target_probe_designer.create_oligo_database(
-            gene_ids=gene_ids,
+            region_ids=region_ids,
             oligo_length_min=target_probe_length_min,
             oligo_length_max=target_probe_length_max,
             split_region=target_probe_split_region,
@@ -615,7 +615,7 @@ class TargetProbeDesigner:
     @pipeline_step_basic(step_name="Create Database")
     def create_oligo_database(
         self,
-        gene_ids: list | None,
+        region_ids: list | None,
         oligo_length_min: int,
         oligo_length_max: int,
         split_region: int,
@@ -638,9 +638,9 @@ class TargetProbeDesigner:
         The database stores sequences with sequence types "target" (original sequence), "oligo" (reverse
         complement), and "oligo_short" (shortened sequences for read length bias filtering).
 
-        :param gene_ids: List of gene identifiers (e.g., gene IDs) to target for probe design. If None,
+        :param region_ids: List of gene identifiers (e.g., gene IDs) to target for probe design. If None,
             all genes present in the input FASTA files will be used.
-        :type gene_ids: list[str] | None
+        :type region_ids: list[str] | None
         :param oligo_length_min: Minimum length (in nucleotides) for target probe sequences.
         :type oligo_length_min: int
         :param oligo_length_max: Maximum length (in nucleotides) for target probe sequences.
@@ -671,7 +671,7 @@ class TargetProbeDesigner:
             files_fasta_in=files_fasta_oligo_database,
             length_interval_sequences=(oligo_length_min, oligo_length_max),
             split_region=split_region,
-            region_ids=gene_ids,
+            region_ids=region_ids,
             n_jobs=self.n_jobs,
         )
 
@@ -688,7 +688,7 @@ class TargetProbeDesigner:
             files_fasta=oligo_fasta_file,
             sequence_type="target",
             database_overwrite=True,
-            region_ids=gene_ids,
+            region_ids=region_ids,
         )
         # Set all sequence types that will be used in this pipeline
         oligo_database.set_database_sequence_types(["target", "oligo", "oligo_short"])
@@ -1370,12 +1370,12 @@ def main() -> None:
         warnings.warn(
             "No gene list file was provided! All genes from fasta file are used to generate the probes. This chioce can use a lot of resources."
         )
-        gene_ids = None
+        region_ids = None
     else:
         with open(config["file_regions"]) as handle:
             lines = handle.readlines()
             # ensure that the list contains unique gene ids
-            gene_ids = list(set([line.rstrip() for line in lines]))
+            region_ids = list(set([line.rstrip() for line in lines]))
 
     ##### initialize probe designer pipeline #####
     pipeline = OligoSeqProbeDesigner(
@@ -1398,7 +1398,7 @@ def main() -> None:
     ##### design probes #####
     oligo_database = pipeline.design_target_probes(
         # Step 1: Create Database Parameters
-        gene_ids=gene_ids,
+        region_ids=region_ids,
         files_fasta_target_probe_database=config["files_fasta_target_probe_database"],
         target_probe_length_min=config["target_probe_length_min"],
         target_probe_length_max=config["target_probe_length_max"],

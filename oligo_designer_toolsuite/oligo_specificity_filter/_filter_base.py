@@ -13,7 +13,7 @@ from joblib_progress import joblib_progress
 from oligo_designer_toolsuite._constants import SEPARATOR_FASTA_HEADER_FIELDS, SEPARATOR_OLIGO_ID
 from oligo_designer_toolsuite._exceptions import ConfigurationError
 from oligo_designer_toolsuite.database import OligoDatabase, ReferenceDatabase
-from oligo_designer_toolsuite.utils import check_if_list, remove_index_files
+from oligo_designer_toolsuite.utils import cast_to_list, remove_index_files
 
 ############################################
 # Oligo Specificity Filter Classes
@@ -87,7 +87,7 @@ class BaseSpecificityFilter(ABC):
         :param oligos_with_hits: A dictionary of regio_ids associated with oligo_ids that have been identified as hits and should be removed.
         :type oligos_with_hits: dict
         """
-        region_ids = check_if_list(region_ids) if region_ids else oligo_database.database.keys()
+        region_ids = cast_to_list(region_ids) if region_ids else oligo_database.database.keys()
 
         for region_id in region_ids:
             oligo_ids = list(oligo_database.database[region_id].keys())
@@ -118,7 +118,7 @@ class BaseSpecificityFilter(ABC):
         :param oligos_with_hits_properties: Dictionary mapping oligo IDs to properties related to their hits.
         :type oligos_with_hits_properties: dict
         """
-        region_ids = check_if_list(region_ids) if region_ids else oligo_database.database.keys()
+        region_ids = cast_to_list(region_ids) if region_ids else oligo_database.database.keys()
 
         for region_id in region_ids:
             oligo_ids = list(oligo_database.database[region_id].keys())
