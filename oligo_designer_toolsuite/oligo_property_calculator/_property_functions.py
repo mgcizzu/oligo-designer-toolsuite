@@ -2,13 +2,12 @@
 # imports
 ############################################
 
-from typing import List, Tuple, Union
-
 from Bio.Seq import Seq
 from Bio.SeqUtils import MeltingTemp, gc_fraction
 from seqfold import dg
 
-from oligo_designer_toolsuite.utils import check_if_list, flatten_property_list
+from oligo_designer_toolsuite._exceptions import ConfigurationError
+from oligo_designer_toolsuite.utils import cast_to_list, flatten_property_list
 
 ############################################
 # Property Calculation Functions
@@ -34,14 +33,15 @@ def calc_gc_content(sequence: str) -> float:
     :return: The GC content as a percentage, rounded to two decimal places.
     :rtype: float
     """
-    return round(gc_fraction(sequence) * 100, 2)
+    gc_content: float = round(gc_fraction(sequence) * 100, 2)
+    return gc_content
 
 
 def calc_tm_nn(
     sequence: str,
     Tm_parameters: dict,
-    Tm_salt_correction_parameters: dict = None,
-    Tm_chem_correction_parameters: dict = None,
+    Tm_salt_correction_parameters: dict | None = None,
+    Tm_chem_correction_parameters: dict | None = None,
 ) -> float:
     """Calculate the melting temperature (Tm) of a nucleotide sequence using nearest-neighbor thermodynamics.
 
@@ -54,15 +54,15 @@ def calc_tm_nn(
     :param Tm_salt_correction_parameters: Optional parameters for salt correction.
         For using Bio.SeqUtils.MeltingTemp default parameters set to ``{}``. For more information on parameters,
         see: https://biopython.org/docs/1.75/api/Bio.SeqUtils.MeltingTemp.html#Bio.SeqUtils.MeltingTemp.salt_correction
-    :type Tm_salt_correction_parameters: dict, optional
+    :type Tm_salt_correction_parameters: dict | None, optional
     :param Tm_chem_correction_parameters: Optional parameters for chemical correction.
         For using Bio.SeqUtils.MeltingTemp default parameters set to ``{}``. For more information on parameters,
         see: https://biopython.org/docs/1.75/api/Bio.SeqUtils.MeltingTemp.html#Bio.SeqUtils.MeltingTemp.chem_correction
-    :type Tm_chem_correction_parameters: dict, optional
+    :type Tm_chem_correction_parameters: dict | None, optional
     :return: The calculated melting temperature (Tm) in degrees Celsius, rounded to two decimal places.
     :rtype: float
     """
-    TmNN = MeltingTemp.Tm_NN(sequence, **Tm_parameters)
+    TmNN: float = MeltingTemp.Tm_NN(sequence, **Tm_parameters)
     if Tm_salt_correction_parameters is not None:
         TmNN += MeltingTemp.salt_correction(**Tm_salt_correction_parameters, seq=sequence)
     if Tm_chem_correction_parameters is not None:
@@ -81,7 +81,8 @@ def calc_dg_secondary_structure(sequence: str, T: float) -> float:
     :return: The calculated ΔG value.
     :rtype: float
     """
-    return dg(sequence, temp=T)
+    DG_secondary_structure: float = dg(sequence, temp=T)
+    return DG_secondary_structure
 
 
 def calc_length_complement(sequence1: str, sequence2: str) -> int:
@@ -182,16 +183,16 @@ def calculate_reverse_complement_sequence(sequence: str) -> str:
     return str(Seq(sequence).reverse_complement())
 
 
-def calc_split_sequence(sequence: str, split_start_end: List[tuple]) -> List[str]:
+def calc_split_sequence(sequence: str, split_start_end: list[tuple]) -> list[str]:
     """
     Extracts sub-sequences from a given sequence using a list of (start, end) index pairs.
 
     :param sequence: The full sequence string to be split.
     :type sequence: str
     :param split_start_end: A list of tuples indicating start and end indices for each subsequence.
-    :type split_start_end: List[tuple]
+    :type split_start_end: list[tuple]
     :return: List of sub-sequences extracted from the input sequence.
-    :rtype: List[str]
+    :rtype: list[str]
     """
     split_sequences = []
     for start_end in split_start_end:
@@ -200,7 +201,7 @@ def calc_split_sequence(sequence: str, split_start_end: List[tuple]) -> List[str
     return split_sequences
 
 
-def calc_seedregion(sequence: str, start: Union[int, float], end: Union[int, float]) -> Tuple[int, int]:
+def calc_seedregion(sequence: str, start: int | float, end: int | float) -> tuple[int, int]:
     """Calculate the seed region of a nucleotide sequence based on the provided start and end positions.
 
     The seed region is calculated based on start and end parameters. The start and end can be specified as absolute
@@ -219,11 +220,11 @@ def calc_seedregion(sequence: str, start: Union[int, float], end: Union[int, flo
     :param sequence: The nucleotide sequence.
     :type sequence: str
     :param start: The start position of the seed region. Can be an integer (exact position) or a float (fraction of the sequence length).
-    :type start: Union[int, float]
+    :type start: int | float
     :param end: The end position of the seed region. Can be an integer (exact position) or a float (fraction of the sequence length).
-    :type end: Union[int, float]
+    :type end: int | float
     :return: A tuple containing the start and end positions of the seed region.
-    :rtype: Tuple[int, int]
+    :rtype: tuple[int, int]
     """
     length = len(sequence)
 
@@ -232,16 +233,22 @@ def calc_seedregion(sequence: str, start: Union[int, float], end: Union[int, flo
         seedregion_end = min(length, end)
     elif isinstance(start, float) and isinstance(end, float):
         if (not 0 <= start <= 1) or (not 0 <= end <= 1):
-            raise ValueError("Start and end positions must be in the interval [0,1] for float type.")
+            raise ConfigurationError(
+                f"Start and end positions must be in the interval [0,1] for float type. "
+                f"Received: start={start}, end={end}."
+            )
         seedregion_start = int(round(start * length))
         seedregion_end = int(round(end * length))
     else:
-        raise ValueError("Start and end parameters must be both integers or both floats.")
+        raise ConfigurationError(
+            f"Start and end parameters must be both integers or both floats. "
+            f"Received: start={type(start).__name__}, end={type(end).__name__}."
+        )
 
     return seedregion_start, seedregion_end
 
 
-def calculate_seedregion_site(sequence: str, seedregion_site: int, seedregion_size: int) -> Tuple[int, int]:
+def calculate_seedregion_site(sequence: str, seedregion_site: int, seedregion_size: int) -> tuple[int, int]:
     """Calculate the start and end positions of the seed region around a seed region site for a nucleotide sequence.
     The seed region is defined symmetrically around the seed region site, considering the provided `seedregion_size`.
 
@@ -252,7 +259,7 @@ def calculate_seedregion_site(sequence: str, seedregion_site: int, seedregion_si
     :param seedregion_size: The size of the seed region to be calculated.
     :type seedregion_size: int
     :return: A tuple containing the start and end positions of the seed region.
-    :rtype: Tuple[int, int]
+    :rtype: tuple[int, int]
     """
     length = len(sequence)
 
@@ -273,9 +280,9 @@ def calc_padlock_arms(
     arm_Tm_min: float,
     arm_Tm_max: float,
     Tm_parameters: dict,
-    Tm_salt_correction_parameters: dict = None,
-    Tm_chem_correction_parameters: dict = None,
-) -> Tuple[float, float, int]:
+    Tm_salt_correction_parameters: dict | None = None,
+    Tm_chem_correction_parameters: dict | None = None,
+) -> tuple[float | None, float | None, int | None]:
     """Calculate the melting temperatures (Tm) of padlock probe arms and determine the ligation site.
 
     This function evaluates potential padlock probe arms in a given sequence by calculating their melting temperatures (Tm)
@@ -296,12 +303,12 @@ def calc_padlock_arms(
     :param Tm_parameters: Parameters for the nearest-neighbor Tm calculation.
     :type Tm_parameters: dict
     :param Tm_salt_correction_parameters: Optional parameters for salt correction.
-    :type Tm_salt_correction_parameters: dict, optional
+    :type Tm_salt_correction_parameters: dict | None, optional
     :param Tm_chem_correction_parameters: Optional parameters for chemical correction.
-    :type Tm_chem_correction_parameters: dict, optional
+    :type Tm_chem_correction_parameters: dict | None, optional
     :return: A tuple containing the Tm of the first arm, the Tm of the second arm, and the ligation site.
             Returns (None, None, None) if no valid ligation site is found.
-    :rtype: Tuple[float, float, int]
+    :rtype: tuple[float | None, float | None, int | None]
     """
     len_sequence = len(sequence)
     ligation_site = len_sequence // 2
@@ -352,7 +359,7 @@ def calc_detect_oligo(
     detect_oligo_length_min: int,
     detect_oligo_length_max: int,
     min_thymines: int,
-) -> Tuple[str, str, str]:
+) -> tuple[str | None, str | None, str | None]:
     """Calculate potential detection oligos around a ligation site, ensuring they meet specified length and thymine content criteria.
 
     :param sequence: The nucleotide sequence.
@@ -366,7 +373,7 @@ def calc_detect_oligo(
     :param min_thymines: The minimum number of thymine bases required in the detection oligo.
     :type min_thymines: int
     :return: A tuple containing the even-length detection oligo, and possibly longer left and right versions, or None if conditions aren't met.
-    :rtype: Tuple[str, str, str]
+    :rtype: tuple[str | None, str | None, str | None]
     """
     # constraint: a difference of max 1 nt for the sequences left and right of the ligation site is allowed
     # e.g. AAA|TTTT or AAAA|TTT hence, the detetcion oligo can only be as long as the shorter arm + 1 nt
@@ -437,7 +444,7 @@ def calc_detect_oligo(
 def calc_num_targeted_transcripts(transcript_id: list) -> int:
     """Calculate the number of unique transcripts targeted by an oligonucleotide.
 
-    :param transcript_id: List of transcript IDs associated with the oligonucleotide.
+    :param transcript_id: list of transcript IDs associated with the oligonucleotide.
     :type transcript_id: list
     :return: Number of unique targeted transcripts.
     :rtype: int
@@ -451,18 +458,23 @@ def calc_isoform_consensus(transcript_id: list, number_total_transcripts: list) 
     targeted by the oligo out of the total number of transcripts in a region. The maximum value for the
     isoform consensus is 100%, which means that the oligo targets all isoforms (transcripts) of the region.
 
-    :param transcript_id: List of transcript IDs associated with the oligonucleotide.
+    :param transcript_id: list of transcript IDs associated with the oligonucleotide.
     :type transcript_id: list
-    :param number_total_transcripts: Total number of transcripts in the genomic region.
+    :param number_total_transcripts: Total number of transcripts in the genomic region. All values in this list should be the same since they come from the same genomic region.
     :type number_total_transcripts: list
     :return: Isoform consensus as a percentage.
     :rtype: float
     """
-    # number transcripts is the number of transcripts of a genomic region
-    # hence, all values have to be the same for each transcript coming from the same oligo
-    # since only oligos from the same genomic region are merged into one entry
-    number_total_transcripts = int(check_if_list(number_total_transcripts)[0])
-    num_targeted_transcripts = len(set(check_if_list(transcript_id)))
-    isoform_consensus = round(num_targeted_transcripts / number_total_transcripts * 100, 2)
+    # Extract the total number of transcripts (all values in the list are the same for the same region)
+    total_transcripts = int(number_total_transcripts[0])
 
+    # Count unique targeted transcripts
+    unique_transcript_ids = set(cast_to_list(transcript_id))
+    num_targeted = len(unique_transcript_ids)
+
+    # Calculate percentage: (targeted / total) * 100
+    if total_transcripts == 0:
+        return 0.0
+
+    isoform_consensus = round((num_targeted / total_transcripts) * 100, 2)
     return isoform_consensus

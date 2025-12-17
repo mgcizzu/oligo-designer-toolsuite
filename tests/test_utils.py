@@ -6,6 +6,7 @@ import os
 import shutil
 import unittest
 from pathlib import Path
+from typing import Any
 
 import pandas as pd
 from effidict import EffiDict, LRUReplacement, PickleBackend
@@ -16,10 +17,10 @@ from oligo_designer_toolsuite.utils import (
     FastaParser,
     GffParser,
     VCFParser,
+    cast_to_list,
+    cast_to_list_of_lists,
     check_if_dna_sequence,
     check_if_key_exists,
-    check_if_list,
-    check_if_list_of_lists,
     check_if_region_in_database,
     check_tsv_format,
     collapse_properties_for_duplicated_sequences,
@@ -47,7 +48,7 @@ FILE_NCBI_EXONS = "tests/data/genomic_regions/sequences_ncbi_exons.fna"
 # Tests
 ############################################
 class TestCheckers(unittest.TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.tmp_path = os.path.join(os.getcwd(), "tmp_utils")
         os.makedirs(self.tmp_path, exist_ok=True)
 
@@ -55,16 +56,16 @@ class TestCheckers(unittest.TestCase):
         self.backend = PickleBackend(storage_path=self._dir_cache_files)
         self.strategy = LRUReplacement(disk_backend=self.backend, max_in_memory=100)
 
-    def tearDown(self):
+    def tearDown(self) -> None:
         shutil.rmtree(self.tmp_path)
 
-    def test_check_if_dna_sequence_valid(self):
+    def test_check_if_dna_sequence_valid(self) -> None:
         """Test if check_if_dna_sequence works correctly for a valid DNA sequence."""
         seq = "GGctAAgTTCCaGTttGCA"
         valid_characters = ["A", "C", "T", "G"]
         assert check_if_dna_sequence(seq, valid_characters), "error: check_if_dna_sequence failed"
 
-    def test_check_if_dna_sequence_invalid(self):
+    def test_check_if_dna_sequence_invalid(self) -> None:
         """Test if check_if_dna_sequence works correctly for an invalid DNA sequence."""
         seq = "GGctAAgTuuTCCaGTttGCA"
         valid_characters = ["A", "C", "T", "G", "W", "X"]
@@ -72,12 +73,12 @@ class TestCheckers(unittest.TestCase):
             seq, valid_characters
         ), "error: check_if_dna_sequence succeeded when it should have failed"
 
-    def test_check_if_key_exists_empty(self):
+    def test_check_if_key_exists_empty(self) -> None:
         """Test the check_if_key_exists function with an empty cache."""
         empty_dict = EffiDict(disk_backend=self.backend, replacement_strategy=self.strategy)
         assert not check_if_key_exists(empty_dict, "a"), "Failed: Should return False for empty dictionary"
 
-    def test_check_if_key_exists_flat(self):
+    def test_check_if_key_exists_flat(self) -> None:
         """Test the check_if_key_exists function with a flat cache."""
         flat_database = EffiDict(disk_backend=self.backend, replacement_strategy=self.strategy)
         flat_database.load_from_dict({"a": 1, "b": 2})
@@ -87,7 +88,7 @@ class TestCheckers(unittest.TestCase):
             flat_database, "z"
         ), "Failed: Key 'z' should not exist in flat_database"
 
-    def test_check_if_key_exists_nested(self):
+    def test_check_if_key_exists_nested(self) -> None:
         """Test the check_if_key_exists function with a nested cache."""
 
         nested_database = EffiDict(disk_backend=self.backend, replacement_strategy=self.strategy)
@@ -101,44 +102,44 @@ class TestCheckers(unittest.TestCase):
             nested_database, "h"
         ), "Failed: Key 'h' should exist deep within nested_database"
 
-    def test_check_if_list_str(self):
-        """Test if check_if_list works correctly for a string."""
+    def test_cast_to_list_str(self) -> None:
+        """Test if cast_to_list works correctly for a string."""
         value = "test"
-        result = check_if_list(value)
-        assert result == [value], f"error: check_if_list failed. Expected: [{value}], got: {result}"
+        result = cast_to_list(value)
+        assert result == [value], f"error: cast_to_list failed. Expected: [{value}], got: {result}"
 
-    def test_check_if_list_list(self):
-        """Test if check_if_list works correctly for a list."""
+    def test_cast_to_list_list(self) -> None:
+        """Test if cast_to_list works correctly for a list."""
         value = ["test", ["test2"]]
-        result = check_if_list(value)
-        assert result == value, f"error: check_if_list failed. Expected: {value}, got: {result}"
+        result = cast_to_list(value)
+        assert result == value, f"error: cast_to_list failed. Expected: {value}, got: {result}"
 
-    def test_check_if_list_of_lists_str(self):
-        """Test if check_if_list works correctly for a string."""
+    def test_cast_to_list_of_lists_str(self) -> None:
+        """Test if cast_to_list_of_lists works correctly for a string."""
         value = "test"
-        result = check_if_list_of_lists(value)
-        assert result == [[value]], f"error: check_if_list failed. Expected: [[{value}]], got: {result}"
+        result = cast_to_list_of_lists(value)
+        assert result == [[value]], f"error: cast_to_list_of_lists failed. Expected: [[{value}]], got: {result}"
 
-    def test_check_if_list_of_lists_list(self):
-        """Test if check_if_list works correctly for a list."""
+    def test_cast_to_list_of_lists_list(self) -> None:
+        """Test if cast_to_list_of_lists works correctly for a list."""
         value = ["test", ["test2"]]
-        result = check_if_list_of_lists(value)
-        assert result == [value], f"error: check_if_list failed. Expected: [{value}], got: {result}"
+        result = cast_to_list_of_lists(value)
+        assert result == [value], f"error: cast_to_list_of_lists failed. Expected: [{value}], got: {result}"
 
-    def test_check_if_list_of_lists_list_of_lists(self):
-        """Test if check_if_list works correctly for a list."""
+    def test_cast_to_list_of_lists_list_of_lists(self) -> None:
+        """Test if cast_to_list_of_lists works correctly for a list."""
         value = [["test", ["test2"]]]
-        result = check_if_list_of_lists(value)
-        assert result == value, f"error: check_if_list failed. Expected: {value}, got: {result}"
+        result = cast_to_list_of_lists(value)
+        assert result == value, f"error: cast_to_list_of_lists failed. Expected: {value}, got: {result}"
 
-    def test_check_tsv_format(self):
+    def test_check_tsv_format(self) -> None:
         """Test if the parser extracts fasta header correctly."""
         try:
             check_tsv_format(FILE_TSV)
         except Exception as e:
             assert False, f"error: checker: check_tsv_format raised an exception: {e}, with file {FILE_TSV}"
 
-    def test_generate_unique_filename(self):
+    def test_generate_unique_filename(self) -> None:
         dir_output = "dir_test"
         base_name = "testfile"
         extension = ".txt"
@@ -149,7 +150,7 @@ class TestCheckers(unittest.TestCase):
 
 
 class TestDatabaseProcessor(unittest.TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.tmp_path = os.path.join(os.getcwd(), "tmp_oligo_sequence_generator")
         Path(self.tmp_path).mkdir(parents=True, exist_ok=True)
 
@@ -186,14 +187,15 @@ class TestDatabaseProcessor(unittest.TestCase):
         )
         self.oligo_database2.update_oligo_properties({"AARS1::2": {"start": 70265560, "end": 70265660}})
 
-    def tearDown(self):
+    def tearDown(self) -> None:
         shutil.rmtree(self.tmp_path)
 
-    def test_merge_databases(self):
+    def test_merge_databases(self) -> None:
         oligo_database_merged = merge_databases(
             self.oligo_database1.database,
             self.oligo_database2.database,
             sequence_type="oligo",
+            database_sequence_types=["oligo"],
             dir_cache_files=self.oligo_database1._dir_cache_files,
             max_entries_in_memory=self.oligo_database1._max_entries_in_memory,
         )
@@ -207,36 +209,92 @@ class TestDatabaseProcessor(unittest.TestCase):
             [70265560],
         ], "error: properties incorrectly merged"
 
-    def test_collapse_properties_for_duplicated_sequences_dict_identical(self):
+    def test_collapse_properties_for_duplicated_sequences_dict_identical(self) -> None:
         dict1 = {"chromosome": [["10"]], "start": [[1000]], "end": [[2000]], "strand": [["+"]]}
         dict2 = {"chromosome": [["10"]], "start": [[1000]], "end": [[2000]], "strand": [["+"]]}
 
-        dict_merged = collapse_properties_for_duplicated_sequences(dict1, dict2)
+        dict_merged = collapse_properties_for_duplicated_sequences(dict1, dict2, database_sequence_types=[])
 
         assert dict_merged == dict1, "error: identical dict should not have duplicated elements"
 
-    def test_collapse_properties_for_duplicated_sequences_dict_different(self):
+    def test_collapse_properties_for_duplicated_sequences_dict_different(self) -> None:
         dict1 = {"chromosome": [["10"]], "start": [[1000]], "end": [[2000]], "strand": [["+"]]}
         dict2 = {"chromosome": [["11"]], "start": [[1020]], "end": [[2020]], "strand": [["-"]]}
 
-        dict_merged = collapse_properties_for_duplicated_sequences(dict1, dict2)
+        dict_merged = collapse_properties_for_duplicated_sequences(dict1, dict2, database_sequence_types=[])
 
         assert dict_merged["chromosome"] == [["10"], ["11"]], "error: different dicts should have been merged"
         assert dict_merged["start"] == [[1000], [1020]], "error: different dicts should have been merged"
         assert dict_merged["end"] == [[2000], [2020]], "error: different dicts should have been merged"
         assert dict_merged["strand"] == [["+"], ["-"]], "error: different dicts should have been merged"
 
-    def test_format_oligo_properties(self):
+    def test_collapse_properties_for_duplicated_sequences_warns_on_different_sequence_values(self) -> None:
+        """Test that a warning is issued when sequence type values differ between dictionaries."""
+        dict1 = {"oligo": "ATCGATCGATCG", "chromosome": [["10"]], "start": [[1000]]}
+        dict2 = {"oligo": "GCTAGCTAGCTA", "chromosome": [["10"]], "start": [[1000]]}
+
+        with self.assertWarns(UserWarning) as warning_context:
+            collapse_properties_for_duplicated_sequences(dict1, dict2, database_sequence_types=["oligo"])
+
+        self.assertIn(
+            "oligo",
+            str(warning_context.warning),
+            "error: warning should mention the key with different values",
+        )
+
+    def test_format_oligo_properties(self) -> None:
         oligo_properties = {"chromosome": "10", "start": [1000], "end": [[2000]], "strand": [["+"], ["-"]]}
 
-        oligo_properties = format_oligo_properties(oligo_properties=oligo_properties)
+        oligo_properties = format_oligo_properties(
+            oligo_properties=oligo_properties, database_sequence_types=[]
+        )
 
         assert oligo_properties["chromosome"] == [["10"]], "error: oligo property not correctly formatted"
         assert oligo_properties["start"] == [[1000]], "error: oligo property not correctly formatted"
         assert oligo_properties["end"] == [[2000]], "error: oligo property not correctly formatted"
         assert oligo_properties["strand"] == [["+"], ["-"]], "error: oligo property not correctly formatted"
 
-    def test_check_if_region_in_database(self):
+    def test_collapse_properties_for_duplicated_sequences_with_sequence_type(self) -> None:
+        """Test that sequence types are handled correctly in collapse_properties_for_duplicated_sequences."""
+        dict1 = {"oligo": "ATCG", "chromosome": [["10"]], "start": [[1000]]}
+        dict2 = {"oligo": "ATCG", "chromosome": [["11"]], "start": [[1020]]}
+
+        dict_merged = collapse_properties_for_duplicated_sequences(
+            dict1, dict2, database_sequence_types=["oligo"]
+        )
+
+        # Sequence type should warn if different, but here they're the same
+        assert dict_merged["oligo"] == "ATCG", "error: sequence type should be preserved"
+        assert dict_merged["chromosome"] == [
+            ["10"],
+            ["11"],
+        ], "error: non-sequence properties should be merged"
+
+    def test_format_oligo_properties_with_sequence_type(self) -> None:
+        """Test that sequence types are not formatted in format_oligo_properties."""
+        oligo_properties = {"oligo": "ATCG", "chromosome": "10", "start": [1000]}
+
+        oligo_properties = format_oligo_properties(
+            oligo_properties=oligo_properties, database_sequence_types=["oligo"]
+        )
+
+        assert oligo_properties["oligo"] == "ATCG", "error: sequence type should not be formatted"
+        assert oligo_properties["chromosome"] == [["10"]], "error: non-sequence property should be formatted"
+        assert oligo_properties["start"] == [[1000]], "error: non-sequence property should be formatted"
+
+    def test_merge_databases_sequence_type_validation(self) -> None:
+        """Test that merge_databases validates sequence_type is in database_sequence_types."""
+        with self.assertRaises(ValueError):
+            merge_databases(
+                self.oligo_database1.database,
+                self.oligo_database2.database,
+                sequence_type="invalid_type",
+                database_sequence_types=["oligo"],
+                dir_cache_files=self.oligo_database1._dir_cache_files,
+                max_entries_in_memory=self.oligo_database1._max_entries_in_memory,
+            )
+
+    def test_check_if_region_in_database(self) -> None:
         file_removed_regions = os.path.join(self.tmp_path, "removed_regions.tsv")
         check_if_region_in_database(
             database=self.oligo_database1.database,
@@ -250,8 +308,8 @@ class TestDatabaseProcessor(unittest.TestCase):
         )
         assert removed_regions.region[0] == "no_region1", "error: region was not removed"
 
-    def test_flatten_property_list(self):
-        oligo_properties = {
+    def test_flatten_property_list(self) -> None:
+        oligo_properties: dict[str, list[list[Any]]] = {
             "chromosome": [["10"]],
             "start": [[1000], [1020]],
             "end": [[2000]],
@@ -273,59 +331,59 @@ class TestDatabaseProcessor(unittest.TestCase):
 
 
 class TestGffParser(unittest.TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.parser = GffParser()
 
-    def test_check_gff_format(self):
+    def test_check_gff_format(self) -> None:
         """Test parsing GFF annotation data."""
         try:
             self.parser.check_gff_format(FILE_GFF)
         except Exception as e:
             assert False, f"error: checker: check_gff_format raised an exception: {e}, with file {FILE_GFF}"
 
-    def test_check_gtf_format(self):
+    def test_check_gtf_format(self) -> None:
         """Test parsing GTF annotation data."""
         try:
             self.parser.check_gff_format(FILE_GTF)
         except Exception as e:
             assert False, f"error: checker: check_gff_format raised an exception: {e}, with file {FILE_GTF}"
 
-    def test_parse_annotation_from_gff(self):
+    def test_parse_annotation_from_gff(self) -> None:
         """Test parsing GFF annotation."""
-        result = self.parser.parse_annotation_from_gff(FILE_GFF, target_lines=10)
+        result: pd.DataFrame = self.parser.parse_annotation_from_gff(FILE_GFF, target_lines=10)
         assert result.shape[1] == 23, "error: GFF3 dataframe not correctly loaded"
 
-    def test_parse_annotation_from_gtf(self):
+    def test_parse_annotation_from_gtf(self) -> None:
         """Test parsing GTF annotation."""
-        result = self.parser.parse_annotation_from_gff(FILE_GTF, target_lines=10)
+        result: pd.DataFrame = self.parser.parse_annotation_from_gff(FILE_GTF, target_lines=10)
         assert result.shape[1] == 20, "error: GTF dataframe not correctly loaded"
 
-    def test_parse_annotation_from_gtf_no_duplicates(self):
+    def test_parse_annotation_from_gtf_no_duplicates(self) -> None:
         """Test when parsing GTF annotation chromosomes are not read in as both integers and strings."""
-        result = self.parser.parse_annotation_from_gff(FILE_GTF_COMPLEX)
+        result: pd.DataFrame = self.parser.parse_annotation_from_gff(FILE_GTF_COMPLEX)
         self.assertListEqual(
             result["seqid"].unique().tolist(),
             ["16", "KI270728.1"],
             "error: GTF parsing does not generate unique chromosome values",
         )
 
-    def test_load_annotation_from_pickle_file(self):
+    def test_load_annotation_from_pickle_file(self) -> None:
         """Test loading annotation from a pickle file."""
         result = self.parser.load_annotation_from_pickle(FILE_PICKLE)
         assert type(result) == pd.DataFrame, f"error: GTF dataframe not correctly loaded from pickle file"
 
 
 class TestFastaParser(unittest.TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.tmp_path = os.path.join(os.getcwd(), "tmp_fasta_parser")
         Path(self.tmp_path).mkdir(parents=True, exist_ok=True)
 
         self.parser = FastaParser()
 
-    def tearDown(self):
+    def tearDown(self) -> None:
         shutil.rmtree(self.tmp_path)
 
-    def test_check_fasta_format(self):
+    def test_check_fasta_format(self) -> None:
         """Test parsing fasta file."""
         try:
             out = self.parser.check_fasta_format(FILE_FASTA)
@@ -345,7 +403,7 @@ class TestFastaParser(unittest.TestCase):
         except Exception:
             pass  # should go into this case
 
-    def test_is_coordinate(self):
+    def test_is_coordinate(self) -> None:
         """Test coordinate check with regular expression."""
         entry_true = "17:15-20(+)"
         entry_false1 = "17:15(-)"
@@ -365,7 +423,7 @@ class TestFastaParser(unittest.TestCase):
             self.parser.is_coordinate(entry_false3) == False
         ), f"error: {entry_false3} should not be recognized as coordinate."
 
-    def test_get_fasta_regions(self):
+    def test_get_fasta_regions(self) -> None:
         """Test if the parser extracts fasta regions correctly."""
         expected_result = ["16"]
         result = self.parser.get_fasta_regions(FILE_FASTA)
@@ -373,7 +431,7 @@ class TestFastaParser(unittest.TestCase):
             result == expected_result
         ), f"error: fasta regions not correctly extracted. Expected ['16'] got {result}"
 
-    def test_read_fasta_sequences_existing_regions(self):
+    def test_read_fasta_sequences_existing_regions(self) -> None:
         """Test parsing fasta file."""
         ids = ["16"]
         result = self.parser.read_fasta_sequences(FILE_FASTA, region_ids=ids)
@@ -387,7 +445,7 @@ class TestFastaParser(unittest.TestCase):
             result[0].dbxrefs == []
         ), f"error: the dbxrefs should be an empty list instead of {result[0].dbxrefs}"
 
-    def test_parse_fasta_header(self):
+    def test_parse_fasta_header(self) -> None:
         """Test if the parser extracts fasta header correctly."""
         header = "ARPG3::transcript_id=XM4581;exon_id=XM4581_exon1::16:70265537-70265662(-)"
         region, additional_information, coordinates = self.parser.parse_fasta_header(header)
@@ -401,7 +459,7 @@ class TestFastaParser(unittest.TestCase):
             "exon_id": ["XM4581_exon1"],
         }, f"error: wrong additional information parsed: {additional_information}"
 
-    def test_write_fasta_sequences(self):
+    def test_write_fasta_sequences(self) -> None:
         """Test if sequences are correctly written to fasta file."""
         file_out = os.path.join(self.tmp_path, "output.fna")
 
@@ -413,7 +471,7 @@ class TestFastaParser(unittest.TestCase):
         except Exception as e:
             assert False, f"error: raised an exception: {e}, with written file."
 
-    def test_merge_fasta_files(self):
+    def test_merge_fasta_files(self) -> None:
         """Test if fasta files are merged correctly."""
         file_out = os.path.join(self.tmp_path, "output_merged.fna")
 
@@ -428,16 +486,16 @@ class TestFastaParser(unittest.TestCase):
 
 
 class TestVCFParser(unittest.TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.tmp_path = os.path.join(os.getcwd(), "tmp_vcf_parser")
         Path(self.tmp_path).mkdir(parents=True, exist_ok=True)
 
         self.parser = VCFParser()
 
-    def tearDown(self):
+    def tearDown(self) -> None:
         shutil.rmtree(self.tmp_path)
 
-    def test_check_vcf_format(self):
+    def test_check_vcf_format(self) -> None:
         """Test parsing fasta file."""
         try:
             out = self.parser.check_vcf_format(FILE_VCF)
@@ -453,7 +511,7 @@ class TestVCFParser(unittest.TestCase):
         except Exception:
             pass  # should go into this case
 
-    def test_read_vcf_variants(self):
+    def test_read_vcf_variants(self) -> None:
         variants, vcf_in = self.parser.read_vcf_variants(FILE_VCF)
 
         variant_type = variants[0].INFO.get("VC")
@@ -462,7 +520,7 @@ class TestVCFParser(unittest.TestCase):
         assert variant_type == "SNV", f"error: wrong variant {variant_type} loaded."
         assert variant_id == "rs931559949", f"error: wrong variant {variant_id} loaded."
 
-    def test_write_vcf_variants(self):
+    def test_write_vcf_variants(self) -> None:
         file_out = os.path.join(self.tmp_path, "variants.vcf")
 
         variants, vcf_in = self.parser.read_vcf_variants(FILE_VCF)
@@ -470,7 +528,7 @@ class TestVCFParser(unittest.TestCase):
 
         assert self.parser.check_vcf_format(file_out) == True, "error: vcf file stored in wrong format"
 
-    def test_merge_vcf_files(self):
+    def test_merge_vcf_files(self) -> None:
         file_out = os.path.join(self.tmp_path, "variants_merged.vcf")
         self.parser.merge_vcf_files(files_in=[FILE_VCF, FILE_VCF], file_out=file_out)
 

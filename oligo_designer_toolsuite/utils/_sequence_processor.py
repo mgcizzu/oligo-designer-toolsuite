@@ -7,7 +7,7 @@ from subprocess import Popen
 
 from Bio import SeqIO
 
-from ._checkers_and_helpers import check_if_list
+from ._checkers_and_helpers import cast_to_list
 
 ############################################
 # Collection of utility functions
@@ -15,13 +15,13 @@ from ._checkers_and_helpers import check_if_list
 
 
 def get_sequence_from_annotation(
-    file_bed,
-    file_reference_fasta,
-    file_fasta,
-    split=False,
-    strand=False,
-    nameOnly=False,
-    name=False,
+    file_bed: str,
+    file_reference_fasta: str,
+    file_fasta: str,
+    split: bool = False,
+    strand: bool = False,
+    nameOnly: bool = False,
+    name: bool = False,
 ) -> None:
     """
     Extracts sequences from a reference FASTA file based on regions specified in a BED file using `bedtools getfasta`.
@@ -77,7 +77,7 @@ def get_complement_regions(file_bed_in: str, file_chromosome_length: str, file_b
     process = Popen(cmd, shell=True).wait()
 
 
-def get_intersection(file_A: str, file_B: list, file_bed_out: str):
+def get_intersection(file_A: str, file_B: list[str] | str, file_bed_out: str) -> None:
     """
     Compute the intersection between genomic regions in two BED files.
 
@@ -86,12 +86,12 @@ def get_intersection(file_A: str, file_B: list, file_bed_out: str):
 
     :param file_A: Path to the first BED file.
     :type file_A: str
-    :param file_B: List of paths to the second BED file(s).
-    :type file_B: list
+    :param file_B: list of paths to the second BED file(s).
+    :type file_B: list[str] | str
     :param file_bed_out: Path to the output BED file where the intersection results will be saved.
     :type file_bed_out: str
     """
-    file_B = check_if_list(file_B)
+    file_B = cast_to_list(file_B)
 
     cmd = "bedtools intersect -wa -wb -bed"
     cmd += " -a " + file_A
@@ -101,7 +101,7 @@ def get_intersection(file_A: str, file_B: list, file_bed_out: str):
     process = Popen(cmd, shell=True).wait()
 
 
-def append_nucleotide_to_sequences(input_fasta, nucleotide):
+def append_nucleotide_to_sequences(input_fasta: str, nucleotide: str) -> str:
     """
     Appends a specific nucleotide to each sequence in a FASTA file.
 

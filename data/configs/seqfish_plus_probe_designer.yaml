@@ -179,8 +179,8 @@ primer_specificity_refrence_blastn_search_parameters:
   -max_hsps: 1000
 primer_specificity_refrence_blastn_hit_parameters:
   min_alignment_length: 14 # can be turned into coverage
-# Specificity filter with BlastN against encoding rpobes
-primer_specificity_encoding_probes_blastn_search_parameters:
+# Specificity filter with BlastN against hybridization rpobes
+primer_specificity_hybridization_probes_blastn_search_parameters:
   -perc_identity: 100
   -strand: "minus" # this parameter is fixed, if reference is whole genome, consider using "both"
   -word_size: 7
@@ -188,5 +188,5 @@ primer_specificity_encoding_probes_blastn_search_parameters:
   -soft_masking: "false"
   -max_target_seqs: 10
   -max_hsps: 1000
-primer_specificity_encoding_probes_blastn_hit_parameters:
+primer_specificity_hybridization_probes_blastn_hit_parameters:
   min_alignment_length: 11 # can be turned into coverage

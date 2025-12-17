@@ -6,15 +6,15 @@ import os
 import re
 from abc import ABC, abstractmethod
 from pathlib import Path
-from typing import List, Tuple
 
 import pandas as pd
 from joblib import Parallel, delayed
 from joblib_progress import joblib_progress
 
-from oligo_designer_toolsuite._constants import _TYPES_SEQ, SEPARATOR_FASTA_HEADER_FIELDS, SEPARATOR_OLIGO_ID
+from oligo_designer_toolsuite._constants import SEPARATOR_FASTA_HEADER_FIELDS, SEPARATOR_OLIGO_ID
+from oligo_designer_toolsuite._exceptions import ConfigurationError
 from oligo_designer_toolsuite.database import OligoDatabase, ReferenceDatabase
-from oligo_designer_toolsuite.utils import check_if_list
+from oligo_designer_toolsuite.utils import cast_to_list
 
 ############################################
 # Oligo Specificity Filter Classes
@@ -32,7 +32,7 @@ class BaseSpecificityFilter(ABC):
 
     :param filter_name: Name of the filter for identification purposes.
     :type filter_name: str
-    :param dir_output: Directory to store output files and temporary data.
+    :param dir_output: Directory path where output files will be saved.
     :type dir_output: str
     """
 
@@ -43,13 +43,13 @@ class BaseSpecificityFilter(ABC):
         self.dir_output = os.path.abspath(os.path.join(dir_output, self.filter_name))
         Path(self.dir_output).mkdir(parents=True, exist_ok=True)
 
-        self.sequence_type = None
+        self.sequence_type: str | None = None
 
     @abstractmethod
     def apply(
         self,
         oligo_database: OligoDatabase,
-        sequence_type: _TYPES_SEQ,
+        sequence_type: str | None,
         n_jobs: int = 1,
     ) -> OligoDatabase:
         """
@@ -59,11 +59,11 @@ class BaseSpecificityFilter(ABC):
         in the OligoDatabase specified by the sequence type. The implementation should return a filtered version of the
         OligoDatabase.
 
-        :param oligo_database: The OligoDatabase containing the oligonucleotides and their associated properties.
+        :param oligo_database: The OligoDatabase instance containing oligonucleotide sequences and their associated properties. This database stores oligo data organized by genomic regions and can be used for filtering, property calculations, set generation, and output operations.
         :type oligo_database: OligoDatabase
-        :param sequence_type: The type of sequence to be used for filter calculations.
-        :type sequence_type: _TYPES_SEQ["oligo", "target"]
-        :param n_jobs: The number of parallel jobs to use for processing.
+        :param sequence_type: Type of sequence being processed.
+        :type sequence_type: str | None
+        :param n_jobs: Number of parallel jobs to use for processing.
         :type n_jobs: int
         :return: The filtered OligoDatabase.
         :rtype: OligoDatabase
@@ -72,7 +72,7 @@ class BaseSpecificityFilter(ABC):
     def _filter_hits_from_database(
         self,
         oligo_database: OligoDatabase,
-        region_ids: str,
+        region_ids: str | list[str],
         oligos_with_hits: dict,
     ) -> None:
         """
@@ -81,14 +81,14 @@ class BaseSpecificityFilter(ABC):
         This method iterates over oligonucleotides in a specified region and removes any that have been identified
         as having hits (i.e., matches) based on the filtering criteria.
 
-        :param oligo_database: The OligoDatabase containing the oligonucleotides and their associated properties.
+        :param oligo_database: The OligoDatabase instance containing oligonucleotide sequences and their associated properties. This database stores oligo data organized by genomic regions and can be used for filtering, property calculations, set generation, and output operations.
         :type oligo_database: OligoDatabase
-        :param region_ids: List of region IDs to retrieve. If None, all regions in the database are retrieved, defaults to None.
+        :param region_ids: Region identifier(s) to process. Can be a single region ID (str) or a list of region IDs (List[str]). If None, all regions in the database are processed, defaults to None.
         :type region_ids: Union[str, List[str]], optional
         :param oligos_with_hits: A dictionary of regio_ids associated with oligo_ids that have been identified as hits and should be removed.
         :type oligos_with_hits: dict
         """
-        region_ids = check_if_list(region_ids) if region_ids else oligo_database.database.keys()
+        region_ids = cast_to_list(region_ids) if region_ids else oligo_database.database.keys()
 
         for region_id in region_ids:
             oligo_ids = list(oligo_database.database[region_id].keys())
@@ -99,7 +99,7 @@ class BaseSpecificityFilter(ABC):
     def _flag_hits_in_database(
         self,
         oligo_database: OligoDatabase,
-        region_ids: str,
+        region_ids: str | list[str],
         oligos_with_hits: dict,
         oligos_with_hits_properties: dict,
     ) -> None:
@@ -110,16 +110,16 @@ class BaseSpecificityFilter(ABC):
         whether it appears in the list of hits. If an oligo has a hit, the corresponding reference is assigned.
         Otherwise, the property is set to None.
 
-        :param oligo_database: The OligoDatabase containing the oligonucleotides and their associated properties.
+        :param oligo_database: The OligoDatabase instance containing oligonucleotide sequences and their associated properties. This database stores oligo data organized by genomic regions and can be used for filtering, property calculations, set generation, and output operations.
         :type oligo_database: OligoDatabase
-        :param region_ids: List of region IDs to retrieve. If None, all regions in the database are retrieved, defaults to None.
+        :param region_ids: Region identifier(s) to process. Can be a single region ID (str) or a list of region IDs (List[str]). If None, all regions in the database are processed, defaults to None.
         :type region_ids: Union[str, List[str]], optional
         :param oligos_with_hits: A dictionary of regio_ids associated with oligo_ids that have been identified as hits and should be removed.
         :type oligos_with_hits: dict
         :param oligos_with_hits_properties: Dictionary mapping oligo IDs to properties related to their hits.
         :type oligos_with_hits_properties: dict
         """
-        region_ids = check_if_list(region_ids) if region_ids else oligo_database.database.keys()
+        region_ids = cast_to_list(region_ids) if region_ids else oligo_database.database.keys()
 
         for region_id in region_ids:
             oligo_ids = list(oligo_database.database[region_id].keys())
@@ -143,7 +143,7 @@ class ReferenceSpecificityFilter(BaseSpecificityFilter):
     :type remove_hits: bool
     :param filter_name: Name of the filter for identification purposes.
     :type filter_name: str
-    :param dir_output: Directory to store output files and temporary data.
+    :param dir_output: Directory path where output files will be saved.
     :type dir_output: str
     """
 
@@ -160,15 +160,15 @@ class ReferenceSpecificityFilter(BaseSpecificityFilter):
         Path(self.dir_output).mkdir(parents=True, exist_ok=True)
 
         self.remove_hits = remove_hits
-        self.reference_database = None
-        self.sequence_type = None
+        self.reference_database: ReferenceDatabase | None = None
+        self.sequence_type: str | None = None
 
-    def set_reference_database(self, reference_database: ReferenceDatabase) -> None:
+    def set_reference_database(self, reference_database: ReferenceDatabase | None) -> None:
         """
         Set the ReferenceDatabase for reference based specificity filters.
 
-        :param reference_database: The ReferenceDatabase used for alignment.
-        :type reference_database: ReferenceDatabase
+        :param reference_database: The ReferenceDatabase instance containing reference sequences for alignment or comparison.
+        :type reference_database: ReferenceDatabase | None
         """
         self.reference_database = reference_database
 
@@ -177,7 +177,7 @@ class ReferenceSpecificityFilter(BaseSpecificityFilter):
         """
         Abstract method to write a reference database to file and create an index in case of alignment based methods.
 
-        :param n_jobs: Number of parallel jobs to use during the indexing process.
+        :param n_jobs: Number of parallel jobs to use for processing.
         :type n_jobs: int
         :return: The name of the created reference file.
         :rtype: str
@@ -202,7 +202,7 @@ class ReferenceSpecificityFilter(BaseSpecificityFilter):
         self,
         file_search_results: str,
         names_search_output: list,
-        usecols: list = None,
+        usecols: list | None = None,
         parse_query: bool = True,
         parse_reference: bool = True,
     ) -> pd.DataFrame:
@@ -253,7 +253,7 @@ class AlignmentSpecificityFilter(ReferenceSpecificityFilter):
     :type remove_hits: bool
     :param filter_name: Name of the filter for identification purposes.
     :type filter_name: str
-    :param dir_output: Directory to store output files and temporary data.
+    :param dir_output: Directory path where output files will be saved.
     :type dir_output: str
     """
 
@@ -271,13 +271,13 @@ class AlignmentSpecificityFilter(ReferenceSpecificityFilter):
         Path(self.dir_output).mkdir(parents=True, exist_ok=True)
 
         self.remove_hits = remove_hits
-        self.reference_database = None
-        self.sequence_type = None
+        self.reference_database: ReferenceDatabase | None = None
+        self.sequence_type: str | None = None
 
     def apply(
         self,
         oligo_database: OligoDatabase,
-        sequence_type: _TYPES_SEQ,
+        sequence_type: str | None,
         n_jobs: int = 1,
     ) -> OligoDatabase:
         """
@@ -286,11 +286,11 @@ class AlignmentSpecificityFilter(ReferenceSpecificityFilter):
         This function creates a reference index, runs the alignment-based specificity filter in parallel
         across all regions in the oligo database, and removes or flags oligos with off-target hits.
 
-        :param oligo_database: The OligoDatabase containing the oligonucleotides and their associated properties.
+        :param oligo_database: The OligoDatabase instance containing oligonucleotide sequences and their associated properties. This database stores oligo data organized by genomic regions and can be used for filtering, property calculations, set generation, and output operations.
         :type oligo_database: OligoDatabase
-        :param sequence_type: The type of sequence to be used for filter calculations.
-        :type sequence_type: _TYPES_SEQ["oligo", "target"]
-        :param n_jobs: The number of parallel jobs to use for processing.
+        :param sequence_type: Type of sequence being processed.
+        :type sequence_type: str | None
+        :param n_jobs: Number of parallel jobs to use for processing.
         :type n_jobs: int
         :return: The filtered OligoDatabase.
         :rtype: OligoDatabase
@@ -324,23 +324,23 @@ class AlignmentSpecificityFilter(ReferenceSpecificityFilter):
     def get_oligo_pair_hits(
         self,
         oligo_database: OligoDatabase,
-        sequence_type: _TYPES_SEQ,
+        sequence_type: str,
         n_jobs: int,
-    ) -> list:
+    ) -> list[tuple[str, str]]:
         """
         Retrieves pairs of oligonucleotides that have significant alignment hits within the same region.
 
         This function creates a reference index, runs the alignment-based specificity filter in parallel
         across all regions in the oligo database, and returns a list of oligo pairs with hits.
 
-        :param oligo_database: The OligoDatabase containing the oligonucleotides and their associated properties.
+        :param oligo_database: The OligoDatabase instance containing oligonucleotide sequences and their associated properties. This database stores oligo data organized by genomic regions and can be used for filtering, property calculations, set generation, and output operations.
         :type oligo_database: OligoDatabase
-        :param sequence_type: The type of sequence to be used for filter calculations.
-        :type sequence_type: _TYPES_SEQ["oligo", "target"]
-        :param n_jobs: The number of parallel jobs to use for processing.
+        :param sequence_type: Type of sequence being processed.
+        :type sequence_type: str
+        :param n_jobs: Number of parallel jobs to use for processing.
         :type n_jobs: int
         :return: A list of tuples representing oligo pairs that have significant hits.
-        :rtype: list
+        :rtype: list[tuple[str, str]]
         """
         self.sequence_type = sequence_type
 
@@ -377,13 +377,13 @@ class AlignmentSpecificityFilter(ReferenceSpecificityFilter):
         file_reference: str,
         consider_hits_from_input_region: bool,
         mode: int,
-    ) -> pd.DataFrame:
+    ) -> pd.DataFrame | None:
         """
         Executes the filtering process for a specific region by running the search and identifying significant hits.
 
         :param region_id: Region ID to process.
         :type region_id: str
-        :param oligo_database: The OligoDatabase containing the oligonucleotides and their associated properties.
+        :param oligo_database: The OligoDatabase instance containing oligonucleotide sequences and their associated properties. This database stores oligo data organized by genomic regions and can be used for filtering, property calculations, set generation, and output operations.
         :type oligo_database: OligoDatabase
         :param file_reference: Path to the reference file used for alignment filtering.
         :type file_reference: str
@@ -392,7 +392,7 @@ class AlignmentSpecificityFilter(ReferenceSpecificityFilter):
         :param mode: Operation mode — 0: flag hits, 1: remove hits, 2: return hits table.
         :type mode: int
         :return: DataFrame of hit results for the region if mode is 2, otherwise None.
-        :rtype: pd.DataFrame
+        :rtype: pd.DataFrame | None
         """
         search_results = self._run_search(
             oligo_database=oligo_database,
@@ -429,8 +429,9 @@ class AlignmentSpecificityFilter(ReferenceSpecificityFilter):
         elif mode == 2:
             return table_hits
         else:
-            raise ValueError(
-                f"Mode {mode} not available. Choose mode=0 for removing hits from the database, mode=1 for flagging the hits in the database or mode=2 for returning the hits table."
+            raise ConfigurationError(
+                f"Mode '{mode}' is not available. Choose mode=0 for removing hits from the database, "
+                f"mode=1 for flagging the hits in the database, or mode=2 for returning the hits table."
             )
 
     @abstractmethod
@@ -443,7 +444,7 @@ class AlignmentSpecificityFilter(ReferenceSpecificityFilter):
         """
         Abstract method to run a search against a ReferenceDatabase using a specified indexed reference file.
 
-        :param oligo_database: The OligoDatabase containing the oligonucleotides and their associated properties.
+        :param oligo_database: The OligoDatabase instance containing oligonucleotide sequences and their associated properties. This database stores oligo data organized by genomic regions and can be used for filtering, property calculations, set generation, and output operations.
         :type oligo_database: OligoDatabase
         :param file_reference: Path to the reference file used for alignment filtering.
         :type file_reference: str
@@ -464,7 +465,7 @@ class AlignmentSpecificityFilter(ReferenceSpecificityFilter):
         """
         Abstract method to identify significant hits from search results, potentially excluding hits within the same region.
 
-        :param oligo_database: The OligoDatabase containing the oligonucleotides and their associated properties.
+        :param oligo_database: The OligoDatabase instance containing oligonucleotide sequences and their associated properties. This database stores oligo data organized by genomic regions and can be used for filtering, property calculations, set generation, and output operations.
         :type oligo_database: OligoDatabase
         :param search_results: DataFrame containing the raw search results.
         :type search_results: pd.DataFrame
@@ -481,18 +482,18 @@ class AlignmentSpecificityFilter(ReferenceSpecificityFilter):
         oligo_database: OligoDatabase,
         table_hits: pd.DataFrame,
         region_id: str,
-    ) -> List[str]:
+    ) -> list[str]:
         """
         Retrieves the query sequences from the OligoDatabase based on the hit information.
 
-        :param oligo_database: The OligoDatabase containing the oligonucleotides and their associated properties.
+        :param oligo_database: The OligoDatabase instance containing oligonucleotide sequences and their associated properties. This database stores oligo data organized by genomic regions and can be used for filtering, property calculations, set generation, and output operations.
         :type oligo_database: OligoDatabase
         :param table_hits: DataFrame containing the hits with query IDs.
         :type table_hits: pd.DataFrame
         :param region_id: Region ID to process.
         :type region_id: str
         :return: A list of query sequences corresponding to the hits.
-        :rtype: List[str]
+        :rtype: list[str]
         """
         queries = [
             oligo_database.database[region_id][query_id][self.sequence_type]
@@ -521,7 +522,7 @@ class AlignmentSpecificityFilter(ReferenceSpecificityFilter):
         table_hits: pd.DataFrame,
         queries: list,
         references: list,
-    ) -> Tuple[list, list]:
+    ) -> tuple[list, list]:
         """
         Abstract method to align query and reference sequences by adding gaps.
 
@@ -532,5 +533,5 @@ class AlignmentSpecificityFilter(ReferenceSpecificityFilter):
         :param references: List of reference sequences.
         :type references: list
         :return: A tuple containing lists of gapped query and reference sequences.
-        :rtype: Tuple[list, list]
+        :rtype: tuple[list, list]
         """

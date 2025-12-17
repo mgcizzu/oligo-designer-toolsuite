@@ -8,16 +8,6 @@ from typing import Literal
 # types
 ############################################
 
-_TYPES_SEQ = Literal[
-    "target",
-    "target_short",
-    "oligo",
-    "oligo_short",
-    "oligo_pair_L",
-    "oligo_pair_R",
-    "sequence_encoding_probe",
-    "sequence_target_probe",
-]
 _TYPES_REF = Literal["fasta", "vcf"]
 _TYPES_FILE = Literal["gff", "gtf", "fasta"]
 _TYPES_FILE_SEQ = Literal["dna", "ncrna"]

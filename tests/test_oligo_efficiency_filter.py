@@ -55,7 +55,7 @@ TM_PARAMETERS = {
 
 
 class TestOligoScoring(unittest.TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.tmp_path = os.path.join(os.getcwd(), "tmp_oligo_efficiency")
 
         # in this test case we test for one oligos sequence that is found at two different sites in one genomic region
@@ -69,6 +69,7 @@ class TestOligoScoring(unittest.TestCase):
             database_name="test_oligo_database",
             dir_output=self.tmp_path,
         )
+        self.oligo_database.set_database_sequence_types(["oligo", "target"])
         self.oligo_database.load_database_from_table(
             FILE_DATABASE, region_ids=None, database_overwrite=True, merge_databases_on_sequence_type="oligo"
         )
@@ -104,10 +105,10 @@ class TestOligoScoring(unittest.TestCase):
             score_weight=1,
         )
 
-    def tearDown(self):
+    def tearDown(self) -> None:
         shutil.rmtree(self.tmp_path)
 
-    def test_utr_scorer(self):
+    def test_utr_scorer(self) -> None:
         oligo_score_wo_utr = self.utr_scorer.apply(
             oligo_database=self.oligo_database,
             region_id="region_1",
@@ -123,7 +124,7 @@ class TestOligoScoring(unittest.TestCase):
         assert oligo_score_wo_utr == 0, "error: scoring for region wo UTR incorrect."
         assert oligo_score_wo_utr < oligo_score_with_utr, "error: UTR score incorrect."
 
-    def test_exon_scorer(self):
+    def test_exon_scorer(self) -> None:
         oligo_score_wo_exon = self.exon_scorer.apply(
             oligo_database=self.oligo_database,
             region_id="region_1",
@@ -146,7 +147,7 @@ class TestOligoScoring(unittest.TestCase):
         assert oligo_score_wo_exon < oligo_score_with_exon1, "error: exon score incorrect."
         assert oligo_score_with_exon2 == 2, "error: exon score incorrect."
 
-    def test_isoform_consensus(self):
+    def test_isoform_consensus(self) -> None:
         oligo_score1 = self.isoform_consensus_scorer.apply(
             oligo_database=self.oligo_database,
             region_id="region_1",
@@ -165,7 +166,7 @@ class TestOligoScoring(unittest.TestCase):
         )
         assert oligo_score2 == 100, "error: scoring for isoform consensus incorrect."
 
-    def test_Tm_scorer(self):
+    def test_Tm_scorer(self) -> None:
         oligo_score = self.Tm_scorer.apply(
             oligo_database=self.oligo_database,
             region_id="region_1",
@@ -174,7 +175,7 @@ class TestOligoScoring(unittest.TestCase):
         )
         assert oligo_score == 0, "error: scoring for Tm incorrect."
 
-    def test_GC_scorer(self):
+    def test_GC_scorer(self) -> None:
         oligo_score = self.GC_scorer.apply(
             oligo_database=self.oligo_database,
             region_id="region_1",
@@ -183,7 +184,7 @@ class TestOligoScoring(unittest.TestCase):
         )
         assert oligo_score == 0, "error: scoring for GC content incorrect."
 
-    def test_Tm_norm_scorer(self):
+    def test_Tm_norm_scorer(self) -> None:
         oligo_score = self.Tm_norm_scorer.apply(
             oligo_database=self.oligo_database,
             region_id="region_1",
@@ -192,7 +193,7 @@ class TestOligoScoring(unittest.TestCase):
         )
         assert abs(oligo_score - 0.496) < 1e-3, "error: scoring for Tm incorrect."
 
-    def test_GC_norm_scorer(self):
+    def test_GC_norm_scorer(self) -> None:
         oligo_score = self.GC_norm_scorer.apply(
             oligo_database=self.oligo_database,
             region_id="region_1",
@@ -201,7 +202,7 @@ class TestOligoScoring(unittest.TestCase):
         )
         assert oligo_score == 0.25, "error: scoring for GC content incorrect."
 
-    def test_oligo_scoring(self):
+    def test_oligo_scoring(self) -> None:
         oligos_scoring = OligoScoring(
             scorers=[self.exon_scorer, self.isoform_consensus_scorer, self.Tm_scorer, self.GC_norm_scorer]
         )
@@ -218,18 +219,18 @@ class TestOligoScoring(unittest.TestCase):
 
 
 class TestSetScoring(unittest.TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.score_max_sum = LowestSetScoring(ascending=True)
         self.score_ave_max = AverageSetScoring(ascending=True)
         self.oligo_set = Series(data=[0, 1, 8, 5, 2, 6, 7, 3])
         self.n_oligo_set = 5
 
-    def test_max_sum(self):
+    def test_max_sum(self) -> None:
         oligoset = self.score_max_sum.apply(self.oligo_set, self.n_oligo_set)
         assert oligoset[0] == [0, 1, 4, 7, 3], "Max scoring failed case"
         assert oligoset[1] == {"set_score_worst": 5, "set_score_sum": 11}, "Max scoring failed"
 
-    def test_ave_max(self):
+    def test_ave_max(self) -> None:
         oligoset = self.score_ave_max.apply(self.oligo_set, self.n_oligo_set)
         assert oligoset[0] == [0, 1, 4, 7, 3], "Average scoring failed"
         assert oligoset[1] == {"set_score_average": 2.2, "set_score_worst": 5}, "Average scoring failed"

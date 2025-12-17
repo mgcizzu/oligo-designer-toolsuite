@@ -6,7 +6,6 @@ import os
 import random
 import warnings
 from pathlib import Path
-from typing import List, Union
 
 from Bio.SeqRecord import SeqRecord
 from joblib import Parallel, delayed
@@ -14,7 +13,7 @@ from joblib import Parallel, delayed
 from oligo_designer_toolsuite.utils import FastaParser
 
 from .._constants import SEPARATOR_FASTA_HEADER_FIELDS, SEPARATOR_FASTA_HEADER_FIELDS_LIST
-from ..utils._checkers_and_helpers import check_if_list, generate_unique_filename
+from ..utils._checkers_and_helpers import cast_to_list, generate_unique_filename
 
 ############################################
 # Oligo Database Class
@@ -25,7 +24,7 @@ class OligoSequenceGenerator:
     """
     A class to generate oligonucleotide sequences at random or from input FASTA files.
 
-    :param dir_output: The root directory where output files will be stored, defaults to "output".
+    :param dir_output: Directory path where output files will be saved. Defaults to "output".
     :type dir_output: str
     """
 
@@ -96,7 +95,7 @@ class OligoSequenceGenerator:
             )
             return sequence
 
-        sequences_set = set()
+        sequences_set: set[str] = set()
         while len(sequences_set) < num_sequences:
             num_missing_sequences = num_sequences - len(sequences_set)
             new_sequences = {
@@ -116,11 +115,11 @@ class OligoSequenceGenerator:
 
     def create_sequences_sliding_window(
         self,
-        files_fasta_in: list[str],
+        files_fasta_in: str | list[str],
         length_interval_sequences: tuple,
         split_region: int = 1,
         stride: int = 1,
-        region_ids: Union[str, List[str]] = None,
+        region_ids: str | list[str] | None = None,
         n_jobs: int = 1,
     ) -> list:
         """
@@ -130,16 +129,16 @@ class OligoSequenceGenerator:
         It allows for filtering based on region IDs and handles cases where sequences span split regions (e.g. exon junctions).
 
         :param files_fasta_in: List of input FASTA files to generate sequences from.
-        :type files_fasta_in: list[str]
+        :type files_fasta_in: str | list[str]
         :param length_interval_sequences: A tuple specifying the range (min, max) of sequence lengths to generate.
         :type length_interval_sequences: tuple
         :param split_region: The number of bases required on each side of a split sequence (e.g. exon junctions) to include it. Default is 1.
         :type split_region: int
         :param stride: The step size for the sliding window. Default is 1, meaning that the window moves to every base.
         :type stride: int
-        :param region_ids: List of region IDs to process. If None, all regions in the OligoDatabase are processed, defaults to None.
-        :type region_ids: Union[str, List[str]], optional
-        :param n_jobs: Number of parallel jobs to run. Default is 1.
+        :param region_ids: Region identifier(s) to process. Can be a single region ID (str) or a list of region IDs (List[str]). If None, all regions in the database are processed, defaults to None.
+        :type region_ids: str | list[str], optional
+        :param n_jobs: Number of parallel jobs to use for processing. Defaults to 1.
         :type n_jobs: int
         :return: A sorted list of paths to the output FASTA files containing the generated sequences.
         :rtype: list
@@ -147,7 +146,7 @@ class OligoSequenceGenerator:
 
         def get_sliding_window_sequence(
             entry: SeqRecord, length_interval_sequences: tuple, split_region: int, stride: int
-        ) -> str:
+        ) -> str | None:
             """
             Generates sequences using a sliding window approach from a given DNA sequence.
 
@@ -166,16 +165,30 @@ class OligoSequenceGenerator:
             :return: The file path to the generated FASTA file containing the sliding window sequences.
             :rtype: str
             """
+            if entry.seq is None:
+                warnings.warn(f"Skipping sequence {entry.seq}: SeqRecord entry has no sequence.", UserWarning)
+                return None
+
+            # Check if entry.id is None and skip with warning
+            if entry.id is None:
+                warnings.warn(f"Skipping sequence {entry.seq}: SeqRecord entry has no header.", UserWarning)
+                return None
+
             entry_sequence = entry.seq
             region, additional_info, coordinates = self.fasta_parser.parse_fasta_header(
                 header=entry.id, parse_additional_info=False
             )
+
             # chromosome and strand information is the same for an entry but parsed as
             # list in the parse_fasta_header, hence, we take only the first element for each
             # if no information provided in fasta file, those entries are None
             chromosome = coordinates["chromosome"][0]
             strand = coordinates["strand"][0]
-            list_of_coordinates = []
+
+            # if the fasta header DOES NOT contain coordinates information, add artificial coordinates
+            if chromosome is None:
+                coordinates["start"] = [1]
+                coordinates["end"] = [len(entry_sequence)]
 
             # check if loaded region is spanning split sequences (e.g. exon junctions)
             # if yes, calculate which sequences should be excluded
@@ -186,16 +199,13 @@ class OligoSequenceGenerator:
                     coord + offset for coord in coordinates["start"][1:] for offset in range(split_region)
                 ] + [coord - offset for coord in coordinates["end"][:-1] for offset in range(split_region)]
 
-            # if the fasta header DOES NOT contain coordinates information
-            if chromosome is None:
-                list_of_coordinates = [None for i in range(len(entry_sequence))]
-            # if the fasta header DOES contain coordinates information
-            else:
-                # coordinates in fasta file use 1-base indixing, which go from 1 (for base 1) to n (for base n)
-                # range produces values until end-1 (e.g. range(10) goes until 9) -> add +1
-                # the start and end coordinates can be a list for regions spanning split sequences (e.g. exon junctions)
-                for start, end in zip(coordinates["start"], coordinates["end"]):
-                    list_of_coordinates.extend(range(start, end + 1))
+            # coordinates in fasta file use 1-base indixing, which go from 1 (for base 1) to n (for base n)
+            # range produces values until end-1 (e.g. range(10) goes until 9) -> add +1
+            # the start and end coordinates can be a list for regions spanning split sequences (e.g. exon junctions)
+            list_of_coordinates: list[int] = []
+            for start, end in zip(coordinates["start"], coordinates["end"]):
+                list_of_coordinates.extend(range(start, end + 1))
+
             # sort reverse on minus strand becaus the sequence is translated into the reverse complement by fasta -strand option
             if strand == "-":
                 list_of_coordinates.reverse()
@@ -252,12 +262,12 @@ class OligoSequenceGenerator:
 
             return file_fasta_region
 
-        files_fasta_in = check_if_list(files_fasta_in)
+        files_fasta_in = cast_to_list(files_fasta_in)
         for file_fasta in files_fasta_in:
             self.fasta_parser.check_fasta_format(file_fasta)
 
         if region_ids:
-            region_ids = check_if_list(region_ids)
+            region_ids = cast_to_list(region_ids)
         else:
             region_ids = [
                 region_id
@@ -282,6 +292,8 @@ class OligoSequenceGenerator:
                 delayed(get_sliding_window_sequence)(entry, length_interval_sequences, split_region, stride)
                 for entry in fasta_sequences
             )
+            files_fasta_oligos = [file for file in files_fasta_oligos if file is not None]
+
             for region_id in region_ids:
                 files_fasta_oligos_region = [
                     file for file in files_fasta_oligos if os.path.basename(file).startswith(f"{region_id}_")

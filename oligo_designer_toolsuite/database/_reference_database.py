@@ -5,10 +5,11 @@
 import os
 import shutil
 from pathlib import Path
-from typing import List, Union, get_args
+from typing import Any, get_args
 
 from oligo_designer_toolsuite._constants import _TYPES_REF
-from oligo_designer_toolsuite.utils import FastaParser, VCFParser, check_if_list
+from oligo_designer_toolsuite._exceptions import DatabaseError
+from oligo_designer_toolsuite.utils import FastaParser, VCFParser, cast_to_list
 
 ############################################
 # Reference Database Class
@@ -22,7 +23,7 @@ class ReferenceDatabase:
 
     :param database_name: The name of the ReferenceDatabase, defaults to "db_reference".
     :type database_name: str
-    :param dir_output: The directory where the database will be stored, defaults to "output".
+    :param dir_output: Directory path where output files will be saved. Defaults to "output".
     :type dir_output: str
     """
 
@@ -31,20 +32,20 @@ class ReferenceDatabase:
         self.database_name = database_name
         self.dir_output = os.path.abspath(dir_output)
 
-        self.database_file = None
-        self.database_type = None
+        self.database_file: str | None = None
+        self.database_type: str | None = None
 
         self.fasta_parser = FastaParser()
         self.vcf_parser = VCFParser()
 
-    def __del__(self):
+    def __del__(self) -> None:
         """Destructor for the ReferenceDatabase class."""
-        if os.path.exists(self.database_file):
+        if self.database_file is not None and os.path.exists(self.database_file):
             os.remove(self.database_file)
 
     def load_database_from_file(
         self,
-        files: Union[str, List[str]],
+        files: str | list[str],
         file_type: _TYPES_REF,
         database_overwrite: bool,
     ) -> None:
@@ -67,7 +68,7 @@ class ReferenceDatabase:
         AGTTGACAGACCCCAGATTAAAGTGTGTCGCGCAACAC
 
         :param files: Path(s) to the file(s) containing the database sequences.
-        :type files: Union[str, List[str]]
+        :type files: str | list[str]
         :param file_type: Type of the reference sequences (must be a valid type).
         :type file_type: _TYPES_REF["fasta", "vcf"]
         :param database_overwrite: If True, the existing database content will be cleared before loading the new sequences.
@@ -79,7 +80,7 @@ class ReferenceDatabase:
         # Check if file type is correct
         options = get_args(_TYPES_REF)
         assert file_type in options, f"Sequence type not supported! '{file_type}' is not in {options}."
-        files = check_if_list(files)
+        files = cast_to_list(files)
 
         # remove all files if database should be overwritten
         if self.database_file is not None and database_overwrite:
@@ -92,9 +93,12 @@ class ReferenceDatabase:
             files_in = files
             self.database_type = file_type
         elif self.database_file is not None and self.database_type == file_type:
-            files_in = files.extend(self.database_file)
+            files_in = files + [self.database_file]
         else:
-            raise ValueError(f"Cannot mix {file_type} and {self.database_type} databases!")
+            raise DatabaseError(
+                f"Cannot mix {file_type} and {self.database_type} databases. "
+                f"Use database_overwrite=True to replace the existing database."
+            )
 
         if self.database_type == "fasta":
             for file in files_in:
@@ -108,16 +112,16 @@ class ReferenceDatabase:
             self.database_file = os.path.join(self.dir_output, f"tmp_{self.database_name}.vcf.gz")
             self.vcf_parser.merge_vcf_files(files_in=files_in, file_out=self.database_file)
         else:
-            ValueError(f"Database type {self.database_type} not supported.")
+            raise DatabaseError(f"Database type {self.database_type} not supported.")
 
-    def write_database_to_file(self, filename: str, dir_output: str = None) -> str:
+    def write_database_to_file(self, filename: str, dir_output: str | None = None) -> str:
         """
         Write the loaded database to a file based on its type.
 
         :param filename: Name of the output file (without extension).
         :type filename: str
-        :param dir_output: The directory where the database will be stored, if None, the directory defined in the init function will be used.
-        :type dir_output: str
+        :param dir_output: Directory path where output files will be saved. If None, the directory defined in the init function will be used.
+        :type dir_output: str | None
         :return: Path to the written database file.
         :rtype: str
         :raises ValueError: If the database type is not supported or if the database is empty.
@@ -133,21 +137,21 @@ class ReferenceDatabase:
             shutil.copy2(self.database_file, file_database)
             return file_database
         else:
-            raise ValueError("Database is empty! Nothing to be written to file.")
+            raise DatabaseError("Database is empty. Nothing to be written to file.")
 
-    def filter_database_by_region(self, region_ids: Union[str, List[str]], keep_region: bool) -> None:
+    def filter_database_by_region(self, region_ids: str | list[str], keep_region: bool) -> None:
         """
         Filter the database to retain or remove specific regions.
 
-        :param region_ids: List of region identifiers to keep or remove.
-        :type region_ids: Union[str, List[str]]
+        :param region_ids: Region identifier(s) to process. Can be a single region ID (str) or a list of region IDs (list[str]). If None, all regions in the database are processed.
+        :type region_ids: str | list[str]
         :param keep_region: Whether to keep (True) or remove (False) the specified regions.
         :type keep_region: bool
         :return: Path to the filtered database file.
         :rtype: str
         :raises ValueError: If the database is empty or filtering is attempted on a non-FASTA database.
         """
-        region_ids = check_if_list(region_ids)
+        region_ids = cast_to_list(region_ids)
 
         if self.database_file:
             if self.database_type == "fasta":
@@ -158,32 +162,32 @@ class ReferenceDatabase:
                 os.remove(self.database_file)
                 self.database_file = file_database_filtered
             else:
-                raise ValueError("Filter only available for database in fasta format.")
+                raise DatabaseError("Filter only available for database in fasta format.")
         else:
-            raise ValueError(
-                "Can not filter. Database is empty! Call the method load_database_from_file() first."
+            raise DatabaseError(
+                "Cannot filter database: database is empty. Call load_database_from_file() first."
             )
 
     def filter_database_by_property_category(
         self,
         property_name: str,
-        property_category: Union[str, List[str]],
+        property_category: str | list[str],
         keep_if_equals_category: bool,
-    ) -> None:
+    ) -> Any:
         """
         Filter the database to retain or remove specific property categories.
 
         :param property_name: The property used for filtering.
         :type property_name: str
-        :param property_category: List of property values to filter by.
-        :type property_category: Union[str, List[str]]
+        :param property_category: list of property values to filter by.
+        :type property_category: str | list[str]
         :param keep_if_equals_category: Whether to keep (True) or remove (False) records with the specified property values.
         :type keep_if_equals_category: bool
         :return: Path to the filtered database file.
         :rtype: str
         :raises ValueError: If the database is empty or filtering is attempted on a non-FASTA database.
         """
-        property_category = check_if_list(property_category)
+        property_category = cast_to_list(property_category)
 
         if self.database_file:
             if self.database_type == "fasta":
@@ -195,36 +199,41 @@ class ReferenceDatabase:
                 os.remove(self.database_file)
                 self.database_file = file_database_filtered
             else:
-                raise ValueError("Filter only available for database in fasta format.")
+                raise DatabaseError("Filter only available for database in fasta format.")
         else:
-            raise ValueError(
-                "Can not filter. Database is empty! Call the method load_database_from_file() first."
+            raise DatabaseError(
+                "Cannot filter database: database is empty. Call load_database_from_file() first."
             )
 
         return file_database_filtered
 
     def _filter_fasta_database_by_region(
         self,
-        region_ids: Union[str, List[str]],
+        region_ids: str | list[str],
         keep_region: bool,
-    ):
+    ) -> str:
         """
         Filter a FASTA database to retain or exclude specific regions.
         Therefore, merge fasta files and load fasta content for filtering.
 
-        :param region_ids: List of region identifiers to retain or remove.
-        :type region_ids: Union[str, List[str]]
+        :param region_ids: Region identifier(s) to process. Can be a single region ID (str) or a list of region IDs (list[str]). If None, all regions in the database are processed.
+        :type region_ids: str | list[str]
         :param keep_region: Whether to keep (True) or remove (False) the specified regions.
         :type keep_region: bool
         """
+        if self.database_file:
+            file: str = self.database_file
+        else:
+            raise DatabaseError("Database file is not set. Call load_database_from_file() first.")
+
         if keep_region:
             regions_to_keep = region_ids
         else:
-            regions_fasta = self.fasta_parser.get_fasta_regions(file_fasta_in=self.database_file)
+            regions_fasta = self.fasta_parser.get_fasta_regions(file_fasta_in=file)
             regions_to_keep = [region for region in regions_fasta if region not in region_ids]
 
         fasta_sequences_filtered = self.fasta_parser.read_fasta_sequences(
-            file_fasta_in=self.database_file, region_ids=regions_to_keep
+            file_fasta_in=file, region_ids=regions_to_keep
         )
 
         file_database_filtered = os.path.join(self.dir_output, f"{self.database_name}_filtered.fna")
@@ -237,28 +246,35 @@ class ReferenceDatabase:
     def _filter_fasta_database_by_property_category(
         self,
         property_name: str,
-        property_category: Union[str, List[str]],
+        property_category: str | list[str],
         keep_if_equals_category: bool,
-    ):
+    ) -> str:
         """
         Filter a FASTA database based on property categories in sequence headers.
         Therefore, merge fasta files, load fasta content and process header for filtering.
 
         :param property_name: The property in the FASTA header used for filtering.
         :type property_name: str
-        :param property_category: List of property categories used to filter sequences.
-        :type property_category: Union[str, List[str]]
+        :param property_category: list of property categories used to filter sequences.
+        :type property_category: str | list[str]
         :param keep_if_equals_category: Whether to keep (True) or remove (False) sequences matching the property category.
         :type keep_if_equals_category: bool
         """
-        fasta_sequences = self.fasta_parser.read_fasta_sequences(file_fasta_in=self.database_file)
+        if self.database_file:
+            file: str = self.database_file
+        else:
+            raise DatabaseError("Database file is not set. Call load_database_from_file() first.")
+
+        fasta_sequences = self.fasta_parser.read_fasta_sequences(file_fasta_in=file)
 
         fasta_sequences_filtered = []
 
         for entry in fasta_sequences:
             _, properties, _ = self.fasta_parser.parse_fasta_header(entry.id, parse_additional_info=True)
+            if isinstance(properties, str):
+                continue
             if property_name in properties:
-                property_values = check_if_list(properties[property_name])
+                property_values = cast_to_list(properties[property_name])
                 if keep_if_equals_category and any(item in property_category for item in property_values):
                     fasta_sequences_filtered.append(entry)
                 elif not keep_if_equals_category and all(

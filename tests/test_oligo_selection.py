@@ -71,7 +71,7 @@ TM_PARAMETERS_CHEM_CORR = {
 
 
 class TestOligosetGeneratorIndependentSet(unittest.TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.tmp_path = os.path.join(os.getcwd(), "tmp_oligo_selection")
         self.oligo_database = OligoDatabase(
             min_oligos_per_region=2,
@@ -121,7 +121,7 @@ class TestOligosetGeneratorIndependentSet(unittest.TestCase):
     def tearDown(self) -> None:
         shutil.rmtree(self.tmp_path)
 
-    def test_nonoverlapping_matrix_ovelapping_oligos(self):
+    def test_nonoverlapping_matrix_ovelapping_oligos(self) -> None:
         # check the overlapping matrix is created correctly with 2 oligos given in input
         # generate sinthetic oligos that overlap
         oligo_database = OligoDatabase(dir_output=self.tmp_path)
@@ -146,7 +146,7 @@ class TestOligosetGeneratorIndependentSet(unittest.TestCase):
             computed_matrix
         ), "overlapping matrix for two overlapping oligos wrongly computed"
 
-    def test_nonoverlapping_matrix_for_nonovelapping_oligos(self):
+    def test_nonoverlapping_matrix_for_nonovelapping_oligos(self) -> None:
         # generate sinthetic oligos that overlap
         oligo_database = OligoDatabase(dir_output=self.tmp_path)
         oligo_database.database = {
@@ -170,7 +170,7 @@ class TestOligosetGeneratorIndependentSet(unittest.TestCase):
             computed_matrix
         ), "overlapping matrix for two non-overlapping oligos wrongly computed"
 
-    def test_oligoset_generation(self):
+    def test_oligoset_generation(self) -> None:
         oligos_database = self.oligoset_generator.apply(
             oligo_database=self.oligo_database,
             sequence_type="oligo",
@@ -179,6 +179,7 @@ class TestOligosetGeneratorIndependentSet(unittest.TestCase):
             n_sets=100,
             n_jobs=1,
         )
+        oligos_database.remove_regions_with_insufficient_oligos(pipeline_step="oligoset generation")
         for gene in oligos_database.oligosets.keys():
             computed_sets = oligos_database.oligosets[gene]
             computed_sets.drop(columns=["oligoset_id"], inplace=True)
@@ -198,7 +199,7 @@ class TestOligosetGeneratorIndependentSet(unittest.TestCase):
 
             assert true_sets.equals(computed_sets), f"Sets for {gene} are not computed correctly!"
 
-    def test_non_overlapping_sets(self):
+    def test_non_overlapping_sets(self) -> None:
         oligo_database = OligoDatabase(dir_output=self.tmp_path)
         oligo_database.database = {
             "region_1": {
@@ -213,17 +214,20 @@ class TestOligosetGeneratorIndependentSet(unittest.TestCase):
             oligo_database, region_id="region_1", sequence_type="oligo"
         )
         index = ["A_0", "A_1", "A_2", "A_3", "A_4"]
-        data = [
+        data_matrix = [
             [0, 1, 1, 0, 0],
             [1, 0, 1, 0, 0],
             [1, 1, 0, 1, 1],
             [0, 0, 1, 0, 1],
             [0, 0, 1, 1, 0],
         ]
-        overlapping_matrix = csr_matrix(data)
-        data = [[0, "A_0", "A_1", "A_2", 1.59, 2.36], [1, "A_4", "A_2", "A_3", 2.15, 4.93]]
+        overlapping_matrix = csr_matrix(data_matrix)
+        data_sets: list[list[int | str | float]] = [
+            [0, "A_0", "A_1", "A_2", 1.59, 2.36],
+            [1, "A_4", "A_2", "A_3", 2.15, 4.93],
+        ]
         true_sets = pd.DataFrame(
-            data=data,
+            data=data_sets,
             columns=[
                 "oligoset_id",
                 "oligo_0",
@@ -242,6 +246,8 @@ class TestOligosetGeneratorIndependentSet(unittest.TestCase):
             non_overlap_matrix=overlapping_matrix,
             non_overlap_matrix_ids=index,
         )
+        assert computed_sets is not None, "Selection policy returned None - no sets were generated"
+
         computed_sets["set_score_worst"] = computed_sets["set_score_worst"].round(2)
         computed_sets["set_score_sum"] = computed_sets["set_score_sum"].round(2)
 
@@ -249,7 +255,7 @@ class TestOligosetGeneratorIndependentSet(unittest.TestCase):
 
 
 class TestHomogeneousPropertyOligoSetGenerator(unittest.TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.tmp_path = os.path.join(os.getcwd(), "tmp_oligo_selection")
         self.oligo_database = OligoDatabase(
             min_oligos_per_region=2,
@@ -275,7 +281,7 @@ class TestHomogeneousPropertyOligoSetGenerator(unittest.TestCase):
     def tearDown(self) -> None:
         shutil.rmtree(self.tmp_path)
 
-    def test_oligoset_generation(self):
+    def test_oligoset_generation(self) -> None:
         # ⚠️ The function is not stable and the results are not always the same (depends on n_combinations)
         # As a result, we only test the format
         oligos_database = self.oligoset_generator.apply(
@@ -300,7 +306,7 @@ class TestHomogeneousPropertyOligoSetGenerator(unittest.TestCase):
 
 
 class TestOligoSelectionPolicy(unittest.TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.tmp_path = os.path.join(os.getcwd(), "tmp_oligo_selection")
         self.region_id = (
             "AGRN"  # We only test for one region (this region is small enough for the purposes of the tests)
@@ -342,8 +348,12 @@ class TestOligoSelectionPolicy(unittest.TestCase):
         # sort oligos by score
         self.oligos_scores.sort_values(ascending=True, inplace=True)
 
+        selection_policy = GraphBasedSelectionPolicy(
+            set_scoring=self.set_scoring, pre_filter=True
+        )  # just define something to avoid errors
+
         oligo_generator = OligosetGeneratorIndependentSet(
-            selection_policy=None, oligos_scoring=self.oligo_scoring, set_scoring=self.set_scoring
+            selection_policy=selection_policy, oligos_scoring=self.oligo_scoring, set_scoring=self.set_scoring
         )
         # create the overlapping matrix
         self.non_overlap_matrix, self.non_overlap_matrix_ids = oligo_generator._get_non_overlap_matrix(
@@ -353,7 +363,7 @@ class TestOligoSelectionPolicy(unittest.TestCase):
     def tearDown(self) -> None:
         shutil.rmtree(self.tmp_path)
 
-    def test_graph_based_selection_policy(self):
+    def test_graph_based_selection_policy(self) -> None:
         selection_policy = GraphBasedSelectionPolicy(set_scoring=self.set_scoring, pre_filter=True)
         oligosets = selection_policy.apply(
             oligos_scores=self.oligos_scores,
@@ -362,8 +372,10 @@ class TestOligoSelectionPolicy(unittest.TestCase):
             set_size_opt=5,
             set_size_min=3,
             n_sets=2,
-        ).round(3)
+        )
+        assert oligosets is not None, "Selection policy returned None - no sets were generated"
 
+        oligosets = oligosets.round(3)
         true_oligosets_1 = pd.DataFrame(
             {
                 "oligoset_id": [0, 1],
@@ -387,14 +399,12 @@ class TestOligoSelectionPolicy(unittest.TestCase):
                 "set_score_sum": [2.314, 2.314],
             }
         )
-        print(true_oligosets_1.compare(oligosets, keep_shape=False, keep_equal=False))
-        print(true_oligosets_2.compare(oligosets, keep_shape=False, keep_equal=False))
 
         assert true_oligosets_1.equals(oligosets) or true_oligosets_2.equals(
             oligosets
         ), "The oligosets are not computed correctly!"
 
-    def test_greedy_selection_policy(self):
+    def test_greedy_selection_policy(self) -> None:
         selection_policy = GreedySelectionPolicy(
             set_scoring=self.set_scoring, score_criteria=self.set_scoring.score_1, pre_filter=True
         )
@@ -405,8 +415,10 @@ class TestOligoSelectionPolicy(unittest.TestCase):
             set_size_opt=5,
             set_size_min=3,
             n_sets=2,
-        ).round(3)
+        )
+        assert oligosets is not None, "Selection policy returned None - no sets were generated"
 
+        oligosets = oligosets.round(3)
         true_oligosets_1 = pd.DataFrame(
             {
                 "oligoset_id": [0, 1],
@@ -430,8 +442,6 @@ class TestOligoSelectionPolicy(unittest.TestCase):
                 "set_score_sum": [2.314, 2.428],
             }
         )
-        print(true_oligosets_1.compare(oligosets, keep_shape=False, keep_equal=False))
-        print(true_oligosets_2.compare(oligosets, keep_shape=False, keep_equal=False))
 
         assert true_oligosets_1.equals(oligosets) or true_oligosets_2.equals(
             oligosets

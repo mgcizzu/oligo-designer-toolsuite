@@ -2,7 +2,6 @@
 # imports
 ############################################
 
-from oligo_designer_toolsuite._constants import _TYPES_SEQ
 from oligo_designer_toolsuite.database import OligoDatabase
 from oligo_designer_toolsuite.oligo_efficiency_filter import BaseScorer
 from oligo_designer_toolsuite.oligo_property_calculator import calc_gc_content, calc_tm_nn
@@ -18,10 +17,10 @@ class SequencePropertyScorer(BaseScorer):
     from optimal or desired sequence characteristics (e.g., GC content, melting temperature).
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Constructor for the SequencePropertyScorer class."""
 
-    def _normalize_deviation(self, val_dev, val_min: float, val_opt: float, val_max: float):
+    def _normalize_deviation(self, val_dev: float, val_min: float, val_opt: float, val_max: float) -> float:
         """
         Normalize the deviation of a value from its optimum based on asymmetrical min/max ranges.
 
@@ -57,30 +56,36 @@ class DeviationFromOptimalGCContentScorer(SequencePropertyScorer):
     :type score_weight: float
     """
 
-    def __init__(self, GC_content_opt: float, score_weight: float):
+    def __init__(self, GC_content_opt: float, score_weight: float) -> None:
         """Constructor for the DeviationFromOptimalGCContentScorer class."""
 
         self.GC_content_opt = GC_content_opt
         self.score_weight = score_weight
 
-    def apply(self, oligo_database: OligoDatabase, region_id: str, oligo_id: str, sequence_type: _TYPES_SEQ):
+    def apply(
+        self, oligo_database: OligoDatabase, region_id: str, oligo_id: str, sequence_type: str
+    ) -> float:
         """
         Calculate a score based on the absolute deviation of GC content from the optimal value.
 
-        :param oligo_database: The OligoDatabase containing the oligonucleotides and their associated properties.
+        :param oligo_database: The OligoDatabase instance containing oligonucleotide sequences and their associated properties. This database stores oligo data organized by genomic regions and can be used for filtering, property calculations, set generation, and output operations.
         :type oligo_database: OligoDatabase
         :param region_id: Region ID to process.
         :type region_id: str
         :param oligo_id: The ID of the oligo for which the score is computed.
         :type oligo_id: str
-        :param sequence_type: The type of sequence to be used for filter calculations.
-        :type sequence_type: _TYPES_SEQ["oligo", "target"]
+        :param sequence_type: Type of sequence being processed.
+        :type sequence_type: str
         :return: Weighted score based on GC content deviation.
         :rtype: float
         """
         sequence = oligo_database.get_oligo_property_value(
             property=sequence_type, region_id=region_id, oligo_id=oligo_id, flatten=True
         )
+
+        if not isinstance(sequence, str):
+            raise TypeError(f"Sequence must be a string, got {type(sequence)}")
+
         GC_content_oligo = calc_gc_content(sequence=sequence)
         GC_content_dev = abs(self.GC_content_opt - GC_content_oligo)
 
@@ -97,22 +102,22 @@ class DeviationFromOptimalTmScorer(SequencePropertyScorer):
     :type Tm_opt: float
     :param Tm_parameters: Parameters for Tm calculation using the nearest-neighbor model.
     :type Tm_parameters: dict
+    :param score_weight: Weight applied to the Tm deviation score.
+    :type score_weight: float
     :param Tm_salt_correction_parameters: Parameters for salt correction.
     :type Tm_salt_correction_parameters: dict
     :param Tm_chem_correction_parameters: Parameters for chemical correction.
     :type Tm_chem_correction_parameters: dict
-    :param score_weight: Weight applied to the Tm deviation score.
-    :type score_weight: float
     """
 
     def __init__(
         self,
         Tm_opt: float,
         Tm_parameters: dict,
-        Tm_salt_correction_parameters: dict,
-        Tm_chem_correction_parameters: dict,
         score_weight: float,
-    ):
+        Tm_salt_correction_parameters: dict | None = None,
+        Tm_chem_correction_parameters: dict | None = None,
+    ) -> None:
         """Constructor for the DeviationFromOptimalTmScorer class."""
 
         self.Tm_opt = Tm_opt
@@ -121,24 +126,30 @@ class DeviationFromOptimalTmScorer(SequencePropertyScorer):
         self.Tm_chem_correction_parameters = Tm_chem_correction_parameters
         self.score_weight = score_weight
 
-    def apply(self, oligo_database: OligoDatabase, region_id: str, oligo_id: str, sequence_type: _TYPES_SEQ):
+    def apply(
+        self, oligo_database: OligoDatabase, region_id: str, oligo_id: str, sequence_type: str
+    ) -> float:
         """
         Calculate a score based on the absolute deviation of Tm from the optimal value.
 
-        :param oligo_database: The OligoDatabase containing the oligonucleotides and their associated properties.
+        :param oligo_database: The OligoDatabase instance containing oligonucleotide sequences and their associated properties. This database stores oligo data organized by genomic regions and can be used for filtering, property calculations, set generation, and output operations.
         :type oligo_database: OligoDatabase
         :param region_id: Region ID to process.
         :type region_id: str
         :param oligo_id: The ID of the oligo for which the score is computed.
         :type oligo_id: str
-        :param sequence_type: The type of sequence to be used for filter calculations.
-        :type sequence_type: _TYPES_SEQ["oligo", "target"]
+        :param sequence_type: Type of sequence being processed.
+        :type sequence_type: str
         :return: Weighted score based on Tm deviation.
         :rtype: float
         """
         sequence = oligo_database.get_oligo_property_value(
             property=sequence_type, region_id=region_id, oligo_id=oligo_id, flatten=True
         )
+
+        if not isinstance(sequence, str):
+            raise TypeError(f"Sequence must be a string, got {type(sequence)}")
+
         Tm_oligo = calc_tm_nn(
             sequence=sequence,
             Tm_parameters=self.Tm_parameters,
@@ -177,7 +188,7 @@ class NormalizedDeviationFromOptimalGCContentScorer(SequencePropertyScorer):
         GC_content_opt: float,
         GC_content_max: float,
         score_weight: float,
-    ):
+    ) -> None:
         """Constructor for the NormalizedDeviationFromOptimalGCContentScorer class."""
 
         self.GC_content_min = GC_content_min
@@ -185,24 +196,30 @@ class NormalizedDeviationFromOptimalGCContentScorer(SequencePropertyScorer):
         self.GC_content_max = GC_content_max
         self.score_weight = score_weight
 
-    def apply(self, oligo_database: OligoDatabase, region_id: str, oligo_id: str, sequence_type: _TYPES_SEQ):
+    def apply(
+        self, oligo_database: OligoDatabase, region_id: str, oligo_id: str, sequence_type: str
+    ) -> float:
         """
         Calculate a score based on normalized deviation of GC content from optimal value.
 
-        :param oligo_database: The OligoDatabase containing the oligonucleotides and their associated properties.
+        :param oligo_database: The OligoDatabase instance containing oligonucleotide sequences and their associated properties. This database stores oligo data organized by genomic regions and can be used for filtering, property calculations, set generation, and output operations.
         :type oligo_database: OligoDatabase
         :param region_id: Region ID to process.
         :type region_id: str
         :param oligo_id: The ID of the oligo for which the score is computed.
         :type oligo_id: str
-        :param sequence_type: The type of sequence to be used for filter calculations.
-        :type sequence_type: _TYPES_SEQ["oligo", "target"]
+        :param sequence_type: Type of sequence being processed.
+        :type sequence_type: str
         :return: Weighted score based on normalized GC content deviation.
         :rtype: float
         """
         sequence = oligo_database.get_oligo_property_value(
             property=sequence_type, region_id=region_id, oligo_id=oligo_id, flatten=True
         )
+
+        if not isinstance(sequence, str):
+            raise TypeError(f"Sequence must be a string, got {type(sequence)}")
+
         GC_content_oligo = calc_gc_content(sequence=sequence)
         GC_content_dev = GC_content_oligo - self.GC_content_opt
         GC_content_dev_norm = self._normalize_deviation(
@@ -231,12 +248,13 @@ class NormalizedDeviationFromOptimalTmScorer(SequencePropertyScorer):
     :type Tm_max: float
     :param Tm_parameters: Parameters for Tm calculation using the nearest-neighbor model.
     :type Tm_parameters: dict
+    :param score_weight: Weight applied to the normalized deviation score.
+    :type score_weight: float
     :param Tm_salt_correction_parameters: Salt correction parameters.
     :type Tm_salt_correction_parameters: dict
     :param Tm_chem_correction_parameters: Chemical correction parameters.
     :type Tm_chem_correction_parameters: dict
-    :param score_weight: Weight applied to the normalized deviation score.
-    :type score_weight: float
+
     """
 
     def __init__(
@@ -245,10 +263,10 @@ class NormalizedDeviationFromOptimalTmScorer(SequencePropertyScorer):
         Tm_opt: float,
         Tm_max: float,
         Tm_parameters: dict,
-        Tm_salt_correction_parameters: dict,
-        Tm_chem_correction_parameters: dict,
         score_weight: float,
-    ):
+        Tm_salt_correction_parameters: dict | None = None,
+        Tm_chem_correction_parameters: dict | None = None,
+    ) -> None:
         """Constructor for the NormalizedDeviationFromOptimalTmScorer class."""
 
         self.Tm_min = Tm_min
@@ -259,24 +277,30 @@ class NormalizedDeviationFromOptimalTmScorer(SequencePropertyScorer):
         self.Tm_chem_correction_parameters = Tm_chem_correction_parameters
         self.score_weight = score_weight
 
-    def apply(self, oligo_database: OligoDatabase, region_id: str, oligo_id: str, sequence_type: _TYPES_SEQ):
+    def apply(
+        self, oligo_database: OligoDatabase, region_id: str, oligo_id: str, sequence_type: str
+    ) -> float:
         """
         Calculate a score based on normalized deviation of Tm from the optimal value.
 
-        :param oligo_database: The OligoDatabase containing the oligonucleotides and their associated properties.
+        :param oligo_database: The OligoDatabase instance containing oligonucleotide sequences and their associated properties. This database stores oligo data organized by genomic regions and can be used for filtering, property calculations, set generation, and output operations.
         :type oligo_database: OligoDatabase
         :param region_id: Region ID to process.
         :type region_id: str
         :param oligo_id: The ID of the oligo for which the score is computed.
         :type oligo_id: str
-        :param sequence_type: The type of sequence to be used for filter calculations.
-        :type sequence_type: _TYPES_SEQ["oligo", "target"]
+        :param sequence_type: Type of sequence being processed.
+        :type sequence_type: str
         :return: Weighted score based on normalized Tm deviation.
         :rtype: float
         """
         sequence = oligo_database.get_oligo_property_value(
             property=sequence_type, region_id=region_id, oligo_id=oligo_id, flatten=True
         )
+
+        if not isinstance(sequence, str):
+            raise TypeError(f"Sequence must be a string, got {type(sequence)}")
+
         Tm_oligo = calc_tm_nn(
             sequence=sequence,
             Tm_parameters=self.Tm_parameters,

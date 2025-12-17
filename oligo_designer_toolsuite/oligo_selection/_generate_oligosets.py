@@ -6,14 +6,14 @@ import gc
 import itertools
 import random
 from math import comb
-from typing import Dict, List, Tuple
+from typing import cast
 
 import pandas as pd
 from joblib import Parallel, delayed
 from joblib_progress import joblib_progress
 from scipy.sparse import csr_matrix, lil_matrix
 
-from oligo_designer_toolsuite._constants import _TYPES_SEQ
+from oligo_designer_toolsuite._exceptions import DatabaseError
 from oligo_designer_toolsuite.database import OligoDatabase
 from oligo_designer_toolsuite.oligo_efficiency_filter import OligoScoring, SetScoringBase
 
@@ -37,7 +37,7 @@ class OligosetGeneratorIndependentSet:
     :param set_scoring: Scoring function used to evaluate the overall quality of each oligo set.
     :type set_scoring: SetScoringBase
     :param max_oligos: Maximum number of oligos to include in the set optimizatoin process. If None, there is no limit on the number of oligos.
-    :type max_oligos: int, optional
+    :type max_oligos: int | None, optional
     :param distance_between_oligos: Minimum allowed distance between oligos in the set to avoid clustering of oligos.
     :type distance_between_oligos: int, optional
     """
@@ -47,7 +47,7 @@ class OligosetGeneratorIndependentSet:
         selection_policy: OligoSelectionPolicy,
         oligos_scoring: OligoScoring,
         set_scoring: SetScoringBase,
-        max_oligos: int = None,
+        max_oligos: int | None = None,
         distance_between_oligos: int = 0,
     ) -> None:
         """Constructor for the OligosetGeneratorIndependentSet class."""
@@ -60,7 +60,7 @@ class OligosetGeneratorIndependentSet:
     def apply(
         self,
         oligo_database: OligoDatabase,
-        sequence_type: _TYPES_SEQ,
+        sequence_type: str,
         set_size_opt: int,
         set_size_min: int,
         n_sets: int = 1,
@@ -80,17 +80,17 @@ class OligosetGeneratorIndependentSet:
         +-------------+----------+----------+-----+----+-------+----------+-------------+-------------+-------+
 
 
-        :param oligo_database: The OligoDatabase containing the oligonucleotides and their associated properties.
+        :param oligo_database: The OligoDatabase instance containing oligonucleotide sequences and their associated properties. This database stores oligo data organized by genomic regions and can be used for filtering, property calculations, set generation, and output operations.
         :type oligo_database: OligoDatabase
-        :param sequence_type: The type of sequence to be used for the set calculations.
-        :type sequence_type: _TYPES_SEQ["oligo", "target"]
+        :param sequence_type: Type of sequence being processed.
+        :type sequence_type: str
         :param set_size_opt: The optimal size of each oligo set.
         :type set_size_opt: int
         :param set_size_min: The minimum allowed size of each oligo set.
         :type set_size_min: int
         :param n_sets: The number of oligo sets to generate.
         :type n_sets: int
-        :param n_jobs: The number of parallel jobs to use for processing.
+        :param n_jobs: Number of parallel jobs to use for processing.
         :type n_jobs: int, optional
         :return: The updated oligo database with the generated oligo sets.
         :rtype: OligoDatabase
@@ -113,7 +113,7 @@ class OligosetGeneratorIndependentSet:
         self,
         oligo_database: OligoDatabase,
         region_id: str,
-        sequence_type: _TYPES_SEQ,
+        sequence_type: str,
         set_size_opt: int,
         set_size_min: int,
         n_sets: int,
@@ -122,12 +122,12 @@ class OligosetGeneratorIndependentSet:
         Computes the oligo set for a specific region by scoring, filtering, and selecting oligos.
         This includes generating a proximity matrix and applying a selection policy to create the optimal oligo set.
 
-        :param oligo_database: The OligoDatabase containing the oligonucleotides and their associated properties.
+        :param oligo_database: The OligoDatabase instance containing oligonucleotide sequences and their associated properties. This database stores oligo data organized by genomic regions and can be used for filtering, property calculations, set generation, and output operations.
         :type oligo_database: OligoDatabase
         :param region_id: Region ID to process.
         :type region_id: str
-        :param sequence_type: The type of sequence to be used for the set calculations.
-        :type sequence_type: _TYPES_SEQ["oligo", "target"]
+        :param sequence_type: Type of sequence being processed.
+        :type sequence_type: str
         :param set_size_opt: The optimal size of each oligo set.
         :type set_size_opt: int
         :param set_size_min: The minimum allowed size of each oligo set.
@@ -184,13 +184,15 @@ class OligosetGeneratorIndependentSet:
         del non_overlap_matrix  # free some memory
         gc.collect()
 
-    def _get_non_overlap_matrix(self, oligo_database: OligoDatabase, region_id: str) -> csr_matrix:
+    def _get_non_overlap_matrix(
+        self, oligo_database: OligoDatabase, region_id: str
+    ) -> tuple[csr_matrix, list[str]]:
         """
         Generates a sparse matrix that represents the overlap between oligos in the specified region of the oligo database.
         The matrix is computed based on the intervals (start, end) of each oligo, with a distance threshold to determine overlap.
         The matrix has dimensions n_oligos * n_oligos. Each entry contains 1 if the correspondent oligos don't overlap and 0 if they overlap.
 
-        :param oligo_database: The OligoDatabase containing the oligonucleotides and their associated properties.
+        :param oligo_database: The OligoDatabase instance containing oligonucleotide sequences and their associated properties. This database stores oligo data organized by genomic regions and can be used for filtering, property calculations, set generation, and output operations.
         :type oligo_database: OligoDatabase
         :param region_id: Region ID to process.
         :type region_id: str
@@ -198,7 +200,7 @@ class OligosetGeneratorIndependentSet:
         :rtype: tuple(csr_matrix, list)
         """
 
-        def _get_overlap(seq1_intervals, seq2_intervals):
+        def _get_overlap(seq1_intervals: list[list[int]], seq2_intervals: list[list[int]]) -> bool:
             # Determine if two ligos overlap based on a distance value
             return any(
                 min(a[1], b[1]) - max(a[0], b[0]) >= -self.distance_between_oligos
@@ -256,10 +258,10 @@ class HomogeneousPropertyOligoSetGenerator:
     :param set_size: The desired size of the oligo set to be generated.
     :type set_size: int
     :param properties: A dictionary of oligo properties (e.g., 'GC_content', 'length') and their respective weights.
-    :type properties: Dict[str, float]
+    :type properties: dict[str, float]
     """
 
-    def __init__(self, set_size: int, properties: Dict[str, float]) -> None:
+    def __init__(self, set_size: int, properties: dict[str, float]) -> None:
         """Constructor for the HomogeneousPropertyOligoSetGenerator class."""
         self.set_size = set_size
         self.properties = properties
@@ -282,13 +284,13 @@ class HomogeneousPropertyOligoSetGenerator:
         +-------------+----------+----------+-----+----+-------+----------+-------------+-------------+-------+
 
 
-        :param oligo_database: The OligoDatabase containing the oligonucleotides and their associated properties.
+        :param oligo_database: The OligoDatabase instance containing oligonucleotide sequences and their associated properties. This database stores oligo data organized by genomic regions and can be used for filtering, property calculations, set generation, and output operations.
         :type oligo_database: OligoDatabase
         :param n_sets: The number of oligo sets to generate.
         :type n_sets: int
         :param n_combinations: The number of random oligo combinations to generate per region, defaults to 1000.
         :type n_combinations: int, optional
-        :param n_jobs: The number of parallel jobs to run, defaults to 1.
+        :param n_jobs: Number of parallel jobs to use for processing.
         :type n_jobs: int, optional
 
         :return: The updated oligo database with generated oligo sets for each region.
@@ -310,7 +312,7 @@ class HomogeneousPropertyOligoSetGenerator:
         Generates oligo sets for a specific region in the oligo database by scoring and sorting combinations
         of oligos based on the specified properties. The top n_sets sets with the lowest weighted sum of variances are selected.
 
-        :param oligo_database: The OligoDatabase containing the oligonucleotides and their associated properties.
+        :param oligo_database: The OligoDatabase instance containing oligonucleotide sequences and their associated properties. This database stores oligo data organized by genomic regions and can be used for filtering, property calculations, set generation, and output operations.
         :type oligo_database: OligoDatabase
         :param region_id: Region ID to process.
         :type region_id: str
@@ -320,25 +322,27 @@ class HomogeneousPropertyOligoSetGenerator:
         :type n_combinations: int, optional
         """
         oligo_df = oligo_database.get_oligo_property_table(
-            properties=self.properties, flatten=True, region_ids=region_id
+            properties=list(self.properties.keys()), flatten=True, region_ids=region_id
         )
 
         # # check if all properties in self.properties are in oligo_df columns
         for property in self.properties:
             if oligo_df[property].isnull().any():
-                raise ValueError(
-                    f"Property '{property}' is not present in oligo database please calculate it first using oligo_designer_toolsuite.oligo_property_calculator.PropertyCalculator()."
+                raise DatabaseError(
+                    f"Property '{property}' is not present in oligo database. "
+                    f"Please calculate it first using oligo_designer_toolsuite.oligo_property_calculator.PropertyCalculator()."
                 )
             else:
                 if not (
                     pd.api.types.is_integer_dtype(oligo_df[property])
                     or pd.api.types.is_float_dtype(oligo_df[property])
                 ):
-                    raise ValueError(
-                        f"Property '{property}' is not numeric. Cannot use for variance computation."
+                    raise DatabaseError(
+                        f"Property '{property}' is not numeric. Cannot use for variance computation. "
+                        f"Properties used for variance computation must be numeric (integer or float)."
                     )
 
-        combinations = self._generate_random_combinations(oligo_df.index, self.set_size, n_combinations)
+        combinations = self._generate_random_combinations(list(oligo_df.index), self.set_size, n_combinations)
 
         scored_combinations = [
             self._score_combination(oligo_df, list(combination)) for combination in combinations
@@ -351,41 +355,48 @@ class HomogeneousPropertyOligoSetGenerator:
 
         oligo_database.oligosets[region_id] = pd.DataFrame(rows, columns=columns)
 
-    def _score_combination(self, oligo_df: pd.DataFrame, combination: List[str]) -> Tuple[List[str], float]:
+    def _score_combination(self, oligo_df: pd.DataFrame, combination: list[str]) -> tuple[list[str], float]:
         """
         Scores a combination of oligos by calculating the variance of each oligo's properties in the set.
 
         :param oligo_df: The DataFrame containing the oligo information.
         :type oligo_df: pd.DataFrame
         :param combination: A list of oligo IDs for which the score is computed.
-        :type combination: List[str]
+        :type combination: list[str]
         :return: A tuple containing the oligo combination and its score.
-        :rtype: Tuple[List[str], float]
+        :rtype: tuple[list[str], float]
         """
         oligo_set = oligo_df.loc[combination]
-        score = sum([oligo_set[property].var() * self.properties[property] for property in self.properties])
+        score = sum(
+            [
+                cast(float, oligo_set[property].var()) * self.properties[property]
+                for property in self.properties
+            ]
+        )
         return combination, score
 
     @staticmethod
-    def _generate_random_combinations(arr, combination_size, number_of_combinations) -> list:
+    def _generate_random_combinations(
+        arr: list[str], combination_size: int, number_of_combinations: int
+    ) -> list[tuple[str, ...]]:
         """
         Generates oligo sets of specified size from random combinations of oligos.
 
         :param arr: The list of oligos to generate combinations from.
-        :type arr: list
+        :type arr: list[str]
         :param combination_size: The size of each combination.
         :type combination_size: int
         :param number_of_combinations: The number of random combinations to generate.
         :type number_of_combinations: int
         :return: A list of random combinations.
-        :rtype: list
+        :rtype: list[tuple[str, ...]]
         """
         total_combinations = comb(len(arr), combination_size)
 
         if total_combinations <= number_of_combinations:
             return list(itertools.combinations(arr, combination_size))
 
-        seen_combinations = set()
+        seen_combinations = set[tuple[str, ...]]()
         while len(seen_combinations) < number_of_combinations:
             combination = tuple(sorted(random.sample(list(arr), combination_size)))
             if combination not in seen_combinations:

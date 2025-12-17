@@ -43,8 +43,8 @@ linker_sequence: TT # linker sequence between readout probe and target sequence
 
 ### Readout Probe Parameters
 ### -----------------------------------------------
-file_readout_probe_table: data/readout_probes/cycle_hcr_readout_probes.tsv # csv/tsv file containing the readout probe table with the columns "bit", "channel", "readout_probe_id", "readout_probe__sequence", "L/R"
-file_codebook: # file containing the codebook, where columns = "bits" and rows = "region_id" and the entries represent the bit encoding in 0/1 for the bits used for each region
+file_readout_probe_table: data/functional_oligos/cycle_hcr_readout_probes_with_codebook.tsv # csv/tsv file containing the readout probe table with the columns "bit", "channel", "readout_probe_id", "readout_probe__sequence", "L/R"
+file_codebook: data/functional_oligos/cycle_hcr_codebook.tsv # optional, file containing the codebook, where columns = "bits" and rows = "region_id" and the entries represent the bit encoding in 0/1 for the bits used for each region
 
 ### Primer Parameters
 ### -----------------------------------------------
@@ -78,7 +78,7 @@ target_probe_secondary_structures_threshold_deltaG: 0 # threshold for the second
 # Specificity filter with BlastN
 target_probe_specificity_blastn_search_parameters:
   -perc_identity: 100
-  -strand: "plus" # this parameter is fixed, if reference is whole genome, consider using "both"
+  -strand: "minus" # this parameter is fixed, if reference is whole genome, consider using "both"
   -word_size: 10
   -dust: "no"
   -soft_masking: "false"

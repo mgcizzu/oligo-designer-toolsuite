@@ -6,7 +6,7 @@ from joblib import Parallel, delayed
 from joblib_progress import joblib_progress
 from oligo_designer_toolsuite_ai_filters.api import APIHybridizationProbability
 
-from oligo_designer_toolsuite._constants import _TYPES_SEQ
+from oligo_designer_toolsuite._exceptions import ConfigurationError
 from oligo_designer_toolsuite.database import OligoDatabase
 from oligo_designer_toolsuite.oligo_specificity_filter import (
     AlignmentSpecificityFilter,
@@ -46,7 +46,7 @@ class HybridizationProbabilityFilter(ReferenceSpecificityFilter):
     :type remove_hits: bool
     :param filter_name: Name of the filter for identification purposes.
     :type filter_name: str
-    :param dir_output: Directory to store output files and temporary data.
+    :param dir_output: Directory path where output files will be saved.
     :type dir_output: str
     """
 
@@ -54,7 +54,7 @@ class HybridizationProbabilityFilter(ReferenceSpecificityFilter):
         self,
         alignment_method: AlignmentSpecificityFilter,
         threshold: float,
-        ai_filter_path: str = None,
+        ai_filter_path: str | None = None,
         remove_hits: bool = True,
         filter_name: str = "hybridization_probability_filter",
         dir_output: str = "output",
@@ -69,11 +69,11 @@ class HybridizationProbabilityFilter(ReferenceSpecificityFilter):
         self.threshold = threshold
         self.model = APIHybridizationProbability(ai_filter_path=ai_filter_path)
 
-    def create_reference(self, n_jobs):
+    def create_reference(self, n_jobs: int) -> str:
         """
         Creates a reference file and builds an index for alignment-based search.
 
-        :param n_jobs: Number of parallel jobs to use during the indexing process.
+        :param n_jobs: Number of parallel jobs to use for processing.
         :type n_jobs: int
         :return: The name of the created reference file.
         :rtype: str
@@ -85,7 +85,7 @@ class HybridizationProbabilityFilter(ReferenceSpecificityFilter):
     def apply(
         self,
         oligo_database: OligoDatabase,
-        sequence_type: _TYPES_SEQ,
+        sequence_type: str | None,
         n_jobs: int = 1,
     ) -> OligoDatabase:
         """
@@ -95,15 +95,18 @@ class HybridizationProbabilityFilter(ReferenceSpecificityFilter):
         uses an AI model that predicts hybridization probabilities. The filter removes oligonucleotides that are
         likely to hybridize with off-target sequences, based on a predefined threshold.
 
-        :param oligo_database: The OligoDatabase containing the oligonucleotides and their associated properties.
+        :param oligo_database: The OligoDatabase instance containing oligonucleotide sequences and their associated properties. This database stores oligo data organized by genomic regions and can be used for filtering, property calculations, set generation, and output operations.
         :type oligo_database: OligoDatabase
-        :param sequence_type: The type of sequence to be used for the filter calculations.
-        :type sequence_type: _TYPES_SEQ["oligo", "target"]
-        :param n_jobs: The number of parallel jobs to use for processing.
+        :param sequence_type: Type of sequence being processed.
+        :type sequence_type: str | None
+        :param n_jobs: Number of parallel jobs to use for processing.
         :type n_jobs: int
         :return: The filtered OligoDatabase with off-targets removed.
         :rtype: OligoDatabase
         """
+        if sequence_type is None:
+            raise ConfigurationError("sequence_type must be set before calling apply")
+
         self.alignment_method.sequence_type = sequence_type
 
         # When applying the filter we don't want to consider hits within the same region
@@ -146,7 +149,7 @@ class HybridizationProbabilityFilter(ReferenceSpecificityFilter):
         likelihood to hybridize with off-target sequences in a reference database. The filtering process uses
         an alignment method and AI model to evaluate the sequences, removing those that meet the criteria for potential cross-hybridization.
 
-        :param oligo_database: The OligoDatabase containing the oligonucleotides and their associated properties.
+        :param oligo_database: The OligoDatabase instance containing oligonucleotide sequences and their associated properties. This database stores oligo data organized by genomic regions and can be used for filtering, property calculations, set generation, and output operations.
         :type oligo_database: OligoDatabase
         :param file_reference: Path to the reference file used for alignment filtering.
         :type file_reference: str
@@ -166,7 +169,7 @@ class HybridizationProbabilityFilter(ReferenceSpecificityFilter):
         )
 
         # check if there are any oligos to filter
-        if len(table_hits) == 0:
+        if table_hits is None or len(table_hits) == 0:
             return
 
         # generate the references and queries sequences
@@ -211,8 +214,9 @@ class HybridizationProbabilityFilter(ReferenceSpecificityFilter):
                 oligos_with_hits=oligos_with_hits_region,
             )
         else:
-            raise ValueError(
-                f"Mode {mode} not available. Choose mode=0 for removing hits from the database, mode=1 for flagging the hits in the database."
+            raise ConfigurationError(
+                f"Mode '{mode}' is not available. Choose mode=0 for removing hits from the database, "
+                f"or mode=1 for flagging the hits in the database."
             )
 
     def overwrite_output_format(self) -> None:
@@ -224,11 +228,9 @@ class HybridizationProbabilityFilter(ReferenceSpecificityFilter):
         the `names_search_output` and `search_parameters["outfmt"]` to include detailed alignment information.
         """
         # if the alignment method is a  Blastn method overwrite the
-        if type(self.alignment_method) in [
-            BlastNFilter,
-            BlastNSeedregionFilter,
-            BlastNSeedregionSiteFilter,
-        ]:
+        if isinstance(
+            self.alignment_method, (BlastNFilter, BlastNSeedregionFilter, BlastNSeedregionSiteFilter)
+        ):
             self.alignment_method.names_search_output = [
                 "query",
                 "reference",

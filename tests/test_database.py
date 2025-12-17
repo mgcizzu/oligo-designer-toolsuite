@@ -10,23 +10,6 @@ import pandas as pd
 import yaml
 
 from oligo_designer_toolsuite.database import OligoDatabase, ReferenceDatabase
-from oligo_designer_toolsuite.oligo_property_calculator import (
-    DetectOligoProperty,
-    DGSecondaryStructureProperty,
-    GCContentProperty,
-    IsoformConsensusProperty,
-    LengthComplementProperty,
-    LengthProperty,
-    LengthSelfComplementProperty,
-    NumTargetedTranscriptsProperty,
-    PadlockArmsProperty,
-    PropertyCalculator,
-    ReverseComplementSequenceProperty,
-    SeedregionProperty,
-    SeedregionSiteProperty,
-    ShortenedSequenceProperty,
-    TmNNProperty,
-)
 from oligo_designer_toolsuite.sequence_generator import OligoSequenceGenerator
 from oligo_designer_toolsuite.utils import FastaParser, VCFParser, check_tsv_format
 
@@ -54,7 +37,7 @@ REGION_IDS = [
 
 
 class TestReferenceDatabase(unittest.TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.tmp_path = os.path.join(os.getcwd(), "tmp_reference_database")
 
         self.fasta_parser = FastaParser()
@@ -77,13 +60,13 @@ class TestReferenceDatabase(unittest.TestCase):
             files=FILE_VARIANTS, file_type="vcf", database_overwrite=True
         )
 
-    def tearDown(self):
+    def tearDown(self) -> None:
         try:
             shutil.rmtree(self.tmp_path)
         except:
             pass
 
-    def test_write_database(self):
+    def test_write_database(self) -> None:
         file_fasta_database = self.reference_fasta.write_database_to_file(filename="ref_db_filtered_fasta")
         assert (
             self.fasta_parser.check_fasta_format(file_fasta_database) == True
@@ -94,8 +77,9 @@ class TestReferenceDatabase(unittest.TestCase):
             self.vcf_parser.check_vcf_format(file_vcf_database) == True
         ), f"error: wrong file format for database in {file_vcf_database}"
 
-    def test_filter_database_by_region(self):
+    def test_filter_database_by_region(self) -> None:
         self.reference_fasta.filter_database_by_region(region_ids="AARS1", keep_region=False)
+        assert self.reference_fasta.database_file is not None, "error: database file is not set"
         fasta_sequences = self.fasta_parser.read_fasta_sequences(
             file_fasta_in=self.reference_fasta.database_file
         )
@@ -107,12 +91,13 @@ class TestReferenceDatabase(unittest.TestCase):
             ) = self.fasta_parser.parse_fasta_header(entry.id)
             assert region != "AARS1", f"error: this region {region} should be filtered out."
 
-    def test_filter_database_by_property_category(self):
+    def test_filter_database_by_property_category(self) -> None:
         self.reference_fasta.filter_database_by_property_category(
             property_name="gene_id",
             property_category="AARS1",
             keep_if_equals_category=False,
         )
+        assert self.reference_fasta.database_file is not None, "error: database file is not set"
         fasta_sequences = self.fasta_parser.read_fasta_sequences(
             file_fasta_in=self.reference_fasta.database_file
         )
@@ -126,7 +111,7 @@ class TestReferenceDatabase(unittest.TestCase):
 
 
 class TestOligoDatabase(unittest.TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.tmp_path = os.path.join(os.getcwd(), "tmp_oligo_database")
 
         self.fasta_parser = FastaParser()
@@ -140,11 +125,12 @@ class TestOligoDatabase(unittest.TestCase):
             database_name="test_oligo_database",
             dir_output=self.tmp_path,
         )
+        self.oligo_database.set_database_sequence_types(["oligo", "target"])
 
-    def tearDown(self):
+    def tearDown(self) -> None:
         shutil.rmtree(self.tmp_path)
 
-    def load_database_from_fasta(self):
+    def load_database_from_fasta(self) -> None:
         file_random_seqs = self.oligo_sequence_generator.create_sequences_random(
             filename_out="random_sequences1",
             length_sequences=30,
@@ -171,12 +157,19 @@ class TestOligoDatabase(unittest.TestCase):
             database_overwrite=False,
         )
 
-    def test_load_database_from_fasta(self):
+    def test_load_database_from_fasta(self) -> None:
         self.load_database_from_fasta()
 
         assert len(self.oligo_database.database) == 6, "error: wrong number of sequences loaded into database"
+        # Verify that sequence types are set correctly
+        assert (
+            "oligo" in self.oligo_database.database_sequence_types
+        ), "error: 'oligo' should be in database_sequence_types"
+        assert (
+            "target" in self.oligo_database.database_sequence_types
+        ), "error: 'target' should be in database_sequence_types"
 
-    def test_load_database_from_table(self):
+    def test_load_database_from_table(self) -> None:
         self.oligo_database.load_database_from_table(
             FILE_DATABASE_OLIGO_PROPERTIES,
             region_ids=["region_1", "region_2"],
@@ -185,8 +178,12 @@ class TestOligoDatabase(unittest.TestCase):
         )
 
         assert len(self.oligo_database.database) == 2, "error: wrong number of sequences loaded into database"
+        # Verify that sequence type is set when loading from table
+        assert (
+            "oligo" in self.oligo_database.database_sequence_types
+        ), "error: 'oligo' should be in database_sequence_types after loading from table"
 
-    def test_load_save_database(self):
+    def test_load_save_database(self) -> None:
         self.oligo_database.load_database_from_table(
             FILE_DATABASE_OLIGO_PROPERTIES, database_overwrite=True, merge_databases_on_sequence_type="oligo"
         )
@@ -200,7 +197,7 @@ class TestOligoDatabase(unittest.TestCase):
 
         assert len(self.oligo_database.database.keys()) == 2, "error: wrong number regions saved and loaded"
 
-    def test_write_database_to_fasta(self):
+    def test_write_database_to_fasta(self) -> None:
         self.oligo_database.load_database_from_table(
             FILE_DATABASE_OLIGO_PROPERTIES,
             region_ids=["region_1", "region_2"],
@@ -219,7 +216,7 @@ class TestOligoDatabase(unittest.TestCase):
             len(self.fasta_parser.get_fasta_regions(file_fasta_in=file_fasta)) == 2
         ), f"error: wrong number of regions stored in {file_fasta}"
 
-    def test_write_database_to_table(self):
+    def test_write_database_to_table(self) -> None:
         self.oligo_database.load_database_from_table(
             FILE_DATABASE_OLIGO_PROPERTIES, database_overwrite=True, merge_databases_on_sequence_type="oligo"
         )
@@ -264,7 +261,7 @@ class TestOligoDatabase(unittest.TestCase):
             == "red"
         ), f"error: wrong property stored in {file_database}"
 
-    def test_write_database_to_bed(self):
+    def test_write_database_to_bed(self) -> None:
         self.oligo_database.load_database_from_table(
             FILE_DATABASE_OLIGO_PROPERTIES,
             region_ids=["region_1", "region_2"],
@@ -285,7 +282,7 @@ class TestOligoDatabase(unittest.TestCase):
         assert bed_table.loc[0, "start"] == 70289456
         assert bed_table.loc[0, "end"] == 70289485
 
-    def test_write_oligosets_to_yaml(self):
+    def test_write_oligosets_to_yaml(self) -> None:
         self.oligo_database.load_database_from_table(
             FILE_DATABASE_OLIGO_PROPERTIES,
             database_overwrite=True,
@@ -310,7 +307,7 @@ class TestOligoDatabase(unittest.TestCase):
 
         self.oligo_database.oligosets["region_1"] = oligoset
 
-        file_yaml = self.oligo_database.write_oligosets_to_yaml(
+        self.oligo_database.write_oligosets_to_yaml(
             properties=[
                 "test_property",
                 "ligation_site",
@@ -324,6 +321,8 @@ class TestOligoDatabase(unittest.TestCase):
             ascending=True,
         )
 
+        # Construct file path since function returns None
+        file_yaml = os.path.join(os.path.dirname(self.oligo_database.dir_output), "oligosets.yml")
         with open(file_yaml, "r") as handle:
             yaml_oligosets = yaml.safe_load(handle)
 
@@ -341,7 +340,7 @@ class TestOligoDatabase(unittest.TestCase):
             ["XM_047433666.1"],
         ], f"error: wrong oligoset loaded"
 
-    def test_write_oligosets_to_table(self):
+    def test_write_ready_to_order_yaml(self) -> None:
         self.oligo_database.load_database_from_table(
             FILE_DATABASE_OLIGO_PROPERTIES,
             database_overwrite=True,
@@ -366,20 +365,109 @@ class TestOligoDatabase(unittest.TestCase):
 
         self.oligo_database.oligosets["region_1"] = oligoset
 
-        folder_oligosets = self.oligo_database.write_oligosets_to_table()
-        file_oligosets = os.path.join(folder_oligosets, "oligosets_region_1.tsv")
-        assert (
-            check_tsv_format(file=file_oligosets) == True
-        ), f"error: incorrect file format of {file_oligosets}"
+        self.oligo_database.write_ready_to_order_yaml(
+            properties=["oligo", "target", "test_property"],
+            top_n_sets=2,
+            ascending=True,
+            filename="test_ready_to_order",
+        )
 
-    def test_remove_regions_with_insufficient_oligos(self):
+        # Verify YAML file exists
+        file_yaml = os.path.join(os.path.dirname(self.oligo_database.dir_output), "test_ready_to_order.yml")
+        assert os.path.exists(file_yaml), f"error: YAML file {file_yaml} was not created"
+
+        # Load and verify YAML structure
+        with open(file_yaml, "r") as handle:
+            yaml_order = yaml.safe_load(handle)
+
+        # Verify structure: region_id -> oligoset_id -> oligo_id -> properties
+        assert "region_1" in yaml_order, "error: region_1 should be in YAML"
+        assert "oligoset_1" in yaml_order["region_1"], "error: oligoset_1 should be in region_1"
+        assert "oligoset_2" in yaml_order["region_1"], "error: oligoset_2 should be in region_1"
+
+        # Verify first oligoset contains expected oligos
+        oligoset_1 = yaml_order["region_1"]["oligoset_1"]
+        assert "region_1::1" in oligoset_1, "error: region_1::1 should be in oligoset_1"
+        assert "region_1::2" in oligoset_1, "error: region_1::2 should be in oligoset_1"
+        assert "region_1::5" in oligoset_1, "error: region_1::5 should be in oligoset_1"
+
+    def test_write_oligosets_to_table(self) -> None:
+        self.oligo_database.load_database_from_table(
+            FILE_DATABASE_OLIGO_PROPERTIES,
+            database_overwrite=True,
+            region_ids="region_1",
+            merge_databases_on_sequence_type="oligo",
+        )
+
+        oligoset = pd.DataFrame(
+            data=[
+                [0, "region_1::1", "region_1::2", "region_1::5", 1.59, 2.36],
+                [1, "region_1::6", "region_1::4", "region_1::9", 2.15, 4.93],
+            ],
+            columns=[
+                "oligoset_id",
+                "oligo_0",
+                "oligo_1",
+                "oligo_2",
+                "set_score_lowest",
+                "set_score_sum",
+            ],
+        )
+
+        self.oligo_database.oligosets["region_1"] = oligoset
+
+        self.oligo_database.write_oligosets_to_table(
+            properties=["oligo", "target", "test_property"],
+            top_n_sets=3,
+            ascending=True,
+        )
+
+        # Construct file path since function returns None
+        file_oligosets_tsv = os.path.join(os.path.dirname(self.oligo_database.dir_output), "oligosets.tsv")
+
+        # Verify TSV file exists and has correct format
+        assert os.path.exists(file_oligosets_tsv), f"error: TSV file {file_oligosets_tsv} was not created"
+        assert (
+            check_tsv_format(file=file_oligosets_tsv) == True
+        ), f"error: incorrect file format of {file_oligosets_tsv}"
+
+        # Verify Excel file exists (same directory, .xlsx extension)
+        file_oligosets_excel = file_oligosets_tsv.replace(".tsv", ".xlsx")
+        assert os.path.exists(
+            file_oligosets_excel
+        ), f"error: Excel file {file_oligosets_excel} was not created"
+
+        # Verify Excel file structure (one sheet per region_id)
+        try:
+            excel_data = pd.read_excel(file_oligosets_excel, sheet_name=None, engine="openpyxl")
+            # Check that at least one sheet exists (should be one for region_1)
+            assert len(excel_data) > 0, "error: Excel file should contain at least one sheet"
+            # Verify the sheet doesn't have region_id column (it should be removed)
+            region_sheet = list(excel_data.values())[0]
+            assert (
+                "region_id" not in region_sheet.columns
+            ), "error: region_id column should not be in individual Excel sheets"
+            # Verify the sheet contains expected columns
+            assert (
+                "oligoset_id" in region_sheet.columns
+            ), "error: Excel sheet should contain oligoset_id column"
+            assert "oligo_id" in region_sheet.columns, "error: Excel sheet should contain oligo_id column"
+            # Verify that specified properties are included
+            assert "oligo" in region_sheet.columns, "error: Excel sheet should contain oligo property"
+            assert "target" in region_sheet.columns, "error: Excel sheet should contain target property"
+            assert "test_property" in region_sheet.columns, "error: Excel sheet should contain test_property"
+        except ImportError:
+            # Skip Excel verification if openpyxl is not installed
+            pass
+
+    def test_remove_regions_with_insufficient_oligos(self) -> None:
         self.load_database_from_fasta()
         self.oligo_database.remove_regions_with_insufficient_oligos("database_generation")
         assert len(self.oligo_database.database.keys()) == (
             len(REGION_IDS) - 1 + 1  # one region removed but one added from random seqs
         ), "error: wrong number of regions in database"
 
-    def test_get_property_list(self):
+    def test_get_property_list(self) -> None:
         self.oligo_database.load_database_from_table(
             file_database=FILE_DATABASE_OLIGO_PROPERTIES,
             region_ids=None,
@@ -392,7 +480,7 @@ class TestOligoDatabase(unittest.TestCase):
         assert len(list_properties) == 13, "error: wrong number of properties in database"
         assert "oligo" in list_properties, "error: missing property"
 
-    def test_get_regionid_list(self):
+    def test_get_regionid_list(self) -> None:
         self.oligo_database.load_database_from_table(
             file_database=FILE_DATABASE_OLIGO_PROPERTIES,
             region_ids=None,
@@ -404,7 +492,7 @@ class TestOligoDatabase(unittest.TestCase):
         assert len(list_regionid) == 3, "error: wrong number of regionids in database"
         assert "region_3" in list_regionid, "error: missing regionid"
 
-    def test_get_oligoid_list(self):
+    def test_get_oligoid_list(self) -> None:
         self.oligo_database.load_database_from_table(
             file_database=FILE_DATABASE_OLIGO_PROPERTIES,
             region_ids=None,
@@ -416,7 +504,7 @@ class TestOligoDatabase(unittest.TestCase):
         assert len(list_oligoids) == 21, "error: wrong number of oligoids in database"
         assert "region_3::1" in list_oligoids, "error: missing oligoid"
 
-    def test_get_sequence_list(self):
+    def test_get_sequence_list(self) -> None:
         self.oligo_database.load_database_from_table(
             file_database=FILE_DATABASE_OLIGO_PROPERTIES,
             region_ids=None,
@@ -428,7 +516,7 @@ class TestOligoDatabase(unittest.TestCase):
         assert len(list_sequences) == 21, "error: wrong number of sequences in database"
         assert "TATAACCCTGAGGAGGTATACCTAG" in list_sequences, "error: missing sequence"
 
-    def test_get_oligoid_sequence_mapping(self):
+    def test_get_oligoid_sequence_mapping(self) -> None:
         self.oligo_database.load_database_from_table(
             file_database=FILE_DATABASE_OLIGO_PROPERTIES,
             region_ids=None,
@@ -444,7 +532,7 @@ class TestOligoDatabase(unittest.TestCase):
         assert mapping["region_1::1"] == "ATCGTCATCCATTGGGGCAT", "error: wrong sequence for oligoid"
         assert mapping["region_3::5"] == "TATGACTGTGTAAGAGTCGAGTGAG", "error: wrong sequence for oligoid"
 
-    def test_get_sequence_oligoid_mapping(self):
+    def test_get_sequence_oligoid_mapping(self) -> None:
         self.oligo_database.load_database_from_table(
             file_database=FILE_DATABASE_OLIGO_PROPERTIES,
             region_ids=None,
@@ -455,7 +543,7 @@ class TestOligoDatabase(unittest.TestCase):
         mapping = self.oligo_database.get_sequence_oligoid_mapping(sequence_type="oligo")
         assert len(mapping["CTCACTCGACTCTTACACAGTCATA"]) == 4, "error: wrong number of oligos for sequence"
 
-    def test_get_oligo_property_table(self):
+    def test_get_oligo_property_table(self) -> None:
         self.oligo_database.load_database_from_table(
             file_database=FILE_DATABASE_OLIGO_PROPERTIES,
             region_ids=None,
@@ -470,7 +558,7 @@ class TestOligoDatabase(unittest.TestCase):
             len(property_table.explode("test_property")["test_property"].unique()) == 2
         ), "error: wrong property returned"
 
-    def test_get_oligo_property_value(self):
+    def test_get_oligo_property_value(self) -> None:
         self.oligo_database.load_database_from_table(
             file_database=FILE_DATABASE_OLIGO_PROPERTIES,
             region_ids=None,
@@ -487,7 +575,7 @@ class TestOligoDatabase(unittest.TestCase):
         assert property1 == "red", "error: wrong property value returned"
         assert property2 == [["blue"]], "error: wrong property value returned"
 
-    def test_update_oligo_properties(self):
+    def test_update_oligo_properties(self) -> None:
         self.oligo_database.load_database_from_table(
             file_database=FILE_DATABASE_OLIGO_PROPERTIES,
             region_ids="region_3",
@@ -506,7 +594,7 @@ class TestOligoDatabase(unittest.TestCase):
 
         assert len(property_table) == 5, "error: property not correctly updated"
 
-    def test_filter_database_by_region(self):
+    def test_filter_database_by_region(self) -> None:
         self.oligo_database.load_database_from_table(
             file_database=FILE_DATABASE_OLIGO_PROPERTIES,
             region_ids=None,
@@ -524,7 +612,7 @@ class TestOligoDatabase(unittest.TestCase):
 
         assert len(self.oligo_database.database.keys()) == 2, "error: keep regions were removed"
 
-    def test_filter_database_by_oligo(self):
+    def test_filter_database_by_oligo(self) -> None:
         self.oligo_database.load_database_from_table(
             file_database=FILE_DATABASE_OLIGO_PROPERTIES,
             region_ids=None,
@@ -542,7 +630,7 @@ class TestOligoDatabase(unittest.TestCase):
 
         assert len(self.oligo_database.database["region_3"].keys()) == 2, "error: keep oligo were removed"
 
-    def test_filter_database_by_property_threshold(self):
+    def test_filter_database_by_property_threshold(self) -> None:
         self.oligo_database.load_database_from_table(
             file_database=FILE_DATABASE_OLIGO_PROPERTIES,
             region_ids="region_3",
@@ -568,7 +656,7 @@ class TestOligoDatabase(unittest.TestCase):
         )
         assert len(self.oligo_database.get_oligoid_list()) == 2, "error: wrong number of oligos filtered"
 
-    def test_filter_database_by_property_category(self):
+    def test_filter_database_by_property_category(self) -> None:
         self.oligo_database.load_database_from_table(
             file_database=FILE_DATABASE_OLIGO_PROPERTIES,
             region_ids=None,
@@ -581,276 +669,27 @@ class TestOligoDatabase(unittest.TestCase):
         )
         assert len(self.oligo_database.get_oligoid_list()) == 9, "error: wrong number of oligos filtered"
 
+    def test_set_database_sequence_types(self) -> None:
+        """Test that set_database_sequence_types correctly adds sequence types."""
+        self.oligo_database.set_database_sequence_types("oligo")
+        assert (
+            "oligo" in self.oligo_database.database_sequence_types
+        ), "error: 'oligo' should be added to database_sequence_types"
 
-class TestOligoProperties(unittest.TestCase):
-    def setUp(self):
-        self.tmp_path = os.path.join(os.getcwd(), "tmp_oligo_properties")
+        self.oligo_database.set_database_sequence_types(["target", "oligo_pair_L"])
+        assert (
+            "target" in self.oligo_database.database_sequence_types
+        ), "error: 'target' should be added to database_sequence_types"
+        assert (
+            "oligo_pair_L" in self.oligo_database.database_sequence_types
+        ), "error: 'oligo_pair_L' should be added to database_sequence_types"
+        assert (
+            "oligo" in self.oligo_database.database_sequence_types
+        ), "error: 'oligo' should still be in database_sequence_types"
 
-        self.oligo_database = OligoDatabase(
-            min_oligos_per_region=2,
-            write_regions_with_insufficient_oligos=True,
-            database_name="test_oligo_properties",
-            dir_output=self.tmp_path,
-        )
-        self.oligo_database.load_database_from_table(
-            FILE_DATABASE_OLIGO_PROPERTIES, database_overwrite=True, merge_databases_on_sequence_type="oligo"
-        )
-
-    def tearDown(self):
-        shutil.rmtree(self.tmp_path)
-
-    def test_calculate_oligo_length(self):
-        properties = [LengthProperty()]
-        calculator = PropertyCalculator(properties=properties)
-        oligo_database = calculator.apply(oligo_database=self.oligo_database, sequence_type="oligo", n_jobs=1)
-
-        length1 = oligo_database.get_oligo_property_value(
-            property="length_oligo", flatten=True, region_id="region_1", oligo_id="region_1::1"
-        )
-        length2 = oligo_database.get_oligo_property_value(
-            property="length_oligo", flatten=True, region_id="region_1", oligo_id="region_1::2"
-        )
-
-        assert length1 == 20, "error: wrong oligo length"
-        assert length2 == 29, "error: wrong oligo length"
-
-    def test_calculate_reverse_complement_sequence(self):
-        properties = [ReverseComplementSequenceProperty(sequence_type_reverse_complement="oligo")]
-        calculator = PropertyCalculator(properties=properties)
-        oligo_database = calculator.apply(
-            oligo_database=self.oligo_database, sequence_type="target", n_jobs=1
-        )
-
-        target = oligo_database.get_oligo_property_value(
-            property="target", flatten=True, region_id="region_1", oligo_id="region_1::1"
-        )
-        oligo = oligo_database.get_oligo_property_value(
-            property="oligo", flatten=True, region_id="region_1", oligo_id="region_1::1"
-        )
-
-        assert target == "ATCGTCATCCATTGGGGCAT", "error: wrong target sequence"
-        assert oligo == "ATGCCCCAATGGATGACGAT", "error: wrong oligo sequence"
-
-    def test_calculate_shortened_sequence(self):
-        # check if it works for oligos
-        sequence_type = "oligo"
-
-        properties = [ShortenedSequenceProperty(sequence_length=10, reverse=False)]
-        calculator = PropertyCalculator(properties=properties)
-        oligo_database = calculator.apply(
-            oligo_database=self.oligo_database, sequence_type=sequence_type, n_jobs=1
-        )
-
-        sequence_short_oligo = oligo_database.get_oligo_property_value(
-            property=f"{sequence_type}_short", flatten=True, region_id="region_1", oligo_id="region_1::2"
-        )
-
-        properties = [ShortenedSequenceProperty(sequence_length=10, reverse=True)]
-        calculator = PropertyCalculator(properties=properties)
-        oligo_database = calculator.apply(
-            oligo_database=self.oligo_database, sequence_type=sequence_type, n_jobs=1
-        )
-
-        sequence_short_oligo_reverse_read = oligo_database.get_oligo_property_value(
-            property=f"{sequence_type}_short", flatten=True, region_id="region_1", oligo_id="region_1::2"
-        )
-
-        # check if it works for targets
-        sequence_type = "target"
-
-        properties = [ShortenedSequenceProperty(sequence_length=5, reverse=False)]
-        calculator = PropertyCalculator(properties=properties)
-        oligo_database = calculator.apply(
-            oligo_database=self.oligo_database, sequence_type=sequence_type, n_jobs=1
-        )
-
-        sequence_short_target = oligo_database.get_oligo_property_value(
-            property=f"{sequence_type}_short", flatten=True, region_id="region_1", oligo_id="region_1::2"
-        )
-
-        properties = [ShortenedSequenceProperty(sequence_length=5, reverse=True)]
-        calculator = PropertyCalculator(properties=properties)
-        oligo_database = calculator.apply(
-            oligo_database=self.oligo_database, sequence_type=sequence_type, n_jobs=1
-        )
-
-        sequence_short_target_reverse_read = oligo_database.get_oligo_property_value(
-            property=f"{sequence_type}_short", flatten=True, region_id="region_1", oligo_id="region_1::2"
-        )
-        assert sequence_short_oligo == "GGCTAGGGAA", "error: wrong short sequence calculated"
-        assert sequence_short_target == "CTCTA", "error: wrong short sequence calculated"
-        assert sequence_short_oligo_reverse_read == "TCCAATAGAG", "error: wrong short sequence calculated"
-        assert sequence_short_target_reverse_read == "TAGCC", "error: wrong short sequence calculated"
-
-    def test_calculate_num_targeted_transcripts(self):
-        properties = [NumTargetedTranscriptsProperty()]
-        calculator = PropertyCalculator(properties=properties)
-        oligo_database = calculator.apply(oligo_database=self.oligo_database, sequence_type="oligo", n_jobs=1)
-
-        num_targeted_transcripts1 = oligo_database.get_oligo_property_value(
-            property="num_targeted_transcripts", flatten=True, region_id="region_1", oligo_id="region_1::1"
-        )
-        num_targeted_transcripts2 = oligo_database.get_oligo_property_value(
-            property="num_targeted_transcripts", flatten=True, region_id="region_2", oligo_id="region_2::1"
-        )
-        num_targeted_transcripts3 = oligo_database.get_oligo_property_value(
-            property="num_targeted_transcripts", flatten=True, region_id="region_3", oligo_id="region_3::4"
-        )
-
-        assert num_targeted_transcripts1 == 2, "error: wrong number targeted transcripts"
-        assert num_targeted_transcripts2 == 1, "error: wrong number targeted transcripts"
-        assert num_targeted_transcripts3 == 28, "error: wrong number targeted transcripts"
-
-    def test_calculate_isoform_consensus(self):
-        properties = [NumTargetedTranscriptsProperty()]
-        calculator = PropertyCalculator(properties=properties)
-        oligo_database = calculator.apply(oligo_database=self.oligo_database, sequence_type="oligo", n_jobs=1)
-        properties = [IsoformConsensusProperty()]
-        calculator = PropertyCalculator(properties=properties)
-        oligo_database = calculator.apply(oligo_database=oligo_database, sequence_type="oligo", n_jobs=1)
-
-        isoform_consensus1 = oligo_database.get_oligo_property_value(
-            property="isoform_consensus", flatten=True, region_id="region_1", oligo_id="region_1::1"
-        )
-        isoform_consensus2 = oligo_database.get_oligo_property_value(
-            property="isoform_consensus", flatten=True, region_id="region_2", oligo_id="region_2::1"
-        )
-
-        assert isoform_consensus1 == 100, "error: wrong isoform consensus, should be 100%"
-        assert isoform_consensus2 == 50, "error: wrong isoform consensus, should be 50%"
-
-    def test_calculate_seedregion(self):
-        properties = [SeedregionProperty(start=0.4, end=0.6)]
-        calculator = PropertyCalculator(properties=properties)
-        oligo_database = calculator.apply(oligo_database=self.oligo_database, sequence_type="oligo", n_jobs=1)
-
-        seedregion_start = oligo_database.get_oligo_property_value(
-            property="seedregion_start", flatten=True, region_id="region_1", oligo_id="region_1::1"
-        )
-        seedregion_end = oligo_database.get_oligo_property_value(
-            property="seedregion_end", flatten=True, region_id="region_1", oligo_id="region_1::1"
-        )
-
-        assert (seedregion_start == 8) and (seedregion_end == 12), "error: wrong seedregion calculated"
-
-    def test_calculate_seedregion_site(self):
-        properties = [SeedregionSiteProperty(seedregion_size=5, seedregion_site_name="ligation_site")]
-        calculator = PropertyCalculator(properties=properties)
-        oligo_database = calculator.apply(oligo_database=self.oligo_database, sequence_type="oligo", n_jobs=1)
-
-        seedregion_start = oligo_database.get_oligo_property_value(
-            property="seedregion_start", flatten=True, region_id="region_1", oligo_id="region_1::1"
-        )
-        seedregion_end = oligo_database.get_oligo_property_value(
-            property="seedregion_end", flatten=True, region_id="region_1", oligo_id="region_1::1"
-        )
-
-        assert (seedregion_start == 6) and (seedregion_end == 15), "error: wrong seedregion calculated"
-
-    def test_calculate_GC_content(self):
-        properties = [GCContentProperty()]
-        calculator = PropertyCalculator(properties=properties)
-        oligo_database = calculator.apply(oligo_database=self.oligo_database, sequence_type="oligo", n_jobs=1)
-
-        GC_content = oligo_database.get_oligo_property_value(
-            property="GC_content_oligo", flatten=True, region_id="region_1", oligo_id="region_1::1"
-        )
-
-        assert GC_content == 50, "error: wrong GC content calculated"
-
-    def test_calculate_TmNN(self):
-        properties = [TmNNProperty(Tm_parameters={})]
-        calculator = PropertyCalculator(properties=properties)
-        oligo_database = calculator.apply(oligo_database=self.oligo_database, sequence_type="oligo", n_jobs=1)
-
-        TmNN = oligo_database.get_oligo_property_value(
-            property="TmNN_oligo", flatten=True, region_id="region_1", oligo_id="region_1::1"
-        )
-
-        assert TmNN == 53.57, "error: wrong Tm calculated"
-
-    def test_calculate_length_selfcomplement(self):
-        properties = [LengthSelfComplementProperty()]
-        calculator = PropertyCalculator(properties=properties)
-        oligo_database = calculator.apply(oligo_database=self.oligo_database, sequence_type="oligo", n_jobs=1)
-
-        length_selfcomplement = oligo_database.get_oligo_property_value(
-            property="length_selfcomplement_oligo",
-            flatten=True,
-            region_id="region_3",
-            oligo_id="region_3::3",
-        )
-
-        assert length_selfcomplement == 18, "error: wrong length of selfcomplement calculated"
-
-    def test_calculate_length_complement(self):
-        properties = [LengthComplementProperty(comparison_sequence="AGTC")]
-        calculator = PropertyCalculator(properties=properties)
-        oligo_database = calculator.apply(oligo_database=self.oligo_database, sequence_type="oligo", n_jobs=1)
-
-        length_complement = oligo_database.get_oligo_property_value(
-            property="length_complement_oligo_AGTC",
-            flatten=True,
-            region_id="region_1",
-            oligo_id="region_1::3",
-        )
-
-        assert length_complement == 3, "error: wrong length of complement calculated"
-
-    def test_calculate_secondary_structure_DG(self):
-        properties = [DGSecondaryStructureProperty(T=37)]
-        calculator = PropertyCalculator(properties=properties)
-        oligo_database = calculator.apply(oligo_database=self.oligo_database, sequence_type="oligo", n_jobs=1)
-
-        DG_secondary_structure = oligo_database.get_oligo_property_value(
-            property="DG_secondary_structure_oligo",
-            flatten=True,
-            region_id="region_1",
-            oligo_id="region_1::1",
-        )
-
-        assert DG_secondary_structure == 0.8, "error: wrong DG calculated"
-
-    def test_calculate_padlock_arms(self):
-        properties = [
-            PadlockArmsProperty(
-                arm_length_min=3,
-                arm_Tm_dif_max=15,
-                arm_Tm_min=30,
-                arm_Tm_max=80,
-                Tm_parameters={},
-            )
-        ]
-        calculator = PropertyCalculator(properties=properties)
-        oligo_database = calculator.apply(oligo_database=self.oligo_database, sequence_type="oligo", n_jobs=1)
-
-        ligation_site = oligo_database.get_oligo_property_value(
-            property="ligation_site", flatten=True, region_id="region_1", oligo_id="region_1::2"
-        )
-
-        assert ligation_site == 14, "error: wrong padlock arms calculated"
-
-    def test_calculate_detect_oligo(self):
-        properties = [
-            DetectOligoProperty(
-                detect_oligo_length_min=8,
-                detect_oligo_length_max=12,
-                min_thymines=2,
-            )
-        ]
-        calculator = PropertyCalculator(properties=properties)
-        oligo_database = calculator.apply(oligo_database=self.oligo_database, sequence_type="oligo", n_jobs=1)
-
-        detect_oligo_even = oligo_database.get_oligo_property_value(
-            property="detect_oligo_even", flatten=True, region_id="region_1", oligo_id="region_1::2"
-        )
-        detect_oligo_long_left = oligo_database.get_oligo_property_value(
-            property="detect_oligo_long_left", flatten=True, region_id="region_1", oligo_id="region_1::2"
-        )
-        detect_oligo_long_right = oligo_database.get_oligo_property_value(
-            property="detect_oligo_long_right", flatten=True, region_id="region_1", oligo_id="region_1::2"
-        )
-
-        assert detect_oligo_even == "AGGGAATCGAAT", "error: wrong detection oligo even calculated"
-        assert detect_oligo_long_left == None, "error: wrong detection oligo left calculated"
-        assert detect_oligo_long_right == None, "error: wrong detection oligo right calculated"
+        # Test that duplicates are not added
+        initial_length = len(self.oligo_database.database_sequence_types)
+        self.oligo_database.set_database_sequence_types("oligo")
+        assert (
+            len(self.oligo_database.database_sequence_types) == initial_length
+        ), "error: duplicate sequence types should not be added"

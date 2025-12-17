@@ -2,11 +2,10 @@
 # imports
 ############################################
 
-from oligo_designer_toolsuite._constants import _TYPES_SEQ
 from oligo_designer_toolsuite.database import OligoDatabase
 from oligo_designer_toolsuite.oligo_efficiency_filter import BaseScorer
 from oligo_designer_toolsuite.oligo_property_calculator._property_functions import calc_isoform_consensus
-from oligo_designer_toolsuite.utils import check_if_list
+from oligo_designer_toolsuite.utils import cast_to_list
 
 ############################################
 # Sequence Property Scorer Classes
@@ -26,31 +25,33 @@ class OverlapTargetedExonsScorer(BaseScorer):
     :type score_weight: float
     """
 
-    def __init__(self, targeted_exons: list, score_weight: float):
+    def __init__(self, targeted_exons: list[str], score_weight: float):
         """Constructor for the OverlapTargetedExonsScorer class."""
 
         self.targeted_exons = sorted(targeted_exons)
         self.score_weight = score_weight
 
-    def apply(self, oligo_database: OligoDatabase, region_id: str, oligo_id: str, sequence_type: _TYPES_SEQ):
+    def apply(
+        self, oligo_database: OligoDatabase, region_id: str, oligo_id: str, sequence_type: str
+    ) -> float:
         """
         Apply the targeted exon overlap scoring strategy to a given oligo.
 
-        :param oligo_database: The OligoDatabase containing the oligonucleotides and their associated properties.
+        :param oligo_database: The OligoDatabase instance containing oligonucleotide sequences and their associated properties. This database stores oligo data organized by genomic regions and can be used for filtering, property calculations, set generation, and output operations.
         :type oligo_database: OligoDatabase
         :param region_id: Region ID to process.
         :type region_id: str
         :param oligo_id: The ID of the oligo for which the score is computed.
         :type oligo_id: str
-        :param sequence_type: The type of sequence to be used for filter calculations. Not used in this function.
-        :type sequence_type: _TYPES_SEQ["oligo", "target"]
+        :param sequence_type: Type of sequence being processed.  Note: This parameter is not used in this function.
+        :type sequence_type: str
         :return: Weighted score based on overlap with targeted exons.
         :rtype: float
         """
         exon_numbers = oligo_database.get_oligo_property_value(
             "exon_number", flatten=True, region_id=region_id, oligo_id=oligo_id
         )
-        exon_numbers = check_if_list(exon_numbers)
+        exon_numbers = cast_to_list(exon_numbers) if exon_numbers else None
 
         if exon_numbers is None:
             in_targeted_exons = False
@@ -76,23 +77,25 @@ class OverlapUTRScorer(BaseScorer):
     :type score_weight: float
     """
 
-    def __init__(self, score_weight: float):
+    def __init__(self, score_weight: float) -> None:
         """Constructor for the OverlapUTRScorer class."""
 
         self.score_weight = score_weight
 
-    def apply(self, oligo_database: OligoDatabase, region_id: str, oligo_id: str, sequence_type: _TYPES_SEQ):
+    def apply(
+        self, oligo_database: OligoDatabase, region_id: str, oligo_id: str, sequence_type: str
+    ) -> float:
         """
         Apply the UTR overlap scoring strategy to a given oligo.
 
-        :param oligo_database: The OligoDatabase containing the oligonucleotides and their associated properties.
+        :param oligo_database: The OligoDatabase instance containing oligonucleotide sequences and their associated properties. This database stores oligo data organized by genomic regions and can be used for filtering, property calculations, set generation, and output operations.
         :type oligo_database: OligoDatabase
         :param region_id: Region ID to process.
         :type region_id: str
         :param oligo_id: The ID of the oligo for which the score is computed.
         :type oligo_id: str
-        :param sequence_type: The type of sequence to be used for filter calculations. Not used in this function.
-        :type sequence_type: _TYPES_SEQ["oligo", "target"]
+        :param sequence_type: Type of sequence being processed.  Note: This parameter is not used in this function.
+        :type sequence_type: str
         :return: Weighted score based on UTR overlap.
         :rtype: float
         """
@@ -122,36 +125,41 @@ class IsoformConsensusScorer(BaseScorer):
     :type score_weight: float
     """
 
-    def __init__(self, normalize: bool, score_weight: float):
+    def __init__(self, normalize: bool, score_weight: float) -> None:
         """Constructor for the IsoformConsensusScorer class."""
 
         self.normalize = normalize
         self.score_weight = score_weight
 
-    def apply(self, oligo_database: OligoDatabase, region_id: str, oligo_id: str, sequence_type: _TYPES_SEQ):
+    def apply(
+        self, oligo_database: OligoDatabase, region_id: str, oligo_id: str, sequence_type: str
+    ) -> float:
         """
         Apply the isoform consensus scoring strategy to a given oligo.
 
-        :param oligo_database: The OligoDatabase containing the oligonucleotides and their associated properties.
+        :param oligo_database: The OligoDatabase instance containing oligonucleotide sequences and their associated properties. This database stores oligo data organized by genomic regions and can be used for filtering, property calculations, set generation, and output operations.
         :type oligo_database: OligoDatabase
         :param region_id: Region ID to process.
         :type region_id: str
         :param oligo_id: The ID of the oligo for which the score is computed.
         :type oligo_id: str
-        :param sequence_type: The type of sequence to be used for filter calculations. Not used in this function.
-        :type sequence_type: _TYPES_SEQ["oligo", "target"]
+        :param sequence_type: Type of sequence being processed.  Note: This parameter is not used in this function.
+        :type sequence_type: str
         :return: Weighted score based on isoform consensus.
         :rtype: float
         """
         transcript_id = oligo_database.get_oligo_property_value(
             property="transcript_id", region_id=region_id, oligo_id=oligo_id, flatten=True
         )
+
         number_transcripts = oligo_database.get_oligo_property_value(
             property="number_total_transcripts", region_id=region_id, oligo_id=oligo_id, flatten=True
         )
+
         if transcript_id and number_transcripts:
             isoform_consensus = calc_isoform_consensus(
-                transcript_id=transcript_id, number_total_transcripts=number_transcripts
+                transcript_id=cast_to_list(transcript_id),
+                number_total_transcripts=cast_to_list(number_transcripts),
             )
             if self.normalize:
                 # isoform consensus is given in % (0-100), hence we devide by 100

@@ -4,11 +4,16 @@
 
 import os
 import subprocess
-from typing import Tuple
 
 import pandas as pd
 from Bio import SeqIO
 
+from oligo_designer_toolsuite._exceptions import (
+    ConfigurationError,
+    DatabaseError,
+    FeatureNotImplementedError,
+    FileFormatError,
+)
 from oligo_designer_toolsuite.database import OligoDatabase
 from oligo_designer_toolsuite.oligo_specificity_filter import AlignmentSpecificityFilter
 
@@ -53,7 +58,7 @@ class BowtieFilter(AlignmentSpecificityFilter):
     :type names_search_output: list
     :param filter_name: Name of the filter for identification purposes.
     :type filter_name: str
-    :param dir_output: Directory to store output files and temporary data.
+    :param dir_output: Directory path where output files will be saved.
     :type dir_output: str
     """
 
@@ -87,11 +92,14 @@ class BowtieFilter(AlignmentSpecificityFilter):
         This function generates a Bowtie index from a reference file, which is necessary for performing sequence alignment.
         The index creation is parallelized across multiple threads to optimize performance.
 
-        :param n_jobs: The number of parallel jobs to use for creating the index.
+        :param n_jobs: Number of parallel jobs to use for processing.
         :type n_jobs: int
         :return: The name of the created Bowtie reference file.
         :rtype: str
         """
+        if self.reference_database is None:
+            raise DatabaseError("reference_database must be set before calling create_reference")
+
         # write refrence database to fasta
         file_reference = self.reference_database.write_database_to_file(
             filename=f"db_reference_{self.filter_name}",
@@ -124,7 +132,7 @@ class BowtieFilter(AlignmentSpecificityFilter):
         This function performs a Bowtie search to align oligonucleotide sequences from the specified
         oligo database to a reference genome index. The results are processed and returned as a DataFrame.
 
-        :param oligo_database: The OligoDatabase containing the oligonucleotides and their associated properties.
+        :param oligo_database: The OligoDatabase instance containing oligonucleotide sequences and their associated properties. This database stores oligo data organized by genomic regions and can be used for filtering, property calculations, set generation, and output operations.
         :type oligo_database: OligoDatabase
         :param file_reference: Path to the reference file used for alignment filtering.
         :type file_reference: str
@@ -133,6 +141,9 @@ class BowtieFilter(AlignmentSpecificityFilter):
         :return: A DataFrame containing the Bowtie search results.
         :rtype: pd.DataFrame
         """
+        if self.sequence_type is None:
+            raise ConfigurationError("sequence_type must be set before calling _run_search")
+
         file_oligo_database = oligo_database.write_database_to_fasta(
             sequence_type=self.sequence_type,
             filename=f"oligo_database_bowtie_{region_id}",
@@ -179,7 +190,7 @@ class BowtieFilter(AlignmentSpecificityFilter):
         originate from the same region, if specified. This is useful for excluding self-hits or hits within the same region,
         depending on the configuration.
 
-        :param oligo_database: The Oligo Database containing the oligonucleotides and their associated properties (not utilized in this filter).
+        :param oligo_database: The OligoDatabase instance containing oligonucleotide sequences and their associated properties. This database stores oligo data organized by genomic regions and can be used for filtering, property calculations, set generation, and output operations. Note: This parameter is not utilized in this filter.
         :type oligo_database: OligoDatabase
         :param search_results: DataFrame containing the results of the Bowtie search.
         :type search_results: pd.DataFrame
@@ -222,8 +233,10 @@ class BowtieFilter(AlignmentSpecificityFilter):
             "query_sequence",
         ]
         if not all(field in self.names_search_output for field in required_fields):
-            raise ValueError(
-                f"Some of the required fields {required_fields} are missing in the search results."
+            missing_fields = [field for field in required_fields if field not in self.names_search_output]
+            raise FileFormatError(
+                f"Required fields are missing in the search results: {missing_fields}. "
+                f"All of the following fields are required: {required_fields}."
             )
         table_hits["reference_end"] = table_hits.apply(
             lambda x: x["reference_start"] + len(x["query_sequence"]), axis=1
@@ -253,7 +266,7 @@ class BowtieFilter(AlignmentSpecificityFilter):
 
     def _add_alignment_gaps(
         self, table_hits: pd.DataFrame, queries: list, references: list
-    ) -> Tuple[list, list]:
+    ) -> tuple[list, list]:
         """
         Handles the addition of alignment gaps for queries and references.
 
@@ -269,7 +282,7 @@ class BowtieFilter(AlignmentSpecificityFilter):
         :param references: List of reference sequences to be aligned.
         :type references: list
         :return: Unmodified lists of query and reference sequences.
-        :rtype: Tuple[list, list]
+        :rtype: tuple[list, list]
         """
         # bowtie does not support gaps
         return queries, references
@@ -313,7 +326,7 @@ class Bowtie2Filter(AlignmentSpecificityFilter):
     :type names_search_output: list
     :param filter_name: Name of the filter for identification purposes.
     :type filter_name: str
-    :param dir_output: Directory to store output files and temporary data.
+    :param dir_output: Directory path where output files will be saved.
     :type dir_output: str
     """
 
@@ -350,11 +363,14 @@ class Bowtie2Filter(AlignmentSpecificityFilter):
         This method generates a Bowtie2 index from a reference file, which is necessary for performing sequence alignment.
         The index creation is parallelized across multiple threads to optimize performance.
 
-        :param n_jobs: The number of parallel jobs to use for creating the index.
+        :param n_jobs: Number of parallel jobs to use for processing.
         :type n_jobs: int
         :return: The name of the created Bowtie2 reference file.
         :rtype: str
         """
+        if self.reference_database is None:
+            raise DatabaseError("reference_database must be set before calling create_reference")
+
         # write refrence database to fasta
         file_reference = self.reference_database.write_database_to_file(
             filename=f"db_reference_{self.filter_name}",
@@ -385,7 +401,7 @@ class Bowtie2Filter(AlignmentSpecificityFilter):
         This function performs a Bowtie2 search to align oligonucleotide sequences from the specified
         OligoDatabase to a reference genome index. The results are processed and returned as a DataFrame.
 
-        :param oligo_database: The OligoDatabase containing the oligonucleotides and their associated properties.
+        :param oligo_database: The OligoDatabase instance containing oligonucleotide sequences and their associated properties. This database stores oligo data organized by genomic regions and can be used for filtering, property calculations, set generation, and output operations.
         :type oligo_database: OligoDatabase
         :param file_reference: Path to the reference file used for alignment filtering.
         :type file_reference: str
@@ -394,6 +410,8 @@ class Bowtie2Filter(AlignmentSpecificityFilter):
         :return: A DataFrame containing the Bowtie2 search results.
         :rtype: pd.DataFrame
         """
+        if self.sequence_type is None:
+            raise ConfigurationError("sequence_type must be set before calling _run_search")
 
         file_oligo_database = oligo_database.write_database_to_fasta(
             sequence_type=self.sequence_type,
@@ -442,7 +460,7 @@ class Bowtie2Filter(AlignmentSpecificityFilter):
         originate from the same region, if specified. This is useful for excluding self-hits or hits within the same region,
         depending on the configuration.
 
-        :param oligo_database: The OligoDatabase containing the oligonucleotides and their associated properties (not utilized in this filter).
+        :param oligo_database: The OligoDatabase instance containing oligonucleotide sequences and their associated properties. This database stores oligo data organized by genomic regions and can be used for filtering, property calculations, set generation, and output operations. Note: This parameter is not utilized in this filter.
         :type oligo_database: OligoDatabase
         :param search_results: DataFrame containing the results of the Bowtie2 search.
         :type search_results: pd.DataFrame
@@ -466,7 +484,7 @@ class Bowtie2Filter(AlignmentSpecificityFilter):
         Raises an error indicating that AI filters are not supported for Bowtie2.
 
         This method is intended to retrieve reference sequences based on search results.
-        However, in the context of Bowtie2, this method is not implemented and raises a `NotImplementedError`.
+        However, in the context of Bowtie2, this method is not implemented and raises a `FeatureNotImplementedError`.
 
         :param table_hits: DataFrame containing Bowtie2 search hits with alignment information.
         :type table_hits: pd.DataFrame
@@ -474,18 +492,18 @@ class Bowtie2Filter(AlignmentSpecificityFilter):
         :type file_reference: str
         :param region_id: Region ID to process.
         :type region_id: str
-        :raises NotImplementedError: Always, because AI filters are not supported for Bowtie2.
+        :raises FeatureNotImplementedError: Always, because AI filters are not supported for Bowtie2.
         """
-        raise NotImplementedError("AI filters not supported for Bowtie2.")
+        raise FeatureNotImplementedError("AI filters not supported for Bowtie2.")
 
     def _add_alignment_gaps(
         self, search_results: pd.DataFrame, queries: list, references: list
-    ) -> Tuple[list, list]:
+    ) -> tuple[list, list]:
         """
         Raises an error indicating that AI filters are not supported for Bowtie2.
 
         This method is intended to add alignment gaps to sequences based on search results.
-        However, in the context of Bowtie2, this method is not implemented and raises a `NotImplementedError`.
+        However, in the context of Bowtie2, this method is not implemented and raises a `FeatureNotImplementedError`.
 
         :param table_hits: DataFrame containing information about the alignment hits, including gap positions.
         :type table_hits: pd.DataFrame
@@ -493,7 +511,7 @@ class Bowtie2Filter(AlignmentSpecificityFilter):
         :type queries: list
         :param references: List of reference sequences to be aligned.
         :type references: list
-        :raises NotImplementedError: Always, because AI filters are not supported for Bowtie2.
+        :raises FeatureNotImplementedError: Always, because AI filters are not supported for Bowtie2.
         """
 
-        raise NotImplementedError("AI filters not supported for Bowtie2.")
+        raise FeatureNotImplementedError("AI filters not supported for Bowtie2.")

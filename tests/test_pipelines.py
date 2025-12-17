@@ -6,8 +6,10 @@ import os
 import shutil
 import subprocess
 import sys
+import tempfile
 import unittest
-from abc import abstractmethod
+from abc import ABC, abstractmethod
+from typing import Any
 
 import yaml
 
@@ -38,34 +40,35 @@ CONFIG_CYCLEHCR_PROBE_DESIGNER = "data/configs/cycle_hcr_probe_designer.yaml"
 ############################################
 
 
-class PipelinesBase:
-    def setUp(self):
+class PipelinesBase(unittest.TestCase, ABC):
+    def setUp(self) -> None:
         self.tmp_path = self.setup_output_dir()
         self.script = self.setup_script()
         self.cmd_parameters = self.setup_cmd_parameters()
 
-    def tearDown(self):
-        shutil.rmtree(self.tmp_path)
+    def tearDown(self) -> None:
+        if self.tmp_path is not None and os.path.exists(self.tmp_path):
+            shutil.rmtree(self.tmp_path)
 
     @abstractmethod
-    def setup_output_dir(self):
+    def setup_output_dir(self) -> str:
         pass
 
     @abstractmethod
-    def setup_script(self):
+    def setup_script(self) -> str:
         pass
 
     @abstractmethod
-    def setup_cmd_parameters(self):
+    def setup_cmd_parameters(self) -> list[str]:
         pass
 
-    def test_main_function(self):
+    def test_main_function(self) -> None:
         # Run the script using subprocess
         result = subprocess.run(
             [
                 sys.executable,
                 self.script,
-                self.cmd_parameters,
+                *self.cmd_parameters,
             ],
             capture_output=True,
             text=True,
@@ -79,78 +82,96 @@ class PipelinesBase:
 
 
 class TestGenomicRegionGenerator(PipelinesBase, unittest.TestCase):
-    def setup_output_dir(self):
+    def setup_output_dir(self) -> Any:
         with open(CONFIG_GENOMIC_REGION_GENERATOR, "r") as handle:
             config = yaml.safe_load(handle)
-        return os.path.abspath(config["dir_output"])
+        dir_output = config.get("dir_output")
+        if dir_output is None:
+            return tempfile.mkdtemp()
+        return os.path.abspath(dir_output)
 
-    def setup_script(self):
+    def setup_script(self) -> str:
         return os.path.abspath(SCRIPT_GENOMIC_REGION_GENERATOR)
 
-    def setup_cmd_parameters(self):
-        return f"-c{os.path.abspath(CONFIG_GENOMIC_REGION_GENERATOR)}"
+    def setup_cmd_parameters(self) -> list[str]:
+        return ["-c", os.path.abspath(CONFIG_GENOMIC_REGION_GENERATOR)]
 
 
 class TestOligoSeqProbeDesigner(PipelinesBase, unittest.TestCase):
-    def setup_output_dir(self):
+    def setup_output_dir(self) -> Any:
         with open(CONFIG_OLIGO_SEQ_PROBE_DESIGNER, "r") as handle:
             config = yaml.safe_load(handle)
-        return os.path.abspath(config["dir_output"])
+        dir_output = config.get("dir_output")
+        if dir_output is None:
+            return tempfile.mkdtemp()
+        return os.path.abspath(dir_output)
 
-    def setup_script(self):
+    def setup_script(self) -> str:
         return os.path.abspath(SCRIPT_OLIGO_SEQ_PROBE_DESIGNER)
 
-    def setup_cmd_parameters(self):
-        return f"-c{os.path.abspath(CONFIG_OLIGO_SEQ_PROBE_DESIGNER)}"
+    def setup_cmd_parameters(self) -> list[str]:
+        return ["-c", os.path.abspath(CONFIG_OLIGO_SEQ_PROBE_DESIGNER)]
 
 
 class TestScrinshotProbeDesigner(PipelinesBase, unittest.TestCase):
-    def setup_output_dir(self):
+    def setup_output_dir(self) -> Any:
         with open(CONFIG_SCRINSHOT_PROBE_DESIGNER, "r") as handle:
             config = yaml.safe_load(handle)
-        return os.path.abspath(config["dir_output"])
+        dir_output = config.get("dir_output")
+        if dir_output is None:
+            return tempfile.mkdtemp()
+        return os.path.abspath(dir_output)
 
-    def setup_script(self):
+    def setup_script(self) -> str:
         return os.path.abspath(SCRIPT_SCRINSHOT_PROBE_DESIGNER)
 
-    def setup_cmd_parameters(self):
-        return f"-c{os.path.abspath(CONFIG_SCRINSHOT_PROBE_DESIGNER)}"
+    def setup_cmd_parameters(self) -> list[str]:
+        return ["-c", os.path.abspath(CONFIG_SCRINSHOT_PROBE_DESIGNER)]
 
 
 class TestSeqfishplusProbeDesigner(PipelinesBase, unittest.TestCase):
-    def setup_output_dir(self):
+    def setup_output_dir(self) -> Any:
         with open(CONFIG_SEQFISHPLUS_PROBE_DESIGNER, "r") as handle:
             config = yaml.safe_load(handle)
-        return os.path.abspath(config["dir_output"])
+        dir_output = config.get("dir_output")
+        if dir_output is None:
+            return tempfile.mkdtemp()
+        return os.path.abspath(dir_output)
 
-    def setup_script(self):
+    def setup_script(self) -> str:
         return os.path.abspath(SCRIPT_SEQFISHPLUS_PROBE_DESIGNER)
 
-    def setup_cmd_parameters(self):
-        return f"-c{os.path.abspath(CONFIG_SEQFISHPLUS_PROBE_DESIGNER)}"
+    def setup_cmd_parameters(self) -> list[str]:
+        return ["-c", os.path.abspath(CONFIG_SEQFISHPLUS_PROBE_DESIGNER)]
 
 
 class TestMerfishProbeDesigner(PipelinesBase, unittest.TestCase):
-    def setup_output_dir(self):
+    def setup_output_dir(self) -> Any:
         with open(CONFIG_MERFISH_PROBE_DESIGNER, "r") as handle:
             config = yaml.safe_load(handle)
-        return os.path.abspath(config["dir_output"])
+        dir_output = config.get("dir_output")
+        if dir_output is None:
+            return tempfile.mkdtemp()
+        return os.path.abspath(dir_output)
 
-    def setup_script(self):
+    def setup_script(self) -> str:
         return os.path.abspath(SCRIPT_MERFISH_PROBE_DESIGNER)
 
-    def setup_cmd_parameters(self):
-        return f"-c{os.path.abspath(CONFIG_MERFISH_PROBE_DESIGNER)}"
+    def setup_cmd_parameters(self) -> list[str]:
+        return ["-c", os.path.abspath(CONFIG_MERFISH_PROBE_DESIGNER)]
 
 
 class TestCycleHCRProbeDesigner(PipelinesBase, unittest.TestCase):
-    def setup_output_dir(self):
+    def setup_output_dir(self) -> Any:
         with open(CONFIG_CYCLEHCR_PROBE_DESIGNER, "r") as handle:
             config = yaml.safe_load(handle)
-        return os.path.abspath(config["dir_output"])
+        dir_output = config.get("dir_output")
+        if dir_output is None:
+            return tempfile.mkdtemp()
+        return os.path.abspath(dir_output)
 
-    def setup_script(self):
+    def setup_script(self) -> str:
         return os.path.abspath(SCRIPT_CYCLEHCR_PROBE_DESIGNER)
 
-    def setup_cmd_parameters(self):
-        return f"-c{os.path.abspath(CONFIG_CYCLEHCR_PROBE_DESIGNER)}"
+    def setup_cmd_parameters(self) -> list[str]:
+        return ["-c", os.path.abspath(CONFIG_CYCLEHCR_PROBE_DESIGNER)]

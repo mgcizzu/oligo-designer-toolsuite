@@ -5,12 +5,12 @@
 import inspect
 import logging
 import os
-from datetime import datetime
 from pathlib import Path
 
 import yaml
 
-from oligo_designer_toolsuite.pipelines._utils import base_log_parameters, base_parser
+from oligo_designer_toolsuite._exceptions import ConfigurationError
+from oligo_designer_toolsuite.pipelines._utils import base_log_parameters, base_parser, setup_logging
 from oligo_designer_toolsuite.sequence_generator import (
     CustomGenomicRegionGenerator,
     EnsemblGenomicRegionGenerator,
@@ -27,7 +27,7 @@ class GenomicRegionGenerator:
     A class to generate genomic regions and manage annotations. This class allows loading of annotations from different
     sources (NCBI, Ensembl, or custom files), and generates genomic regions such as genes, intergenic regions, exons, etc.
 
-    :param dir_output: Directory where the output files will be stored.
+    :param dir_output: Directory path where output files will be saved.
     :type dir_output: str
     """
 
@@ -37,19 +37,12 @@ class GenomicRegionGenerator:
         self.dir_output = os.path.abspath(dir_output)
         Path(dir_output).mkdir(parents=True, exist_ok=True)
 
-        ##### setup logger #####
-        timestamp = datetime.now()
-        file_logger = os.path.join(
-            self.dir_output,
-            f"log_genomic_region_generation_{timestamp.year}-{timestamp.month}-{timestamp.day}-{timestamp.hour}-{timestamp.minute}.txt",
+        # setup logger
+        setup_logging(
+            dir_output=self.dir_output,
+            pipeline_name="genomic_region_generation",
+            include_console=True,
         )
-        logging.getLogger("log_name")
-        logging.basicConfig(
-            format="%(asctime)s [%(levelname)s] %(message)s",
-            level=logging.NOTSET,
-            handlers=[logging.FileHandler(file_logger), logging.StreamHandler()],
-        )
-        logging.captureWarnings(True)
 
     def load_annotations(
         self,
@@ -72,9 +65,15 @@ class GenomicRegionGenerator:
         """
         ##### log parameters #####
         logging.info("Parameters Load Annotations:")
-        args, _, _, values = inspect.getargvalues(inspect.currentframe())
-        parameters = {i: values[i] for i in args}
-        base_log_parameters(parameters)
+        frame = inspect.currentframe()
+        if frame is not None:
+            args, _, _, values = inspect.getargvalues(frame)
+            parameters = {i: values[i] for i in args}
+            base_log_parameters(parameters)
+
+        region_generator: (
+            CustomGenomicRegionGenerator | NcbiGenomicRegionGenerator | EnsemblGenomicRegionGenerator | None
+        ) = None
 
         ##### loading annotations from different sources #####
         if source == "ncbi":
@@ -104,7 +103,9 @@ class GenomicRegionGenerator:
                 dir_output=self.dir_output,
             )
         else:
-            raise ValueError(f"Source {source} not supported!")
+            raise ConfigurationError(
+                f"Source '{source}' is not supported. Supported sources are: 'NCBI', 'Ensembl', or 'custom'."
+            )
 
         ##### save annotation information #####
         logging.info(
@@ -154,7 +155,10 @@ class GenomicRegionGenerator:
                 elif genomic_region == "exon_exon_junction":
                     file_fasta = region_generator.get_sequence_exon_exon_junction(block_size=block_size)
                 else:
-                    raise Exception(f"Region generator: {genomic_region} is not implemented.")
+                    raise ConfigurationError(
+                        f"Genomic region type '{genomic_region}' is not supported. "
+                        f"Supported types are: 'gene', 'intergenic', 'exon', 'intron', 'cds', 'utr', 'exon_exon_junction'."
+                    )
 
                 files_fasta.append(file_fasta)
                 logging.info(f"The genomic region '{genomic_region}' was stored in :{file_fasta}.")
@@ -167,7 +171,7 @@ class GenomicRegionGenerator:
 ############################################
 
 
-def main():
+def main() -> None:
     """
     Main function to execute the genomic region generation pipeline.
 
@@ -178,7 +182,7 @@ def main():
         - config: Path to the configuration YAML file containing parameters for the pipeline.
     :type args: dict
     """
-    print("--------------START PIPELINE--------------")
+    logging.info("--------------START PIPELINE--------------")
     args = base_parser()
 
     # read the config file
@@ -199,7 +203,7 @@ def main():
         block_size=config["exon_exon_junction_block_size"],
     )
 
-    print("--------------END PIPELINE--------------")
+    logging.info("--------------END PIPELINE--------------")
 
 
 if __name__ == "__main__":

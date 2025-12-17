@@ -4,7 +4,6 @@
 
 from abc import ABC, abstractmethod
 
-from oligo_designer_toolsuite._constants import _TYPES_SEQ
 from oligo_designer_toolsuite.database import OligoDatabase
 
 ############################################
@@ -25,23 +24,21 @@ class BaseProperty(ABC):
         """Constructor for the BaseProperty class."""
 
     @abstractmethod
-    def apply(
-        self, oligo_database: OligoDatabase, region_id: str, oligo_id: str, sequence_type: _TYPES_SEQ
-    ) -> dict:
+    def apply(self, oligo_database: OligoDatabase, region_id: str, oligo_id: str, sequence_type: str) -> dict:
         """
         Calculate the property for a specific oligo and return the result as a dictionary.
 
         This abstract method must be implemented by subclasses to define the specific property
         calculation logic for a given oligo.
 
-        :param oligo_database: The OligoDatabase containing the oligonucleotides and their associated properties.
+        :param oligo_database: The OligoDatabase instance containing oligonucleotide sequences and their associated properties. This database stores oligo data organized by genomic regions and can be used for filtering, property calculations, set generation, and output operations.
         :type oligo_database: OligoDatabase
         :param region_id: Region ID to process.
         :type region_id: str
         :param oligo_id: The ID of the oligo for which the property is calculated.
         :type oligo_id: str
-        :param sequence_type: The type of sequence to be used for property calculation.
-        :type sequence_type: _TYPES_SEQ["oligo", "target"]
+        :param sequence_type: Type of sequence being processed.
+        :type sequence_type: str
         :return: A dictionary containing the calculated property(ies). Keys are property names, values are the calculated values.
         :rtype: dict
         """
