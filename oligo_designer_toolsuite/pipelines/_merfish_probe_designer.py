@@ -12,7 +12,6 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 import yaml
-from Bio.SeqUtils import MeltingTemp as mt
 from Bio.SeqUtils import Seq
 from scipy.spatial.distance import hamming
 
@@ -67,6 +66,7 @@ from oligo_designer_toolsuite.pipelines._utils import (
     check_content_oligo_database,
     format_sequence,
     pipeline_step_basic,
+    preprocess_tm_parameters,
     setup_logging,
 )
 from oligo_designer_toolsuite.sequence_generator import OligoSequenceGenerator
@@ -2755,25 +2755,6 @@ def main() -> None:
             # ensure that the list contains unique gene ids
             region_ids = list(set([line.rstrip() for line in lines]))
 
-    ##### preprocess melting temperature params #####
-    target_probe_Tm_parameters = config["target_probe_Tm_parameters"]
-    target_probe_Tm_parameters["nn_table"] = getattr(mt, target_probe_Tm_parameters["nn_table"])
-    target_probe_Tm_parameters["tmm_table"] = getattr(mt, target_probe_Tm_parameters["tmm_table"])
-    target_probe_Tm_parameters["imm_table"] = getattr(mt, target_probe_Tm_parameters["imm_table"])
-    target_probe_Tm_parameters["de_table"] = getattr(mt, target_probe_Tm_parameters["de_table"])
-
-    readout_probe_Tm_parameters = config["readout_probe_Tm_parameters"]
-    readout_probe_Tm_parameters["nn_table"] = getattr(mt, readout_probe_Tm_parameters["nn_table"])
-    readout_probe_Tm_parameters["tmm_table"] = getattr(mt, readout_probe_Tm_parameters["tmm_table"])
-    readout_probe_Tm_parameters["imm_table"] = getattr(mt, readout_probe_Tm_parameters["imm_table"])
-    readout_probe_Tm_parameters["de_table"] = getattr(mt, readout_probe_Tm_parameters["de_table"])
-
-    primer_Tm_parameters = config["primer_Tm_parameters"]
-    primer_Tm_parameters["nn_table"] = getattr(mt, primer_Tm_parameters["nn_table"])
-    primer_Tm_parameters["tmm_table"] = getattr(mt, primer_Tm_parameters["tmm_table"])
-    primer_Tm_parameters["imm_table"] = getattr(mt, primer_Tm_parameters["imm_table"])
-    primer_Tm_parameters["de_table"] = getattr(mt, primer_Tm_parameters["de_table"])
-
     ##### initialize probe designer pipeline #####
     pipeline = MerfishProbeDesigner(
         write_intermediate_steps=config["write_intermediate_steps"],
@@ -2796,7 +2777,7 @@ def main() -> None:
         target_probe_Tm_min=config["target_probe_Tm_min"],
         target_probe_Tm_opt=config["target_probe_Tm_opt"],
         target_probe_Tm_max=config["target_probe_Tm_max"],
-        target_probe_Tm_parameters=config["target_probe_Tm_parameters"],
+        target_probe_Tm_parameters=preprocess_tm_parameters(config["target_probe_Tm_parameters"]),
         target_probe_Tm_chem_correction_parameters=config["target_probe_Tm_chem_correction_parameters"],
         target_probe_Tm_salt_correction_parameters=config["target_probe_Tm_salt_correction_parameters"],
         target_probe_homopolymeric_base_n=config["target_probe_homopolymeric_base_n"],
@@ -2859,7 +2840,7 @@ def main() -> None:
         # Step 4: Set Selection Parameters
         readout_probe_set_size=config["readout_probe_set_size"],
         readout_probe_n_combinations=config["readout_probe_n_combinations"],
-        readout_probe_Tm_parameters=config["readout_probe_Tm_parameters"],
+        readout_probe_Tm_parameters=preprocess_tm_parameters(config["readout_probe_Tm_parameters"]),
         readout_probe_Tm_chem_correction_parameters=config["readout_probe_Tm_chem_correction_parameters"],
         readout_probe_Tm_salt_correction_parameters=config["readout_probe_Tm_salt_correction_parameters"],
         readout_probe_homogeneous_properties_weights=config["readout_probe_homogeneous_properties_weights"],
@@ -2894,7 +2875,7 @@ def main() -> None:
         primer_Tm_max=config["primer_Tm_max"],
         primer_T_secondary_structure=config["primer_T_secondary_structure"],
         primer_secondary_structures_threshold_deltaG=config["primer_secondary_structures_threshold_deltaG"],
-        primer_Tm_parameters=config["primer_Tm_parameters"],
+        primer_Tm_parameters=preprocess_tm_parameters(config["primer_Tm_parameters"]),
         primer_Tm_chem_correction_parameters=config["primer_Tm_chem_correction_parameters"],
         primer_Tm_salt_correction_parameters=config["primer_Tm_salt_correction_parameters"],
         # Step 3: Specificity Filter Parameters

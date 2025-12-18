@@ -6,7 +6,6 @@ import csv
 import os
 import time
 import uuid
-import warnings
 from typing import TYPE_CHECKING, Any, Iterable
 
 if TYPE_CHECKING:
@@ -68,8 +67,6 @@ def check_if_dna_sequence(seq: str, valid_characters: list[str] | None = None) -
         raise ConfigurationError(f"Valid characters must be single characters. Received: {valid_characters}.")
 
     valid_characters_upper = [char.upper() for char in valid_characters]
-    if not all(char.upper() in ["A", "C", "T", "G", "U"] for char in valid_characters_upper):
-        warnings.warn("Valid characters should be A, C, T, G, or U.")
 
     if seq == "":
         return False

@@ -85,7 +85,7 @@ class BowtieFilter(AlignmentSpecificityFilter):
         self.search_parameters = search_parameters
         self.names_search_output = names_search_output
 
-    def create_reference(self, n_jobs: int) -> str:
+    def _create_reference(self, n_jobs: int) -> str:
         """
         Creates a Bowtie index for a given reference file.
 
@@ -98,7 +98,7 @@ class BowtieFilter(AlignmentSpecificityFilter):
         :rtype: str
         """
         if self.reference_database is None:
-            raise DatabaseError("reference_database must be set before calling create_reference")
+            raise DatabaseError("reference_database must be set before calling _create_reference")
 
         # write refrence database to fasta
         file_reference = self.reference_database.write_database_to_file(
@@ -356,7 +356,7 @@ class Bowtie2Filter(AlignmentSpecificityFilter):
         self.search_parameters = search_parameters
         self.names_search_output = names_search_output
 
-    def create_reference(self, n_jobs: int) -> str:
+    def _create_reference(self, n_jobs: int) -> str:
         """
         Creates an index for the Bowtie2 alignment tool using a specified reference file.
 
@@ -369,7 +369,7 @@ class Bowtie2Filter(AlignmentSpecificityFilter):
         :rtype: str
         """
         if self.reference_database is None:
-            raise DatabaseError("reference_database must be set before calling create_reference")
+            raise DatabaseError("reference_database must be set before calling _create_reference")
 
         # write refrence database to fasta
         file_reference = self.reference_database.write_database_to_file(

@@ -24,9 +24,11 @@ from ._database_processor import (
 from ._sequence_parser import FastaParser, GffParser, VCFParser
 from ._sequence_processor import (
     append_nucleotide_to_sequences,
+    count_kmer_abundance,
     get_complement_regions,
     get_intersection,
     get_sequence_from_annotation,
+    remove_index_files,
 )
 
 __all__ = [
@@ -52,4 +54,6 @@ __all__ = [
     "get_sequence_from_annotation",
     "get_intersection",
     "append_nucleotide_to_sequences",
+    "remove_index_files",
+    "count_kmer_abundance",
 ]

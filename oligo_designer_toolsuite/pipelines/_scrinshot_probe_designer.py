@@ -11,7 +11,6 @@ import warnings
 from pathlib import Path
 
 import yaml
-from Bio.SeqUtils import MeltingTemp as mt
 from joblib import Parallel, delayed
 from joblib_progress import joblib_progress
 
@@ -66,6 +65,7 @@ from oligo_designer_toolsuite.pipelines._utils import (
     base_parser,
     check_content_oligo_database,
     pipeline_step_basic,
+    preprocess_tm_parameters,
     setup_logging,
 )
 from oligo_designer_toolsuite.sequence_generator import OligoSequenceGenerator
@@ -2025,18 +2025,8 @@ def main() -> None:
             # ensure that the list contains unique gene ids
             region_ids = list(set([line.rstrip() for line in lines]))
 
-    ##### preprocess melting temperature params #####
-    target_probe_Tm_parameters = config["target_probe_Tm_parameters"]
-    target_probe_Tm_parameters["nn_table"] = getattr(mt, target_probe_Tm_parameters["nn_table"])
-    target_probe_Tm_parameters["tmm_table"] = getattr(mt, target_probe_Tm_parameters["tmm_table"])
-    target_probe_Tm_parameters["imm_table"] = getattr(mt, target_probe_Tm_parameters["imm_table"])
-    target_probe_Tm_parameters["de_table"] = getattr(mt, target_probe_Tm_parameters["de_table"])
-
-    detection_oligo_Tm_parameters = config["detection_oligo_Tm_parameters"]
-    detection_oligo_Tm_parameters["nn_table"] = getattr(mt, detection_oligo_Tm_parameters["nn_table"])
-    detection_oligo_Tm_parameters["tmm_table"] = getattr(mt, detection_oligo_Tm_parameters["tmm_table"])
-    detection_oligo_Tm_parameters["imm_table"] = getattr(mt, detection_oligo_Tm_parameters["imm_table"])
-    detection_oligo_Tm_parameters["de_table"] = getattr(mt, detection_oligo_Tm_parameters["de_table"])
+    ##### Preprocess Tm parameters #####
+    target_probe_Tm_parameters = preprocess_tm_parameters(config["target_probe_Tm_parameters"])
 
     ##### initialize probe designer pipeline #####
     pipeline = ScrinshotProbeDesigner(
@@ -2107,7 +2097,7 @@ def main() -> None:
         detection_oligo_min_thymines=config["detection_oligo_min_thymines"],
         detection_oligo_U_distance=config["detection_oligo_U_distance"],
         detection_oligo_Tm_opt=config["detection_oligo_Tm_opt"],
-        detection_oligo_Tm_parameters=detection_oligo_Tm_parameters,
+        detection_oligo_Tm_parameters=preprocess_tm_parameters(config["detection_oligo_Tm_parameters"]),
         detection_oligo_Tm_chem_correction_parameters=config["detection_oligo_Tm_chem_correction_parameters"],
         detection_oligo_Tm_salt_correction_parameters=config["detection_oligo_Tm_salt_correction_parameters"],
     )

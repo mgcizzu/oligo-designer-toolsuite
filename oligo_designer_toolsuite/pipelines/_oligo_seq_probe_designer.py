@@ -9,7 +9,6 @@ import warnings
 from pathlib import Path
 
 import yaml
-from Bio.SeqUtils import MeltingTemp as mt
 
 from oligo_designer_toolsuite._exceptions import ConfigurationError
 from oligo_designer_toolsuite.database import OligoDatabase, ReferenceDatabase
@@ -37,6 +36,7 @@ from oligo_designer_toolsuite.oligo_property_filter import (
     HardMaskedSequenceFilter,
     HomopolymericRunsFilter,
     MeltingTemperatureNNFilter,
+    ProhibitedSequenceFilter,
     PropertyFilter,
     SecondaryStructureFilter,
     SelfComplementFilter,
@@ -63,7 +63,9 @@ from oligo_designer_toolsuite.pipelines._utils import (
     base_log_parameters,
     base_parser,
     check_content_oligo_database,
+    get_highly_abundant_kmer_sequences,
     pipeline_step_basic,
+    preprocess_tm_parameters,
     setup_logging,
 )
 from oligo_designer_toolsuite.sequence_generator import OligoSequenceGenerator
@@ -146,6 +148,7 @@ class OligoSeqProbeDesigner:
         target_probe_secondary_structures_T: int,
         target_probe_secondary_structures_threshold_deltaG: int,
         target_probe_homopolymeric_base_n: dict,
+        target_probe_prohibited_sequences: list[str],
         target_probe_max_len_selfcomplement: int,
         target_probe_Tm_parameters: dict,
         target_probe_Tm_chem_correction_parameters: dict | None,
@@ -242,6 +245,8 @@ class OligoSeqProbeDesigner:
         :param target_probe_homopolymeric_base_n: Dictionary specifying the maximum allowed length of
             homopolymeric runs for each nucleotide base (keys: 'A', 'T', 'G', 'C').
         :type target_probe_homopolymeric_base_n: dict[str, int]
+        :param target_probe_prohibited_sequences: The sequences to prohibit in the oligos. If an oligo contains any of these sequences, it will be filtered out.
+        :type target_probe_prohibited_sequences: list[str]
         :param target_probe_max_len_selfcomplement: Maximum allowable length of self-complementary
             sequences. Probes with longer self-complementary regions can form hairpins and reduce
             hybridization efficiency.
@@ -390,6 +395,7 @@ class OligoSeqProbeDesigner:
             Tm_chem_correction_parameters=target_probe_Tm_chem_correction_parameters,
             Tm_salt_correction_parameters=target_probe_Tm_salt_correction_parameters,
             homopolymeric_base_n=target_probe_homopolymeric_base_n,
+            prohibited_sequences=target_probe_prohibited_sequences,
             max_len_selfcomplement=target_probe_max_len_selfcomplement,
             secondary_structures_T=target_probe_secondary_structures_T,
             secondary_structures_threshold_deltaG=target_probe_secondary_structures_threshold_deltaG,
@@ -728,6 +734,7 @@ class TargetProbeDesigner:
         Tm_chem_correction_parameters: dict | None,
         Tm_salt_correction_parameters: dict | None,
         homopolymeric_base_n: dict[str, int],
+        prohibited_sequences: list[str],
         max_len_selfcomplement: int,
         secondary_structures_T: float,
         secondary_structures_threshold_deltaG: float,
@@ -789,6 +796,9 @@ class TargetProbeDesigner:
             run length. For example: {'A': 3, 'T': 3, 'G': 3, 'C': 3} allows up to 3 consecutive
             identical bases.
         :type homopolymeric_base_n: dict[str, int]
+        :param prohibited_sequences: List of sequences that are prohibited from being used in the probes.
+            These sequences will be removed from the database.
+        :type prohibited_sequences: list[str]
         :param max_len_selfcomplement: Maximum allowable length of self-complementary sequences.
             Probes with longer self-complementary regions can form hairpins and reduce hybridization
             efficiency.
@@ -824,6 +834,9 @@ class TargetProbeDesigner:
         homopolymeric_runs = HomopolymericRunsFilter(
             base_n=homopolymeric_base_n,
         )
+        prohibited_sequence_filter = ProhibitedSequenceFilter(
+            prohibited_sequences=prohibited_sequences,
+        )
         self_comp = SelfComplementFilter(
             max_len_selfcomplement=max_len_selfcomplement,
         )
@@ -831,6 +844,7 @@ class TargetProbeDesigner:
         filters = [
             hard_masked_sequences,
             soft_masked_sequences,
+            prohibited_sequence_filter,
             homopolymeric_runs,
             gc_content,
             melting_temperature,
@@ -1366,63 +1380,22 @@ def main() -> None:
             # ensure that the list contains unique gene ids
             region_ids = list(set([line.rstrip() for line in lines]))
 
-    ##### Preprocess melting temperature params #####
-    target_probe_Tm_parameters = config["target_probe_Tm_parameters"]
-    target_probe_Tm_parameters["nn_table"] = getattr(mt, target_probe_Tm_parameters["nn_table"])
-    target_probe_Tm_parameters["tmm_table"] = getattr(mt, target_probe_Tm_parameters["tmm_table"])
-    target_probe_Tm_parameters["imm_table"] = getattr(mt, target_probe_Tm_parameters["imm_table"])
-    target_probe_Tm_parameters["de_table"] = getattr(mt, target_probe_Tm_parameters["de_table"])
-
-    ##### Parameters for the specificity filters #####
-    target_probe_hybridization_probability_alignment_method = config[
-        "target_probe_hybridization_probability_alignment_method"
-    ]
-    target_probe_hybridization_probability_search_parameters = {}
-    target_probe_hybridization_probability_hit_parameters = {}
-    if target_probe_hybridization_probability_alignment_method == "blastn":
-        # Specificity filter with BlastN
-        target_probe_hybridization_probability_search_parameters = config[
-            "target_probe_hybridization_probability_blastn_search_parameters"
-        ]
-        target_probe_hybridization_probability_hit_parameters = config[
-            "target_probe_hybridization_probability_blastn_hit_parameters"
-        ]
-    elif target_probe_hybridization_probability_alignment_method == "bowtie":
-        # Specificity filter with Bowtie
-        target_probe_hybridization_probability_search_parameters = config[
-            "target_probe_hybridization_probability_bowtie_search_parameters"
-        ]
-        target_probe_hybridization_probability_hit_parameters = config[
-            "target_probe_hybridization_probability_bowtie_hit_parameters"
-        ]
-
-    target_probe_cross_hybridization_alignment_method = config[
-        "target_probe_cross_hybridization_alignment_method"
-    ]
-    target_probe_cross_hybridization_search_parameters = {}
-    target_probe_cross_hybridization_hit_parameters = {}
-    if target_probe_cross_hybridization_alignment_method == "blastn":
-        # Crosshybridization filter with BlastN
-        target_probe_cross_hybridization_search_parameters = config[
-            "target_probe_cross_hybridization_blastn_search_parameters"
-        ]
-        target_probe_cross_hybridization_hit_parameters = config[
-            "target_probe_cross_hybridization_blastn_hit_parameters"
-        ]
-    elif target_probe_cross_hybridization_alignment_method == "bowtie":
-        # Crosshybridization filter with Bowtie
-        target_probe_cross_hybridization_search_parameters = config[
-            "target_probe_cross_hybridization_bowtie_search_parameters"
-        ]
-        target_probe_cross_hybridization_hit_parameters = config[
-            "target_probe_cross_hybridization_bowtie_hit_parameters"
-        ]
-
     ##### initialize probe designer pipeline #####
     pipeline = OligoSeqProbeDesigner(
         write_intermediate_steps=config["write_intermediate_steps"],
         dir_output=config["dir_output"],
         n_jobs=config["n_jobs"],
+    )
+
+    ##### Add highly abundant k-mers to prohibited sequences #####
+    target_probe_prohibited_sequences = list(
+        set(
+            config["target_probe_prohibited_sequences"]
+            + get_highly_abundant_kmer_sequences(
+                files_fasta=config["files_fasta_target_probe_database"],
+                kmer_abundance_threshold=config["target_probe_kmer_abundance_threshold"],
+            )
+        )
     )
 
     ##### design probes #####
@@ -1444,19 +1417,32 @@ def main() -> None:
             "target_probe_secondary_structures_threshold_deltaG"
         ],
         target_probe_homopolymeric_base_n=config["target_probe_homopolymeric_base_n"],
+        target_probe_prohibited_sequences=target_probe_prohibited_sequences,
         target_probe_max_len_selfcomplement=config["target_probe_max_len_selfcomplement"],
-        target_probe_Tm_parameters=target_probe_Tm_parameters,
+        target_probe_Tm_parameters=preprocess_tm_parameters(config["target_probe_Tm_parameters"]),
         target_probe_Tm_chem_correction_parameters=config["target_probe_Tm_chem_correction_parameters"],
         target_probe_Tm_salt_correction_parameters=config["target_probe_Tm_salt_correction_parameters"],
         # Step 3: Specificity Filter Parameters
         files_fasta_reference_database_target_probe=config["files_fasta_reference_database_target_probe"],
         files_vcf_reference_database_target_probe=config["files_vcf_reference_database_target_probe"],
-        target_probe_cross_hybridization_alignment_method=target_probe_cross_hybridization_alignment_method,
-        target_probe_cross_hybridization_search_parameters=target_probe_cross_hybridization_search_parameters,
-        target_probe_cross_hybridization_hit_parameters=target_probe_cross_hybridization_hit_parameters,
-        target_probe_hybridization_probability_alignment_method=target_probe_hybridization_probability_alignment_method,
-        target_probe_hybridization_probability_search_parameters=target_probe_hybridization_probability_search_parameters,
-        target_probe_hybridization_probability_hit_parameters=target_probe_hybridization_probability_hit_parameters,
+        target_probe_cross_hybridization_alignment_method=config[
+            "target_probe_cross_hybridization_alignment_method"
+        ],
+        target_probe_cross_hybridization_search_parameters=config[
+            "target_probe_cross_hybridization_search_parameters"
+        ],
+        target_probe_cross_hybridization_hit_parameters=config[
+            "target_probe_cross_hybridization_hit_parameters"
+        ],
+        target_probe_hybridization_probability_alignment_method=config[
+            "target_probe_hybridization_probability_alignment_method"
+        ],
+        target_probe_hybridization_probability_search_parameters=config[
+            "target_probe_hybridization_probability_search_parameters"
+        ],
+        target_probe_hybridization_probability_hit_parameters=config[
+            "target_probe_hybridization_probability_hit_parameters"
+        ],
         target_probe_hybridization_probability_threshold=config[
             "target_probe_hybridization_probability_threshold"
         ],
