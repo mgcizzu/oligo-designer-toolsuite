@@ -510,9 +510,9 @@ class FastaParser:
         """
         Creates or refreshes the FASTA index file (.fai) for the given FASTA file.
 
-        This method ensures that a valid index exists for the FASTA file. If force_reindex
-        is True, any existing index will be removed before creating a new one. This is
-        useful after overwriting a FASTA file to ensure the index matches the new content.
+        This method ensures that a valid index exists for the FASTA file. Any existing index
+        will be removed before creating a new one. This is useful after overwriting a FASTA
+        file to ensure the index matches the new content.
 
         :param file_fasta: Path to the FASTA file to index.
         :type file_fasta: str

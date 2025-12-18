@@ -177,8 +177,9 @@ def count_kmer_abundance(
 
     This function iterates through one or more FASTA files, extracts k-mers of specified length(s),
     counts their occurrences, and calculates fractional abundances (each k-mer count divided by
-    the total k-mer count for that k value). The function supports processing a single k value,
-    a range of k values, or a list of specific k values.
+    the total k-mer count for that k value). The reported fractional abundances are reported across
+    all FASTA files.The function supports processing a single k value, a range of k values, or a
+    list of specific k values.
 
     :param files_fasta: Path(s) to FASTA file(s) to process. Can be a single file path (str) or
         a list of file paths (list[str]).
@@ -235,7 +236,7 @@ def count_kmer_abundance(
         raise ValueError("All k values must be positive integers")
 
     # Normalize files_fasta input to a list
-    files_fasta = check_if_list(files_fasta)
+    files_fasta = cast_to_list(files_fasta)
 
     # Initialize FastaParser
     fasta_parser = FastaParser()

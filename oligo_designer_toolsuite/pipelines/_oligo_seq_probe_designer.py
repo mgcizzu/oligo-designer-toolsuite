@@ -796,6 +796,9 @@ class TargetProbeDesigner:
             run length. For example: {'A': 3, 'T': 3, 'G': 3, 'C': 3} allows up to 3 consecutive
             identical bases.
         :type homopolymeric_base_n: dict[str, int]
+        :param prohibited_sequences: List of sequences that are prohibited from being used in the probes.
+            These sequences will be removed from the database.
+        :type prohibited_sequences: list[str]
         :param max_len_selfcomplement: Maximum allowable length of self-complementary sequences.
             Probes with longer self-complementary regions can form hairpins and reduce hybridization
             efficiency.
