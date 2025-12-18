@@ -22,10 +22,10 @@ from oligo_designer_toolsuite.utils import (
     FastaParser,
     GffParser,
     VCFParser,
+    cast_to_list,
+    cast_to_list_of_lists,
     check_if_dna_sequence,
     check_if_key_exists,
-    check_if_list,
-    check_if_list_of_lists,
     check_if_region_in_database,
     check_tsv_format,
     collapse_properties_for_duplicated_sequences,
@@ -144,35 +144,35 @@ class TestCheckers(unittest.TestCase):
             nested_database, "h"
         ), "Failed: Key 'h' should exist deep within nested_database"
 
-    def test_check_if_list_str(self) -> None:
-        """Test if check_if_list works correctly for a string."""
+    def test_cast_to_list_str(self) -> None:
+        """Test if cast_to_list works correctly for a string."""
         value = "test"
-        result = check_if_list(value)
-        assert result == [value], f"error: check_if_list failed. Expected: [{value}], got: {result}"
+        result = cast_to_list(value)
+        assert result == [value], f"error: cast_to_list failed. Expected: [{value}], got: {result}"
 
-    def test_check_if_list_list(self) -> None:
-        """Test if check_if_list works correctly for a list."""
+    def test_cast_to_list_list(self) -> None:
+        """Test if cast_to_list works correctly for a list."""
         value = ["test", ["test2"]]
-        result = check_if_list(value)
-        assert result == value, f"error: check_if_list failed. Expected: {value}, got: {result}"
+        result = cast_to_list(value)
+        assert result == value, f"error: cast_to_list failed. Expected: {value}, got: {result}"
 
-    def test_check_if_list_of_lists_str(self) -> None:
-        """Test if check_if_list works correctly for a string."""
+    def test_cast_to_list_of_lists_str(self) -> None:
+        """Test if cast_to_list_of_lists works correctly for a string."""
         value = "test"
-        result = check_if_list_of_lists(value)
-        assert result == [[value]], f"error: check_if_list failed. Expected: [[{value}]], got: {result}"
+        result = cast_to_list_of_lists(value)
+        assert result == [[value]], f"error: cast_to_list_of_lists failed. Expected: [[{value}]], got: {result}"
 
-    def test_check_if_list_of_lists_list(self) -> None:
-        """Test if check_if_list works correctly for a list."""
+    def test_cast_to_list_of_lists_list(self) -> None:
+        """Test if cast_to_list_of_lists works correctly for a list."""
         value = ["test", ["test2"]]
-        result = check_if_list_of_lists(value)
-        assert result == [value], f"error: check_if_list failed. Expected: [{value}], got: {result}"
+        result = cast_to_list_of_lists(value)
+        assert result == [value], f"error: cast_to_list_of_lists failed. Expected: [{value}], got: {result}"
 
-    def test_check_if_list_of_lists_list_of_lists(self) -> None:
-        """Test if check_if_list works correctly for a list."""
+    def test_cast_to_list_of_lists_list_of_lists(self) -> None:
+        """Test if cast_to_list_of_lists works correctly for a list."""
         value = [["test", ["test2"]]]
-        result = check_if_list_of_lists(value)
-        assert result == value, f"error: check_if_list failed. Expected: {value}, got: {result}"
+        result = cast_to_list_of_lists(value)
+        assert result == value, f"error: cast_to_list_of_lists failed. Expected: {value}, got: {result}"
 
     def test_check_tsv_format(self) -> None:
         """Test if the parser extracts fasta header correctly."""
@@ -269,6 +269,20 @@ class TestDatabaseProcessor(unittest.TestCase):
         assert dict_merged["start"] == [[1000], [1020]], "error: different dicts should have been merged"
         assert dict_merged["end"] == [[2000], [2020]], "error: different dicts should have been merged"
         assert dict_merged["strand"] == [["+"], ["-"]], "error: different dicts should have been merged"
+
+    def test_collapse_properties_for_duplicated_sequences_warns_on_different_sequence_values(self) -> None:
+        """Test that a warning is issued when sequence type values differ between dictionaries."""
+        dict1 = {"oligo": "ATCGATCGATCG", "chromosome": [["10"]], "start": [[1000]]}
+        dict2 = {"oligo": "GCTAGCTAGCTA", "chromosome": [["10"]], "start": [[1000]]}
+
+        with self.assertWarns(UserWarning) as warning_context:
+            collapse_properties_for_duplicated_sequences(dict1, dict2, database_sequence_types=["oligo"])
+
+        self.assertIn(
+            "oligo",
+            str(warning_context.warning),
+            "error: warning should mention the key with different values",
+        )
 
     def test_format_oligo_properties(self) -> None:
         oligo_properties = {"chromosome": "10", "start": [1000], "end": [[2000]], "strand": [["+"], ["-"]]}

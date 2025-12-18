@@ -8,7 +8,7 @@ from subprocess import Popen
 
 from Bio import SeqIO
 
-from ._checkers_and_helpers import check_if_list
+from ._checkers_and_helpers import cast_to_list
 from ._sequence_parser import FastaParser
 
 ############################################
@@ -93,7 +93,7 @@ def get_intersection(file_A: str, file_B: list[str] | str, file_bed_out: str) ->
     :param file_bed_out: Path to the output BED file where the intersection results will be saved.
     :type file_bed_out: str
     """
-    file_B = check_if_list(file_B)
+    file_B = cast_to_list(file_B)
 
     cmd = "bedtools intersect -wa -wb -bed"
     cmd += " -a " + file_A

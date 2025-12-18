@@ -847,7 +847,7 @@ class CycleHCRProbeDesigner:
         probe_database: OligoDatabase,
         codebook: pd.DataFrame,
         readout_probe_table: pd.DataFrame,
-        top_n_sets: int = 3,
+        top_n_sets: int,
         output_properties: list[str] | None = None,
     ) -> None:
         """
@@ -1986,12 +1986,12 @@ def main() -> None:
         warnings.warn(
             "No gene list file was provided! All genes from fasta file are used to generate the probes. This chioce can use a lot of resources."
         )
-        gene_ids = None
+        region_ids = None
     else:
         with open(config["file_regions"]) as handle:
             lines = handle.readlines()
             # ensure that the list contains unique gene ids
-            gene_ids = list(set([line.rstrip() for line in lines]))
+            region_ids = list(set([line.rstrip() for line in lines]))
 
     ##### initialize probe designer pipeline #####
     pipeline = CycleHCRProbeDesigner(
@@ -2002,7 +2002,7 @@ def main() -> None:
 
     ##### design probes #####
     target_probe_database = pipeline.design_target_probes(
-        region_ids=gene_ids,
+        region_ids=region_ids,
         files_fasta_target_probe_database=config["files_fasta_target_probe_database"],
         files_fasta_reference_database_target_probe=config["files_fasta_reference_database_target_probe"],
         # Target Probe Design
