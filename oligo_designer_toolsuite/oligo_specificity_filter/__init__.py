@@ -15,6 +15,7 @@ from ._policies import (
     RemoveByDegreeFilterPolicy,
     RemoveByLargerRegionFilterPolicy,
 )
+from ._registry import create_specificity_filter
 from ._specificity_filter import SpecificityFilter
 
 __all__ = [
@@ -34,5 +35,6 @@ __all__ = [
     "RemoveAllFilterPolicy",
     "RemoveByDegreeFilterPolicy",
     "RemoveByLargerRegionFilterPolicy",
+    "create_specificity_filter",
     "SpecificityFilter",
 ]

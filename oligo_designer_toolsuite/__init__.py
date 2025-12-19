@@ -8,6 +8,7 @@ Submodules:
 - oligo_selection: Implements algorithms and methods for selecting oligosets.
 - oligo_specificity_filter: Provides functions for filtering oligos based on specificity criteria.
 - pipelines: Defines workflows and pipelines for oligo sequence design.
+- plugins: Provides the functions to set up a plugin system for filters.
 - sequence_generator: Provides functionality for generating genomic sequences and oligos.
 - utils: Includes various utility functions and helper methods used across the package.
 """
@@ -19,6 +20,7 @@ from . import (
     oligo_selection,
     oligo_specificity_filter,
     pipelines,
+    plugins,
     sequence_generator,
     utils,
 )
@@ -30,6 +32,7 @@ __all__ = [
     "oligo_selection",
     "oligo_specificity_filter",
     "pipelines",
+    "plugins",
     "sequence_generator",
     "utils",
 ]
