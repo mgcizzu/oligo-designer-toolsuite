@@ -25,19 +25,14 @@ class OligoSelectionPolicy:
 
     :param set_scoring: Scoring method for evaluating the quality of the oligo sets.
     :type set_scoring: SetScoringBase
-    :param pre_filter: A flag indicating whether pre-filtering should be applied to the oligos before selection,
-                which improves performance for larger sets (e.g., > 30) but can slow down small set selection (e.g., < 30).
-    :type pre_filter: bool
     """
 
     def __init__(
         self,
         set_scoring: SetScoringBase,
-        pre_filter: bool,
     ) -> None:
         """Constructor for the OligoSelectionPolicy class."""
         self.set_scoring = set_scoring
-        self.pre_filter = pre_filter
 
     def apply(
         self,
@@ -73,12 +68,11 @@ class OligoSelectionPolicy:
         self.min_oligoset_size = set_size_min
         self.n_sets = n_sets
 
-        if self.pre_filter:
-            oligos_scores, non_overlap_matrix, non_overlap_matrix_ids = self._pre_filter_oligos(
-                oligos_scores, non_overlap_matrix, non_overlap_matrix_ids
-            )
+        oligos_scores, non_overlap_matrix, non_overlap_matrix_ids = self._pre_filter_oligos_by_degree(
+            oligos_scores, non_overlap_matrix, non_overlap_matrix_ids
+        )
 
-        if len(oligos_scores) > self.min_oligoset_size:
+        if oligos_scores is not None and len(oligos_scores) > self.min_oligoset_size:
             oligosets = self._run_selection(oligos_scores, non_overlap_matrix, non_overlap_matrix_ids)
         else:
             oligosets = []
@@ -89,15 +83,40 @@ class OligoSelectionPolicy:
 
         return oligosets_df
 
-    def _pre_filter_oligos(
+    def _greedy_max_clique(self, G: nx.Graph) -> list[str]:
+        """
+        Finds the maximum clique in a graph using a greedy degree-based heuristic.
+
+        Nodes are processed in descending order of degree. A node is added to the
+        clique if it is connected to all nodes currently in the clique. The resulting
+        clique is guaranteed to be valid and maximal, but not necessarily maximum.
+
+        :param G: A networkx graph.
+        :type G: nx.Graph
+        :return: A list of nodes in the maximum clique.
+        :rtype: list[str]
+        """
+        nodes = sorted(G.nodes(), key=lambda n: G.degree(n), reverse=True)
+        clique: list[str] = []
+        for n in nodes:
+            if all(G.has_edge(n, c) for c in clique):
+                clique.append(n)
+
+        return clique
+
+    def _pre_filter_oligos_by_degree(
         self,
         oligos_scores: pd.Series,
         non_overlap_matrix: csr_matrix,
         non_overlap_matrix_ids: list,
     ) -> tuple[pd.Series, csr_matrix, list]:
         """
-        Pre-filters oligos based on the minimal set removing all oligos from the initial set that
-        form independent sets which are smaller than the minimal set size.
+        Pre-filter oligos by removing nodes that cannot possibly participate in any
+        oligo set of size >= self.min_oligoset_size due to insufficient graph degree.
+
+        A necessary condition for a node to be in a k-sized compatible set (clique)
+        is: degree(node) >= k - 1. Therefore we keep only nodes with
+        degree >= (self.min_oligoset_size - 1).
 
         :param oligos_scores: A pandas Series containing the scores for each oligo.
         :type oligos_scores: pd.Series
@@ -108,22 +127,27 @@ class OligoSelectionPolicy:
         :return: A tuple containing the filtered oligo scores and the updated overlap matrix and a list of oligo ids.
         :rtype: tuple[pd.Series, csr_matrix, list]
         """
-        G = nx.from_scipy_sparse_array(non_overlap_matrix)
-        max_clique = nx.approximation.max_clique(G)
-        nodes = []
-        while len(max_clique) > self.min_oligoset_size:
-            nodes += list(max_clique)
-            G.remove_nodes_from(max_clique)
-            max_clique = nx.approximation.max_clique(G)
+        if self.min_oligoset_size <= 1:
+            return oligos_scores, non_overlap_matrix, non_overlap_matrix_ids
 
-        # only keep oligos in overlap matrix that pass the pre-filter
-        oligos_scores = oligos_scores.iloc[np.array(nodes)]
-        non_overlap_matrix_ids_tmp = np.array(
-            [non_overlap_matrix_ids.index(oligo_id) for oligo_id in oligos_scores.index]
-        )
-        non_overlap_matrix = non_overlap_matrix[non_overlap_matrix_ids_tmp, :][:, non_overlap_matrix_ids_tmp]
-        non_overlap_matrix_ids = [non_overlap_matrix_ids[idx] for idx in non_overlap_matrix_ids_tmp]
-        return oligos_scores, non_overlap_matrix, non_overlap_matrix_ids
+        # Degree = number of non-zero entries in each row
+        degrees = non_overlap_matrix.getnnz(axis=1)
+
+        # Necessary condition for membership in a min-size clique
+        min_degree = self.min_oligoset_size - 1
+        nodes_to_keep = np.where(degrees >= min_degree)[0].astype(int)
+
+        if nodes_to_keep.size == 0:
+            # no nodes can satisfy the min set size
+            return oligos_scores.iloc[0:0], non_overlap_matrix[:0, :0].tocsr(), []
+
+        # Reduce matrix + ids
+        non_overlap_matrix_filt = non_overlap_matrix[nodes_to_keep, :][:, nodes_to_keep].tocsr()
+        non_overlap_matrix_ids_filt = [non_overlap_matrix_ids[i] for i in nodes_to_keep.tolist()]
+        oligos_scores_filt = oligos_scores.loc[non_overlap_matrix_ids_filt]
+        oligos_scores_filt.sort_values(ascending=self.set_scoring.ascending, inplace=True)
+
+        return oligos_scores_filt, non_overlap_matrix_filt, non_overlap_matrix_ids_filt
 
     @abstractmethod
     def _run_selection(
@@ -192,9 +216,6 @@ class GreedySelectionPolicy(OligoSelectionPolicy):
     :type set_scoring: SetScoringBase
     :param score_criteria: String representing the score metric to use for set selection (e.g., "set_score_worst", "set_score_sum", see SetScoringBase).
     :type score_criteria: str
-    :param pre_filter: A flag indicating whether pre-filtering should be applied to the oligos before selection,
-                which improves performance for larger sets (e.g., > 30) but can slow down small set selection (e.g., < 30).
-    :type pre_filter: bool
     :param penalty: Penalty factor applied to selected oligos, defaults to 0.05 (the higher the value, the more distinct the sets).
     :type penalty: float, optional
     :param n_attempts: The number of attempts to make when generating oligo sets. Default is 1000.
@@ -205,12 +226,11 @@ class GreedySelectionPolicy(OligoSelectionPolicy):
         self,
         set_scoring: SetScoringBase,
         score_criteria: str,
-        pre_filter: bool,
         penalty: float = 0.05,
         n_attempts: int = 1000,
     ) -> None:
         """Constructor for the GreedySelectionPolicy class."""
-        super().__init__(set_scoring=set_scoring, pre_filter=pre_filter)
+        super().__init__(set_scoring=set_scoring)
         self.score_criteria = score_criteria
         self.penalty = penalty
         self.n_attempts = n_attempts
@@ -307,34 +327,26 @@ class GraphBasedSelectionPolicy(OligoSelectionPolicy):
 
     :param set_scoring: Scoring method for evaluating the quality of the oligo sets.
     :type set_scoring: SetScoringBase
-    :param pre_filter: A flag indicating whether pre-filtering should be applied to the oligos before selection,
-                which improves performance for larger sets (e.g., > 30) but can slow down small set selection (e.g., < 30).
-    :type pre_filter: bool
     :param n_attempts: The number of attempts to make when generating oligo sets. Default is 1000.
     :type n_attempts: int, optional
     :param heuristic: Whether to use a heuristic approach for faster selection. Defaults to True.
     :type heuristic: bool, optional
     :param heuristic_n_attempts: The number of attempts to find the optimal oligo set using the heuristic approach. Default is 1000.
     :type heuristic_n_attempts: int, optional
-    :param clique_init_approximation: Whether to use an approximation approach for faster finding of initial oligo set. Defaults to False.
-    :type clique_init_approximation: bool, optional
     """
 
     def __init__(
         self,
         set_scoring: SetScoringBase,
-        pre_filter: bool,
         n_attempts: int = 1000,
         heuristic: bool = True,
         heuristic_n_attempts: int = 1000,
-        clique_init_approximation: bool = False,
     ) -> None:
         """Constructor for the GraphBasedSelectionPolicy class."""
-        super().__init__(set_scoring=set_scoring, pre_filter=pre_filter)
+        super().__init__(set_scoring=set_scoring)
         self.n_attempts = n_attempts
         self.heuristic = heuristic
         self.heuristic_n_attempts = heuristic_n_attempts
-        self.clique_init_approximation = clique_init_approximation
 
     def _run_selection(
         self, oligos_scores: pd.Series, non_overlap_matrix: csr_matrix, non_overlap_matrix_ids: list
@@ -362,22 +374,10 @@ class GraphBasedSelectionPolicy(OligoSelectionPolicy):
         # because iterating through cliques until we find one which is greater than the
         # optimal set size, will take a long time.
         oligoset_size = self.opt_oligoset_size
-        clique_init = []
+        clique_init = self._greedy_max_clique(G)
 
-        if self.clique_init_approximation:
-            clique_max = nx.approximation.max_clique(G)
-            if len(clique_max) > self.min_oligoset_size:
-                clique_init = list(clique_max)
-        else:
-            cliques = nx.algorithms.clique.find_cliques(G)
-            for clique in cliques:
-                if len(clique) > self.min_oligoset_size:
-                    clique_init = clique
-                if len(clique) >= oligoset_size:
-                    break
-
-        if not clique_init:
-            # if no clique with min_oligoset_size was found we don't need to compute the sets
+        # if no clique with min_oligoset_size was found we don't need to compute the sets
+        if len(clique_init) < self.min_oligoset_size:
             return []
 
         oligoset_size = min(oligoset_size, len(clique_init))
@@ -414,7 +414,6 @@ class GraphBasedSelectionPolicy(OligoSelectionPolicy):
             G = nx.relabel_nodes(
                 G, {i: non_overlap_matrix_ids[i] for i in range(len(non_overlap_matrix_ids))}
             )
-
         # need to recompute cliques to be able to reiterate through them from the start and find all sets
         cliques = nx.algorithms.clique.find_cliques(G)
 
@@ -460,6 +459,11 @@ class GraphBasedSelectionPolicy(OligoSelectionPolicy):
         :return: The best set of oligos found by the heuristic approach and the updated oligos scores.
         :rtype: tuple(list, pd.Series)
         """
+
+        # define a function to check if a candidate is better than a reference
+        def is_better(candidate: float, reference: float) -> bool:
+            return candidate < reference if self.set_scoring.ascending else candidate > reference
+
         # Sort the oligos by their score
         oligo_ids_sorted = oligos_scores.sort_values(ascending=self.set_scoring.ascending).index.to_list()
 
@@ -473,7 +477,8 @@ class GraphBasedSelectionPolicy(OligoSelectionPolicy):
 
         # Initialize max_score with score from initial oligoset
         best_oligoset = oligoset_init
-        best_oligoset_max_score = oligos_scores.loc[oligoset_init].max()
+        _, best_scores = self.set_scoring.apply(oligos_scores.loc[best_oligoset], oligoset_size)
+        best_oligoset_worst_score = best_scores["set_score_worst"]
 
         for first_idx in range(min(len(oligo_ids_sorted), heuristic_n_attempts)):
             # Use the integer index because the matrix is converted to np array
@@ -482,7 +487,7 @@ class GraphBasedSelectionPolicy(OligoSelectionPolicy):
                 # Find first oligo in sorted array that is not overlapping with any selected oligo
                 no_overlap = np.all(non_overlap_matrix_sorted[oligoset_idxs].toarray(), axis=0)
                 # Ensure not to select already selected oligos
-                # no_overlap[oligoset_idxs] = False
+                no_overlap[oligoset_idxs] = False
                 # Add the first entry withou overlap to set, i.e. the next oligo with the best score
                 if np.any(no_overlap):
                     oligoset_idxs = np.append(oligoset_idxs, np.where(no_overlap)[0][0])
@@ -492,11 +497,16 @@ class GraphBasedSelectionPolicy(OligoSelectionPolicy):
             # If enough non overlapping oligos are found and score is lower than existing set, replace existing with new set
             if len(oligoset_idxs) == oligoset_size:
                 oligoset = [oligo_ids_sorted[idx] for idx in oligoset_idxs]
-                oligoset_max_score = oligos_scores.loc[oligoset].max()
-                if oligoset_max_score < best_oligoset_max_score:
-                    best_oligoset_max_score = oligoset_max_score
+                _, oligoset_scores = self.set_scoring.apply(oligos_scores.loc[oligoset], oligoset_size)
+                oligoset_worst_score = oligoset_scores["set_score_worst"]
+
+                if is_better(oligoset_worst_score, best_oligoset_worst_score):
+                    best_oligoset_worst_score = oligoset_worst_score
                     best_oligoset = oligoset
 
-        oligos_scores = oligos_scores[oligos_scores <= best_oligoset_max_score]
+        if self.set_scoring.ascending:
+            oligos_scores = oligos_scores[oligos_scores <= best_oligoset_worst_score]
+        else:
+            oligos_scores = oligos_scores[oligos_scores >= best_oligoset_worst_score]
 
         return best_oligoset, oligos_scores
