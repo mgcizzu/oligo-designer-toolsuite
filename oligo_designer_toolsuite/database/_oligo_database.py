@@ -873,7 +873,7 @@ class OligoDatabase:
         regions_to_remove = [
             region_id
             for region_id in region_ids
-            if len(self.database[region_id]) <= self.min_oligos_per_region
+            if len(self.database[region_id]) < self.min_oligos_per_region
         ]
 
         for region in regions_to_remove:
