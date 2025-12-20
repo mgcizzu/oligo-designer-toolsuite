@@ -1255,63 +1255,27 @@ class TargetProbeDesigner:
         oligos_scoring = OligoScoring(scorers=[exon_scorer, isoform_scorer, Tm_scorer, GC_scorer])
         set_scoring = AverageSetScoring(ascending=True)
 
-        # We change the processing dependent on the required number of probes in the probe sets
-        # For small sets, we don't pre-filter and find the initial set by iterating
-        # through all possible generated sets, which is faster than the max clique approximation.
+        # We change the processing dependent on the required number of probes in the probe sets.
+        # For small sets, we use the graph-based selection policy with heuristic optimization.
         selection_policy: OligoSelectionPolicy
-        if set_size_opt < 10:
-            pre_filter = False
-            clique_init_approximation = False
+        if set_size_opt < 30:
             selection_policy = GraphBasedSelectionPolicy(
                 set_scoring=set_scoring,
-                pre_filter=pre_filter,
                 n_attempts=n_attempts,
                 heuristic=heuristic,
                 heuristic_n_attempts=heuristic_n_attempts,
-                clique_init_approximation=clique_init_approximation,
             )
-            base_log_parameters(
-                {
-                    "pre_filter": pre_filter,
-                    "clique_init_approximation": clique_init_approximation,
-                    "selection_policy": "Graph-Based",
-                }
-            )
+            base_log_parameters({"selection_policy": "Graph-Based"})
 
-        # For medium sized sets, we don't pre-filter but we apply the max clique approximation
-        # to find an initial probe set faster.
-        elif 10 < set_size_opt < 30:
-            pre_filter = False
-            clique_init_approximation = True
-            selection_policy = GraphBasedSelectionPolicy(
-                set_scoring=set_scoring,
-                pre_filter=pre_filter,
-                n_attempts=n_attempts,
-                heuristic=heuristic,
-                heuristic_n_attempts=heuristic_n_attempts,
-                clique_init_approximation=clique_init_approximation,
-            )
-            base_log_parameters(
-                {
-                    "pre_filter": pre_filter,
-                    "clique_init_approximation": clique_init_approximation,
-                    "selection_policy": "Graph-Based",
-                }
-            )
-
-        # For large sets, we apply the pre-filter which removes all probes from the
-        # graph that are only part of cliques which are smaller than the minimum set size
-        # and we apply the Greedy Selection Policy istead of the graph-based selection policy.
+        # For large sets, we use the greedy selection policy.
         else:
-            pre_filter = True
             selection_policy = GreedySelectionPolicy(
                 set_scoring=set_scoring,
                 score_criteria=set_scoring.score_1,
-                pre_filter=pre_filter,
                 penalty=0.01,
                 n_attempts=n_attempts,
             )
-            base_log_parameters({"pre_filter": pre_filter, "selection_policy": "Greedy"})
+            base_log_parameters({"selection_policy": "Greedy"})
 
         oligoset_generator = OligosetGeneratorIndependentSet(
             selection_policy=selection_policy,
