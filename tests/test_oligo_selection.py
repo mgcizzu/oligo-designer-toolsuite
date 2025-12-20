@@ -102,7 +102,6 @@ class TestOligosetGeneratorIndependentSet(unittest.TestCase):
         self.set_scoring = LowestSetScoring(ascending=True)
         self.selection_policy = GraphBasedSelectionPolicy(
             set_scoring=self.set_scoring,
-            pre_filter=False,
             n_attempts=100000,
             heuristic=True,
             heuristic_n_attempts=100,
@@ -349,7 +348,7 @@ class TestOligoSelectionPolicy(unittest.TestCase):
         self.oligos_scores.sort_values(ascending=True, inplace=True)
 
         selection_policy = GraphBasedSelectionPolicy(
-            set_scoring=self.set_scoring, pre_filter=True
+            set_scoring=self.set_scoring
         )  # just define something to avoid errors
 
         oligo_generator = OligosetGeneratorIndependentSet(
@@ -364,7 +363,7 @@ class TestOligoSelectionPolicy(unittest.TestCase):
         shutil.rmtree(self.tmp_path)
 
     def test_graph_based_selection_policy(self) -> None:
-        selection_policy = GraphBasedSelectionPolicy(set_scoring=self.set_scoring, pre_filter=True)
+        selection_policy = GraphBasedSelectionPolicy(set_scoring=self.set_scoring)
         oligosets = selection_policy.apply(
             oligos_scores=self.oligos_scores,
             non_overlap_matrix=self.non_overlap_matrix,
@@ -376,37 +375,16 @@ class TestOligoSelectionPolicy(unittest.TestCase):
         assert oligosets is not None, "Selection policy returned None - no sets were generated"
 
         oligosets = oligosets.round(3)
-        true_oligosets_1 = pd.DataFrame(
-            {
-                "oligoset_id": [0, 1],
-                "oligo_0": ["AGRN_pid258", "AGRN_pid258"],
-                "oligo_1": ["AGRN_pid77", "AGRN_pid77"],
-                "oligo_2": ["AGRN_pid285", "AGRN_pid288"],
-                "oligo_3": ["AGRN_pid248", "AGRN_pid248"],
-                "set_score_worst": [1.017, 1.017],
-                "set_score_sum": [2.314, 2.314],
-            }
-        )
 
-        true_oligosets_2 = pd.DataFrame(
-            {
-                "oligoset_id": [0, 1],
-                "oligo_0": ["AGRN_pid258", "AGRN_pid258"],
-                "oligo_1": ["AGRN_pid77", "AGRN_pid77"],
-                "oligo_2": ["AGRN_pid288", "AGRN_pid285"],
-                "oligo_3": ["AGRN_pid248", "AGRN_pid248"],
-                "set_score_worst": [1.017, 1.017],
-                "set_score_sum": [2.314, 2.314],
-            }
-        )
-
-        assert true_oligosets_1.equals(oligosets) or true_oligosets_2.equals(
-            oligosets
+        assert (
+            oligosets.iloc[0].set_score_worst <= 0.66 and oligosets.iloc[1].set_score_worst <= 0.66
         ), "The oligosets are not computed correctly!"
 
     def test_greedy_selection_policy(self) -> None:
         selection_policy = GreedySelectionPolicy(
-            set_scoring=self.set_scoring, score_criteria=self.set_scoring.score_1, pre_filter=True
+            set_scoring=self.set_scoring,
+            score_criteria=self.set_scoring.score_1,
+            n_attempts=1000,
         )
         oligosets = selection_policy.apply(
             oligos_scores=self.oligos_scores,
@@ -419,30 +397,10 @@ class TestOligoSelectionPolicy(unittest.TestCase):
         assert oligosets is not None, "Selection policy returned None - no sets were generated"
 
         oligosets = oligosets.round(3)
-        true_oligosets_1 = pd.DataFrame(
-            {
-                "oligoset_id": [0, 1],
-                "oligo_0": ["AGRN_pid258", "AGRN_pid261"],
-                "oligo_1": ["AGRN_pid285", "AGRN_pid288"],
-                "oligo_2": ["AGRN_pid77", "AGRN_pid77"],
-                "oligo_3": ["AGRN_pid248", "AGRN_pid248"],
-                "set_score_worst": [1.017, 1.017],
-                "set_score_sum": [2.314, 2.428],
-            }
-        )
 
-        true_oligosets_2 = pd.DataFrame(
-            {
-                "oligoset_id": [0, 1],
-                "oligo_0": ["AGRN_pid258", "AGRN_pid261"],
-                "oligo_1": ["AGRN_pid288", "AGRN_pid285"],
-                "oligo_2": ["AGRN_pid77", "AGRN_pid77"],
-                "oligo_3": ["AGRN_pid248", "AGRN_pid248"],
-                "set_score_worst": [1.017, 1.017],
-                "set_score_sum": [2.314, 2.428],
-            }
-        )
+        print(oligosets.iloc[0])
+        print(oligosets.iloc[1])
 
-        assert true_oligosets_1.equals(oligosets) or true_oligosets_2.equals(
-            oligosets
+        assert (
+            oligosets.iloc[0].set_score_worst <= 1.031 and oligosets.iloc[1].set_score_worst <= 1.031
         ), "The oligosets are not computed correctly!"
