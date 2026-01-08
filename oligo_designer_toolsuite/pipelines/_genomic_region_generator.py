@@ -47,6 +47,8 @@ class GenomicRegionGenerator:
 
     :param dir_output: Directory path where output files will be saved.
     :type dir_output: str
+    :param config: Validated Pydantic model of the pipeline configuration
+    :type config: PipelineBaseConfig
     """
 
     def __init__(self, dir_output: str, config: PipelineBaseConfig) -> None:
