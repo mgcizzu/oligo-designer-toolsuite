@@ -4,7 +4,9 @@ from functools import lru_cache
 from typing import Any, Mapping
 
 from oligo_designer_toolsuite.plugins import (
+    discover_hybridization_models,
     discover_specificity_filter_plugins,
+    list_hybridization_probability_model_plugins,
     list_specificity_filter_plugins,
 )
 
@@ -13,7 +15,7 @@ from ._filter_blastn import BlastNFilter, BlastNSeedregionFilter, BlastNSeedregi
 from ._filter_bowtie import Bowtie2Filter, BowtieFilter
 from ._filter_cross_hybridization import CrossHybridizationFilter
 from ._filter_exact_matches import ExactMatchFilter
-from ._filter_hybridization_probability import HybridizationProbabilityFilter
+from ._filter_hybridization_probability import HybridizationProbabilityFilter, HybridizationProbabilityModel
 from ._filter_variants import VariantsFilter
 
 
@@ -119,3 +121,47 @@ def create_specificity_filter(
         filter_name = name
 
     return cls(filter_name=filter_name, **kwargs)
+
+
+@lru_cache(maxsize=1)
+def get_hybridization_filter_model_registry() -> Mapping[str, type[HybridizationProbabilityModel]]:
+    """
+    Return a registry of all available hybridization probability models.
+
+    This includes:
+    - All built-in models, at the moment none are implemented.
+    - All externally provided models discovered via entry points in the
+      "oligo_designer_toolsuite.hybridization_probability_models" group.
+
+    :return: Mapping from model name to model class
+    :rtype: Mapping
+    """
+    registry: dict[str, type[HybridizationProbabilityModel]]
+
+    # Overlay plugin-provided models; they can override built-ins if they
+    # intentionally reuse the same name.
+    registry.update(discover_hybridization_models())
+
+    return registry
+
+
+def list_hybridization_probability_models() -> Mapping[str, str]:
+    """
+    Return a simple mapping of hybridization probability model names to their origin.
+
+    This is primarily a convenience / debugging helper to quickly see which
+    filters are available and whether they are built-in or provided by plugins.
+
+    :return:  Mapping from filter name to an origin string ("built-in" or "plugin:<import-path>")
+    :rtype: Mapping
+    """
+    names: dict[str, str] = {}
+    builtins: dict[str, type[HybridizationProbabilityModel]] = {}
+    for name in builtins:
+        names[name] = "built-in"
+
+    # For plugins, we can resolve the import path via the plugin listing.
+    for name, import_path in list_hybridization_probability_model_plugins().items():
+        names[name] = f"plugin:{import_path}"
+
+    return names

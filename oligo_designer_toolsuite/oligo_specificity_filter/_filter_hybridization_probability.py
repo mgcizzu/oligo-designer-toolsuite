@@ -2,9 +2,12 @@
 # imports
 ############################################
 
+from typing import Protocol
+
+import numpy as np
+import pandas as pd
 from joblib import Parallel, delayed
 from joblib_progress import joblib_progress
-from oligo_designer_toolsuite_ai_filters.api import APIHybridizationProbability
 
 from oligo_designer_toolsuite._exceptions import ConfigurationError
 from oligo_designer_toolsuite.database import OligoDatabase
@@ -15,10 +18,23 @@ from oligo_designer_toolsuite.oligo_specificity_filter import (
     BlastNSeedregionSiteFilter,
     ReferenceSpecificityFilter,
 )
+from oligo_designer_toolsuite.oligo_specificity_filter._registry import (
+    get_hybridization_filter_model_registry,
+)
 
 ############################################
 # Oligo Hybridization Probability Filter Class
 ############################################
+
+
+class HybridizationProbabilityModel(Protocol):
+    def predict(
+        self,
+        queries: list[str],
+        gapped_queries: list[str],
+        references: list[str],
+        gapped_references: list[str],
+    ) -> np.ndarray | pd.DataFrame: ...
 
 
 class HybridizationProbabilityFilter(ReferenceSpecificityFilter):
@@ -54,7 +70,7 @@ class HybridizationProbabilityFilter(ReferenceSpecificityFilter):
         self,
         alignment_method: AlignmentSpecificityFilter,
         threshold: float,
-        ai_filter_path: str | None = None,
+        model: str,
         remove_hits: bool = True,
         filter_name: str = "hybridization_probability_filter",
         dir_output: str = "output",
@@ -67,7 +83,18 @@ class HybridizationProbabilityFilter(ReferenceSpecificityFilter):
 
         # instantiate ai model
         self.threshold = threshold
-        self.model = APIHybridizationProbability(ai_filter_path=ai_filter_path)
+        self.model = self._load_model(model_name=model)
+
+    def _load_model(self, model_name: str) -> HybridizationProbabilityModel:
+        registry = get_hybridization_filter_model_registry()
+        try:
+            cls: type[HybridizationProbabilityModel] = registry[model_name]
+        except KeyError as e:
+            avail = ", ".join(sorted(registry))
+            raise KeyError(
+                f"Unknown hybridization probability model '{model_name}'. Available: {avail}"
+            ) from e
+        return cls()
 
     def _create_reference(self, n_jobs: int) -> str:
         """
