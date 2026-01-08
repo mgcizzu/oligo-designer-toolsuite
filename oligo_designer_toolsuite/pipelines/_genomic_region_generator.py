@@ -18,10 +18,10 @@ from oligo_designer_toolsuite.pipelines._config_models import (
     SourceParamsNcbi,
 )
 from oligo_designer_toolsuite.pipelines._config_pipelines import (
+    GenomicRegionBaseConfig,
     GenomicRegionGeneratorCustomConfig,
     GenomicRegionGeneratorEnsemblConfig,
     GenomicRegionGeneratorNcbiConfig,
-    PipelineBaseConfig,
 )
 from oligo_designer_toolsuite.pipelines._utils import (
     base_log_parameters,
@@ -48,10 +48,10 @@ class GenomicRegionGenerator:
     :param dir_output: Directory path where output files will be saved.
     :type dir_output: str
     :param config: Validated Pydantic model of the pipeline configuration
-    :type config: PipelineBaseConfig
+    :type config: GenomicRegionBaseConfig
     """
 
-    def __init__(self, dir_output: str, config: PipelineBaseConfig) -> None:
+    def __init__(self, dir_output: str, config: GenomicRegionBaseConfig) -> None:
         """Constructor for the GenomicRegionGenerator class."""
         # create the output folder
         self.dir_output = os.path.abspath(dir_output)
