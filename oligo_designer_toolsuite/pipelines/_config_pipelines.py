@@ -2,15 +2,19 @@ from __future__ import annotations
 
 from typing import Annotated, Literal
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, PositiveInt
 
 from ._config_models import (
     DirOutputT,
     ExonExonJunctionBlockSizeT,
+    General,
     GenomicRegions,
+    PrimerCycleHCR,
+    ReadoutProbeCycleHCR,
     SourceParamsCustom,
     SourceParamsEnsembl,
     SourceParamsNcbi,
+    TargetProbeCycleHCR,
 )
 
 
@@ -99,3 +103,20 @@ class GenomicRegionGeneratorNcbiConfig(GenomicRegionBaseConfig):
         ),
     ]
     exon_exon_junction_block_size: ExonExonJunctionBlockSizeT
+
+
+class CycleHCRProbeDesignerConfig(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    schema_version: PositiveInt
+    general: Annotated[
+        General,
+        Field(
+            default_factory=lambda: General(
+                n_jobs=2, dir_output="output_cyclehcr_probe_designer", top_n_sets=3
+            ),
+            description="General parameters of the pipeline.",
+        ),
+    ]
+    target_probe: TargetProbeCycleHCR
+    readout_probe: ReadoutProbeCycleHCR
+    primer: PrimerCycleHCR
