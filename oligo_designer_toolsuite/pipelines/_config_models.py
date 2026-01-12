@@ -1,8 +1,18 @@
 from __future__ import annotations
 
-from typing import Annotated, Literal
+from typing import Annotated, Any, Literal
 
-from pydantic import BaseModel, ConfigDict, Field, NonNegativeInt, PositiveInt, field_validator
+from pydantic import (
+    BaseModel,
+    ConfigDict,
+    Field,
+    NonNegativeInt,
+    PositiveInt,
+    RootModel,
+    field_validator,
+    model_validator,
+)
+from typing_extensions import Self
 
 # ---------------------------
 # Genomic region generator options
@@ -330,3 +340,263 @@ class PrimerCycleHCR(BaseModel):
             description="defaults to oligo sequence, change if different sequence desired",
         ),
     ]
+
+
+class OligoSetSelection(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    max_graph_size: Annotated[
+        PositiveInt,
+        Field(
+            default=5000,
+            description="maximum number of oligos that are taken into consideration in the last step (5000 -> ~5GB, 2500 -> ~1GB)",
+        ),
+    ]
+    n_attempts: Annotated[
+        PositiveInt, Field(default=100000, description="number of attempts to find the optimal set of oligos")
+    ]
+    heuristic: Annotated[
+        bool,
+        Field(
+            default=True,
+            description="apply heuristic pre-search to reduce search space and runtime of oligo set selection",
+        ),
+    ]
+    heuristic_n_attempts: Annotated[
+        PositiveInt,
+        Field(
+            default=100,
+            description="number of attempts to find the optimal set of oligos for heuristic pre-search",
+        ),
+    ]
+
+
+class TmParameters(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    # defaults are from Bio.SeqUtils.MeltingTemp.Tm_NN
+    nn_table: Annotated[
+        Literal["DNA_NN1", "DNA_NN4", "DNA_NN3", "DNA_NN4"], Field(default="DNA_NN3", description="default")
+    ]
+    tmm_table: Annotated[Literal["DNA_TMM1"], Field(default="DNA_TMM1", description="default")]
+    imm_table: Annotated[Literal["DNA_IMM1"], Field(default="DNA_IMM1", description="default")]
+    de_table: Annotated[Literal["DNA_DE1"], Field(default="DNA_DE1", description="default")]
+    dnac1: Annotated[PositiveInt, Field(default=25, description="[nM]; default")]
+    dnac2: Annotated[PositiveInt, Field(default=25, description="[nM]; default")]
+    saltcorr: Annotated[
+        NonNegativeInt,
+        Field(
+            default=5,
+            ge=0,
+            le=7,
+            description="salt correction method, see Bio.SeqUtils.MeltingTemp.salt_correction",
+        ),
+    ]
+    Na: Annotated[NonNegativeInt, Field(default=50, description="[mM]; default")]
+    K: Annotated[NonNegativeInt, Field(default=0, description="[mM]; default")]
+    Tris: Annotated[NonNegativeInt, Field(default=0, description="[mM]; default")]
+    Mg: Annotated[NonNegativeInt, Field(default=0, description="[mM]; default")]
+    dNTPs: Annotated[NonNegativeInt, Field(default=0, description="[mM]; default")]
+
+
+class TmChemCorrectionParameters(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    # defaults are from Bio.SeqUtils.MeltingTemp.chem_correction
+    DMSO: Annotated[float, Field(default=0, ge=0, le=100, description="Percent DMSO")]
+    DMSOfactor: Annotated[
+        float, Field(default=0.75, description="How much Tm should decrease per percent DMSO")
+    ]
+    fmd: Annotated[
+        float,
+        Field(default=0, description="Formamide concentration in %(fmdmethod=1) or molar (fmdmethod=2)."),
+    ]
+    fmdfactor: Annotated[
+        float, Field(default=0.65, description="How much Tm should decrease per percent formamide")
+    ]
+    fmdmethod: Annotated[
+        int,
+        Field(
+            default=1,
+            ge=1,
+            le=2,
+            description="Tm = Tm - factor(%formamide) (Default); Tm = Tm + (0.453(f(GC)) - 2.88) x [formamide]",
+        ),
+    ]
+    GC: Annotated[float | None, Field(default=None, ge=0, le=100, description="GC content in percent.")]
+
+    @model_validator(mode="after")
+    def _check_fmd_vs_method(self) -> Self:
+        # method 1: fmd is percent
+        if self.fmdmethod == 1:
+            if not (0 <= self.fmd <= 100):
+                raise ValueError("For fmdmethod=1, fmd must be a percentage in [0, 100].")
+
+        # method 2: fmd is molar, and GC is required by the formula
+        elif self.fmdmethod == 2:
+            if self.fmd < 0:
+                raise ValueError("For fmdmethod=2, fmd must be a non-negative molar concentration.")
+            if self.GC is None:
+                raise ValueError("For fmdmethod=2, GC must be provided (0–100%) for the formula.")
+
+        return self
+
+
+class TmSaltCorrectionParameters(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    # defaults are from Bio.SeqUtils.MeltingTemp.salt_correction
+    Na: Annotated[NonNegativeInt, Field(default=0, description="[mM]; default")]
+    K: Annotated[NonNegativeInt, Field(default=0, description="[mM]; default")]
+    Tris: Annotated[NonNegativeInt, Field(default=0, description="[mM]; default")]
+    Mg: Annotated[NonNegativeInt, Field(default=0, description="[mM]; default")]
+    dNTPs: Annotated[NonNegativeInt, Field(default=0, description="[mM]; default")]
+    method: Annotated[
+        PositiveInt,
+        Field(
+            default=1,
+            ge=1,
+            le=7,
+            description="Correction method to be applied. Methods 1-4 correct Tm, method 5 corrects deltaS, methods 6 and 7 correct 1/Tm.",
+        ),
+    ]
+
+
+class ArgvList(RootModel[list[str]]):
+    """
+    Arguments for command line tool; key-value pairs are separate entries
+    in a list, flags are entries as well, e.g. ["-perc_identity", "100", "-strand", "minus", "-ungapped"].
+    Coerces scalars to str and forbids nested lists/dicts.
+    """
+
+    root: list[str]
+
+    @model_validator(mode="before")
+    @classmethod
+    def coerce_flat_scalars(cls, v: Any) -> list[str]:
+        if v is None:
+            return []
+        if not isinstance(v, list):
+            raise ValueError("Expected a list of arguments (also for key-value pairs).")
+        out: list[str] = []
+        for i, item in enumerate(v):
+            if isinstance(item, (list, dict)):
+                raise ValueError(f"Argument entry at index {i} must be a scalar, got {type(item).__name__}")
+            # bool -> "true"/"false", everything else -> str()
+            if isinstance(item, bool):
+                out.append("true" if item else "false")
+            else:
+                out.append(str(item))
+        return out
+
+
+class BlastnHitParameters(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    coverage: Annotated[
+        float | None,
+        Field(default=None, ge=0, le=100, description="alternatively, min_alignment_length can be used"),
+    ]
+    min_alignment_length: Annotated[
+        NonNegativeInt | None, Field(default=None, description="alternatively, coverage can be used")
+    ]
+
+    @model_validator(mode="after")
+    def check_mutually_exclusive(self) -> Self:
+        """Ensure exactly one of coverage or min_alignment_length is provided."""
+        if (self.coverage is None) == (self.min_alignment_length is None):
+            # both None OR both set -> invalid
+            raise ValueError("Exactly one of 'coverage' or 'min_alignment_length' must be set.")
+        # remove the parameter that is None because the code downstream expects only
+        # one parameter
+        if self.coverage is None:
+            delattr(self, "coverage")
+        else:
+            delattr(self, "min_alignment_length")
+        return self
+
+
+class TargetProbeDevCycleHCR(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    Tm_parameters: Annotated[TmParameters, Field(default_factory=lambda: TmParameters(saltcorr=0))]
+
+    Tm_chem_correction_parameters: Annotated[
+        TmChemCorrectionParameters | None,
+        Field(default=None, description="if chem correction desired, please add parameters below"),
+    ]
+    Tm_salt_correction_parameters: Annotated[
+        TmSaltCorrectionParameters | None,
+        Field(default=None, description="if salt correction desired, please add parameters below"),
+    ]
+    secondary_structures_threshold_deltaG: Annotated[
+        float,
+        Field(
+            default=0,
+            description="threshold for the secondary structure free energy -> oligo rejected if it presents a structure with a negative free energy at the defined temperature",
+        ),
+    ]
+
+    specificity_blastn_search_parameters: Annotated[
+        ArgvList,
+        Field(
+            default_factory=lambda: ArgvList(
+                root=[
+                    "-perc_identity",
+                    "100",
+                    "-strand",
+                    "minus",
+                    "-word_size",
+                    "10",
+                    "-dust",
+                    "no",
+                    "-soft_masking",
+                    "false",
+                    "-max_target_seqs",
+                    "10",
+                    "-max_hsps",
+                    "1000",
+                ]
+            )
+        ),
+    ]
+    specificity_blastn_hit_parameters: Annotated[
+        BlastnHitParameters, Field(default_factory=lambda: BlastnHitParameters(coverage=90))
+    ]
+
+    cross_hybridization_blastn_search_parameters: Annotated[
+        ArgvList,
+        Field(
+            default_factory=lambda: ArgvList(
+                root=[
+                    "-perc_identity",
+                    "100",
+                    "-strand",
+                    "minus",
+                    "-word_size",
+                    "7",
+                    "-dust",
+                    "no",
+                    "-soft_masking",
+                    "false",
+                    "-max_target_seqs",
+                    "10",
+                ]
+            )
+        ),
+    ]
+    cross_hybridization_blastn_hit_parameters: Annotated[
+        BlastnHitParameters, Field(default_factory=lambda: BlastnHitParameters(coverage=90))
+    ]
+
+
+class DeveloperParametersBase(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    oligo_set_selection: OligoSetSelection
+
+
+class DeveloperParametersCycleHCR(DeveloperParametersBase):
+    model_config = ConfigDict(extra="forbid")
+
+    target_probe: TargetProbeDevCycleHCR

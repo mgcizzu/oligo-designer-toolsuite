@@ -5,6 +5,7 @@ from typing import Annotated, Literal
 from pydantic import BaseModel, ConfigDict, Field, PositiveInt
 
 from ._config_models import (
+    DeveloperParametersCycleHCR,
     DirOutputT,
     ExonExonJunctionBlockSizeT,
     General,
@@ -120,3 +121,4 @@ class CycleHCRProbeDesignerConfig(BaseModel):
     target_probe: TargetProbeCycleHCR
     readout_probe: ReadoutProbeCycleHCR
     primer: PrimerCycleHCR
+    developer_param: DeveloperParametersCycleHCR
