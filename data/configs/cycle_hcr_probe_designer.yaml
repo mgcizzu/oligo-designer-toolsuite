@@ -74,36 +74,23 @@ developer_param:
     secondary_structures_threshold_deltaG: 0 # threshold for the secondary structure free energy -> oligo rejected if it presents a structure with a negative free energy at the defined temperature
     # Specificity filter with BlastN
     specificity_blastn_search_parameters:
-      - -perc_identity
-      - 100
-      - -strand
-      - "minus" # this parameter is fixed, if reference is whole genome, consider using "both"
-      - -word_size
-      - 10
-      - -dust
-      - "no"
-      - -soft_masking
-      - "false"
-      - -max_target_seqs
-      - 10
-      - -max_hsps
-      - 1000
+      -perc_identity: 100
+      -strand: "minus" # this parameter is fixed, if reference is whole genome, consider using "both"
+      -word_size: 10
+      -dust: "no"
+      -soft_masking: "false"
+      -max_target_seqs: 10
+      -max_hsps: 1000
     specificity_blastn_hit_parameters:
       coverage: 90 # can be turned into min_alignment_length
     # Crosshybridization filter with BlastN
     cross_hybridization_blastn_search_parameters:
-      - -perc_identity
-      - 100
-      - -strand
-      - "minus" # this parameter is fixed, if reference is whole genome, consider using "both"
-      - -word_size
-      - 7
-      - -dust
-      - "no"
-      - -soft_masking
-      - "false"
-      - -max_target_seqs
-      - 10
+      -perc_identity: 100
+      -strand: "minus" # this parameter is fixed, if reference is whole genome, consider using "both"
+      -word_size: 7
+      -dust: "no"
+      -soft_masking: "false"
+      -max_target_seqs: 10
     cross_hybridization_blastn_hit_parameters:
       coverage: 90 # can be turned into min_alignment_length
   # Parameters for the Oligo set selection
