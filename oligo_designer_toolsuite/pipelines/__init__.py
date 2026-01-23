@@ -3,6 +3,7 @@ The module provides a collection of comprehensive oligonucleotide design pipelin
 """
 
 from ._config_pipelines import (
+    CycleHCRProbeDesignerConfig,
     GenomicRegionGeneratorCustomConfig,
     GenomicRegionGeneratorEnsemblConfig,
     GenomicRegionGeneratorNcbiConfig,
@@ -24,4 +25,5 @@ __all__ = [
     "GenomicRegionGeneratorCustomConfig",
     "GenomicRegionGeneratorEnsemblConfig",
     "GenomicRegionGeneratorNcbiConfig",
+    "CycleHCRProbeDesignerConfig",
 ]

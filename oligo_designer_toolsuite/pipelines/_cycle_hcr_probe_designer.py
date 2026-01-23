@@ -14,6 +14,7 @@ import pandas as pd
 import yaml
 from Bio.SeqUtils import MeltingTemp as mt
 from Bio.SeqUtils import Seq
+from pydantic import ValidationError
 
 from oligo_designer_toolsuite._exceptions import (
     ConfigurationError,
@@ -58,6 +59,9 @@ from oligo_designer_toolsuite.oligo_specificity_filter import (
     RemoveAllFilterPolicy,
     RemoveByLargerRegionFilterPolicy,
     SpecificityFilter,
+)
+from oligo_designer_toolsuite.pipelines._config_pipelines import (
+    CycleHCRProbeDesignerConfig,
 )
 from oligo_designer_toolsuite.pipelines._utils import (
     base_log_parameters,
@@ -1979,22 +1983,29 @@ def main() -> None:
 
     ##### read the config file #####
     with open(args["config"], "r") as handle:
-        config = yaml.safe_load(handle)
+        config_raw = yaml.safe_load(handle)
+
+    try:
+        config_validated = CycleHCRProbeDesignerConfig.model_validate(config_raw)
+        config = config_validated.model_dump()
+    except ValidationError as e:
+        logging.error("Invalid configuration file:\n%s", e)
+        raise
 
     ##### read the genes file #####
-    if config["file_regions"] is None:
+    if config["target_probe"]["file_regions"] is None:
         warnings.warn(
             "No gene list file was provided! All genes from fasta file are used to generate the probes. This chioce can use a lot of resources."
         )
         gene_ids = None
     else:
-        with open(config["file_regions"]) as handle:
+        with open(config["target_probe"]["file_regions"]) as handle:
             lines = handle.readlines()
             # ensure that the list contains unique gene ids
             gene_ids = list(set([line.rstrip() for line in lines]))
 
     ##### preprocess melting temperature params #####
-    target_probe_Tm_parameters = config["target_probe_Tm_parameters"]
+    target_probe_Tm_parameters = config["developer_param"]["target_probe"]["Tm_parameters"]
     target_probe_Tm_parameters["nn_table"] = getattr(mt, target_probe_Tm_parameters["nn_table"])
     target_probe_Tm_parameters["tmm_table"] = getattr(mt, target_probe_Tm_parameters["tmm_table"])
     target_probe_Tm_parameters["imm_table"] = getattr(mt, target_probe_Tm_parameters["imm_table"])
@@ -2002,92 +2013,94 @@ def main() -> None:
 
     ##### initialize probe designer pipeline #####
     pipeline = CycleHCRProbeDesigner(
-        dir_output=config["dir_output"],
-        write_intermediate_steps=config["write_intermediate_steps"],
-        n_jobs=config["n_jobs"],
+        dir_output=config["general"]["dir_output"],
+        write_intermediate_steps=config["general"]["write_intermediate_steps"],
+        n_jobs=config["general"]["n_jobs"],
     )
 
     ##### design probes #####
     target_probe_database = pipeline.design_target_probes(
         region_ids=gene_ids,
-        files_fasta_target_probe_database=config["files_fasta_target_probe_database"],
-        files_fasta_reference_database_target_probe=config["files_fasta_reference_database_target_probe"],
+        files_fasta_target_probe_database=config["target_probe"]["files_fasta_database"],
+        files_fasta_reference_database_target_probe=config["target_probe"]["files_fasta_reference_database"],
         # Target Probe Design
-        target_probe_isoform_consensus=config["target_probe_isoform_consensus"],
-        target_probe_L_probe_sequence_length=config["target_probe_L_probe_sequence_length"],
-        target_probe_gap_sequence_length=config["target_probe_gap_sequence_length"],
-        target_probe_R_probe_sequence_length=config["target_probe_R_probe_sequence_length"],
+        target_probe_isoform_consensus=config["target_probe"]["isoform_consensus"],
+        target_probe_L_probe_sequence_length=config["target_probe"]["L_probe_sequence_length"],
+        target_probe_gap_sequence_length=config["target_probe"]["gap_sequence_length"],
+        target_probe_R_probe_sequence_length=config["target_probe"]["R_probe_sequence_length"],
         # Property Filter Parameters
-        target_probe_GC_content_min=config["target_probe_GC_content_min"],
-        target_probe_GC_content_max=config["target_probe_GC_content_max"],
-        target_probe_Tm_min=config["target_probe_Tm_min"],
-        target_probe_Tm_max=config["target_probe_Tm_max"],
-        target_probe_homopolymeric_base_n=config["target_probe_homopolymeric_base_n"],
-        target_probe_T_secondary_structure=config["target_probe_T_secondary_structure"],
-        target_probe_secondary_structures_threshold_deltaG=config[
-            "target_probe_secondary_structures_threshold_deltaG"
+        target_probe_GC_content_min=config["target_probe"]["GC_content_min"],
+        target_probe_GC_content_max=config["target_probe"]["GC_content_max"],
+        target_probe_Tm_min=config["target_probe"]["Tm_min"],
+        target_probe_Tm_max=config["target_probe"]["Tm_max"],
+        target_probe_homopolymeric_base_n=config["target_probe"]["homopolymeric_base_n"],
+        target_probe_T_secondary_structure=config["target_probe"]["T_secondary_structure"],
+        target_probe_secondary_structures_threshold_deltaG=config["developer_param"]["target_probe"][
+            "secondary_structures_threshold_deltaG"
         ],
         # Melting Temperature Calculation Parameters
         target_probe_Tm_parameters=target_probe_Tm_parameters,
-        target_probe_Tm_chem_correction_parameters=config["target_probe_Tm_chem_correction_parameters"],
+        target_probe_Tm_chem_correction_parameters=config[
+            "target_probe_Tm_chem_correction_parameters"
+        ],  # TODO
         target_probe_Tm_salt_correction_parameters=config["target_probe_Tm_salt_correction_parameters"],
         # Specificity Filter Parameters
-        target_probe_junction_region_size=config["target_probe_junction_region_size"],
-        target_probe_specificity_blastn_search_parameters=config[
-            "target_probe_specificity_blastn_search_parameters"
+        target_probe_junction_region_size=config["target_probe"]["junction_region_size"],
+        target_probe_specificity_blastn_search_parameters=config["developer_param"]["target_probe"][
+            "specificity_blastn_search_parameters"
         ],
-        target_probe_specificity_blastn_hit_parameters=config[
-            "target_probe_specificity_blastn_hit_parameters"
+        target_probe_specificity_blastn_hit_parameters=config["developer_param"]["target_probe"][
+            "specificity_blastn_hit_parameters"
         ],
-        target_probe_cross_hybridization_blastn_search_parameters=config[
-            "target_probe_cross_hybridization_blastn_search_parameters"
+        target_probe_cross_hybridization_blastn_search_parameters=config["developer_param"]["target_probe"][
+            "cross_hybridization_blastn_search_parameters"
         ],
-        target_probe_cross_hybridization_blastn_hit_parameters=config[
-            "target_probe_cross_hybridization_blastn_hit_parameters"
+        target_probe_cross_hybridization_blastn_hit_parameters=config["developer_param"]["target_probe"][
+            "cross_hybridization_blastn_hit_parameters"
         ],
         # Probe Scoring and Set Selection Parameters
-        target_probe_Tm_weight=config["target_probe_Tm_weight"],
-        target_probe_isoform_weight=config["target_probe_isoform_weight"],
-        set_size_opt=config["set_size_opt"],
-        set_size_min=config["set_size_min"],
-        distance_between_target_probes=config["distance_between_target_probes"],
-        n_sets=config["n_sets"],
-        max_graph_size=config["max_graph_size"],
-        n_attempts=config["n_attempts"],
-        heuristic=config["heuristic"],
-        heuristic_n_attempts=config["heuristic_n_attempts"],
+        target_probe_Tm_weight=config["target_probe"]["Tm_weight"],
+        target_probe_isoform_weight=config["target_probe"]["isoform_weight"],
+        set_size_opt=config["target_probe"]["set_size_opt"],
+        set_size_min=config["target_probe"]["set_size_min"],
+        distance_between_target_probes=config["target_probe"]["distance_between_target_probes"],
+        n_sets=config["target_probe"]["n_sets"],
+        max_graph_size=config["developer_param"]["oligo_set_selection"]["max_graph_size"],
+        n_attempts=config["developer_param"]["oligo_set_selection"]["n_attempts"],
+        heuristic=config["developer_param"]["oligo_set_selection"]["heuristic"],
+        heuristic_n_attempts=config["developer_param"]["oligo_set_selection"]["heuristic_n_attempts"],
     )
 
     codebook, readout_probe_table = pipeline.design_readout_probes(
         region_ids=list(target_probe_database.database.keys()),
-        file_readout_probe_table=config["file_readout_probe_table"],
-        file_codebook=config["file_codebook"],
+        file_readout_probe_table=config["readout_probe"]["file_readout_probe_table"],
+        file_codebook=config["readout_probe"]["file_codebook"],
     )
 
     hybridization_probe_database = pipeline.assemble_hybridization_probes(
         target_probe_database=target_probe_database,
         codebook=codebook,
         readout_probe_table=readout_probe_table,
-        linker_sequence=config["linker_sequence"],
+        linker_sequence=config["target_probe"]["linker_sequence"],
     )
 
     reverse_primer_sequence, forward_primer_sequence = pipeline.design_primers(
-        forward_primer_sequence=config["forward_primer_sequence"],
-        reverse_primer_sequence=config["reverse_primer_sequence"],
+        forward_primer_sequence=config["primer"]["forward_primer_sequence"],
+        reverse_primer_sequence=config["primer"]["reverse_primer_sequence"],
     )
 
     final_probe_database = pipeline.assemble_dna_template_probes(
         hybridization_probe_database=hybridization_probe_database,
         forward_primer_sequence=forward_primer_sequence,
         reverse_primer_sequence=reverse_primer_sequence,
-        linker_sequence=config["linker_sequence"],
+        linker_sequence=config["target_probe"]["linker_sequence"],
     )
 
     pipeline.generate_output(
         probe_database=final_probe_database,
         codebook=codebook,
         readout_probe_table=readout_probe_table,
-        top_n_sets=config["top_n_sets"],
+        top_n_sets=config["target_probe"]["top_n_sets"],
     )
 
     logging.info("--------------END PIPELINE--------------")

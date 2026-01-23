@@ -3,6 +3,7 @@
 ############################################
 
 import os
+import re
 import subprocess
 import warnings
 from abc import abstractmethod
@@ -159,6 +160,8 @@ class BlastNFilter(AlignmentSpecificityFilter):
 
         cmd_parameters = ""
         for parameter, value in self.search_parameters.items():
+            # add leading - if parameter doesn't have it (because of pydantic config validation)
+            parameter = parameter if bool(re.match("^-", parameter)) else f"-{parameter}"
             # add quotes if list of strings seperated by whitespace
             value = f'"{value}"' if " " in str(value) else value
             cmd_parameters += f" {parameter} {value}"
