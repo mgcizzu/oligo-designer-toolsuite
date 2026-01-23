@@ -466,6 +466,10 @@ class TmSaltCorrectionParameters(BaseModel):
 class BlastnSearchParameters(BaseModel):
     model_config = ConfigDict(extra="forbid", validate_by_name=True, validate_by_alias=True)
 
+    # use exclude_if=lambda v: v is None on a Field level here and not exlcude_none during model dumpimg,
+    # because for other config arguments, the None is actually needed
+    # but for blastn we don't want to provide default parameters but have the defaults handled directly
+    # by blastn (as there can be quite complicated dependencies between arguments)
     # don't allow
     # -h
     # -help
@@ -477,6 +481,7 @@ class BlastnSearchParameters(BaseModel):
             default=None,
             alias="-query_loc",
             description="Location on the query sequence in 1-based offsets (Format: start-stop).",
+            exclude_if=lambda v: v is None,
         ),
     ]
     strand: Annotated[
@@ -485,12 +490,12 @@ class BlastnSearchParameters(BaseModel):
             default=None,
             alias="-strand",
             description="Query strand(s) to search against database/subject. Choice of both, minus, or plus.",
+            exclude_if=lambda v: v is None,
         ),
     ]
-    # TODO: check blastn/rmblastn option
     task: Annotated[
         Literal["megablast", "dc-megablast", "blastn", "blastn-short", "rmblastn"] | None,
-        Field(default=None, alias="-task", description="Supported tasks."),
+        Field(default=None, alias="-task", description="Supported tasks.", exclude_if=lambda v: v is None),
     ]
     # don't allow
     # -db
@@ -501,25 +506,51 @@ class BlastnSearchParameters(BaseModel):
             default=None,
             alias="-evalue",
             description="Expectation value (E) threshold for saving hits. Default = 10 (1000 for blastn-short)",
+            exclude_if=lambda v: v is None,
         ),
     ]
     word_size: Annotated[
         NonNegativeInt | None,
-        Field(default=None, alias="-word_size", ge=4, description="Length of initial exact match."),
+        Field(
+            default=None,
+            alias="-word_size",
+            ge=4,
+            description="Length of initial exact match.",
+            exclude_if=lambda v: v is None,
+        ),
     ]
     gapopen: Annotated[
-        NonNegativeInt | None, Field(default=None, alias="-gapopen", description="Cost to open a gap.")
+        NonNegativeInt | None,
+        Field(
+            default=None, alias="-gapopen", description="Cost to open a gap.", exclude_if=lambda v: v is None
+        ),
     ]
     gapextend: Annotated[
-        NonNegativeInt | None, Field(default=None, alias="-gapextend", description="Cost to extend a gap.")
+        NonNegativeInt | None,
+        Field(
+            default=None,
+            alias="-gapextend",
+            description="Cost to extend a gap.",
+            exclude_if=lambda v: v is None,
+        ),
     ]
     penalty: Annotated[
         NonPositiveInt | None,
-        Field(default=None, alias="-penalty", description="Penalty for a nucleotide mismatch."),
+        Field(
+            default=None,
+            alias="-penalty",
+            description="Penalty for a nucleotide mismatch.",
+            exclude_if=lambda v: v is None,
+        ),
     ]
     reward: Annotated[
         NonNegativeInt | None,
-        Field(default=None, alias="-reward", description="Reward for a nucleotide match."),
+        Field(
+            default=None,
+            alias="-reward",
+            description="Reward for a nucleotide match.",
+            exclude_if=lambda v: v is None,
+        ),
     ]
     # don't allow use_index/index_name as another file would be needed
     # don't allow subject/subject_loc as another file would be needed
@@ -532,6 +563,7 @@ class BlastnSearchParameters(BaseModel):
             default=None,
             alias="-num_descriptions",
             description="Number of database sequences to show one-line descriptions for.",
+            exclude_if=lambda v: v is None,
         ),
     ]
     num_alignments: Annotated[
@@ -540,6 +572,7 @@ class BlastnSearchParameters(BaseModel):
             default=None,
             alias="-num_alignments",
             description="Number of database sequences to show alignments for.",
+            exclude_if=lambda v: v is None,
         ),
     ]
     # don't allow
@@ -547,14 +580,32 @@ class BlastnSearchParameters(BaseModel):
     # html
     sorthits: Annotated[
         NonNegativeInt | None,
-        Field(default=None, alias="-sorthits", le=4, description="Sorting option for hits."),
+        Field(
+            default=None,
+            alias="-sorthits",
+            le=4,
+            description="Sorting option for hits.",
+            exclude_if=lambda v: v is None,
+        ),
     ]
     sorthsps: Annotated[
         NonNegativeInt | None,
-        Field(default=None, alias="-sorthsps", le=4, description="Sorting option for hps."),
+        Field(
+            default=None,
+            alias="-sorthsps",
+            le=4,
+            description="Sorting option for hps.",
+            exclude_if=lambda v: v is None,
+        ),
     ]
     dust: Annotated[
-        str | None, Field(default=None, alias="-dust", description="Filter query sequence with dust.")
+        str | None,
+        Field(
+            default=None,
+            alias="-dust",
+            description="Filter query sequence with dust.",
+            exclude_if=lambda v: v is None,
+        ),
     ]
     # don't allow
     # filtering_db as another file would be needed
@@ -566,6 +617,7 @@ class BlastnSearchParameters(BaseModel):
             default=None,
             alias="-soft_masking",
             description="Apply filtering locations as soft masks (i.e., only for finding initial matches).",
+            exclude_if=lambda v: v is None,
         ),
     ]
     lcase_masking: Annotated[
@@ -574,6 +626,7 @@ class BlastnSearchParameters(BaseModel):
             default=None,
             alias="-lcase_masking",
             description="Use lower case filtering in query and subject sequence(s).",
+            exclude_if=lambda v: v is None,
         ),
     ]
     # don't allow the following options as additional files would be needed
@@ -593,6 +646,7 @@ class BlastnSearchParameters(BaseModel):
             default=None,
             alias="-db_soft_mask",
             description="Filtering algorithm ID to apply to the BLAST database as soft mask (i.e., only for finding initial matches).",
+            exclude_if=lambda v: v is None,
         ),
     ]
     db_hard_mask: Annotated[
@@ -601,16 +655,29 @@ class BlastnSearchParameters(BaseModel):
             default=None,
             alias="-db_hard_mask",
             description="Filtering algorithm ID to apply to the BLAST database as hard mask (i.e., sequence is masked for all phases of search).",
+            exclude_if=lambda v: v is None,
         ),
     ]
     perc_identity: Annotated[
         float | None,
-        Field(default=None, alias="-perc_identity", description="Percent identity cutoff.", ge=0, le=100),
+        Field(
+            default=None,
+            alias="-perc_identity",
+            description="Percent identity cutoff.",
+            ge=0,
+            le=100,
+            exclude_if=lambda v: v is None,
+        ),
     ]
     qcov_hsp_perc: Annotated[
         float | None,
         Field(
-            default=None, alias="-qcov_hsp_perc", description="Percent query coverage per hsp.", ge=0, le=100
+            default=None,
+            alias="-qcov_hsp_perc",
+            description="Percent query coverage per hsp.",
+            ge=0,
+            le=100,
+            exclude_if=lambda v: v is None,
         ),
     ]
     max_hsps: Annotated[
@@ -619,6 +686,7 @@ class BlastnSearchParameters(BaseModel):
             default=None,
             alias="-max_hsps",
             description="Set maximum number of HSPs per subject sequence to save for each query.",
+            exclude_if=lambda v: v is None,
         ),
     ]
     culling_limit: Annotated[
@@ -627,6 +695,7 @@ class BlastnSearchParameters(BaseModel):
             default=None,
             alias="-culling_limit",
             description="If the query range of a hit is enveloped by that of at least this many higher-scoring hits, delete the hit",
+            exclude_if=lambda v: v is None,
         ),
     ]
     best_hit_overhang: Annotated[
@@ -637,6 +706,7 @@ class BlastnSearchParameters(BaseModel):
             description="Best Hit algorithm overhang value (recommended value: 0.1).",
             gt=0,
             lt=0.5,
+            exclude_if=lambda v: v is None,
         ),
     ]
     best_hit_score_edge: Annotated[
@@ -647,16 +717,25 @@ class BlastnSearchParameters(BaseModel):
             description="Best Hit algorithm score edge value (recommended value: 0.1)",
             gt=0,
             lt=0.5,
+            exclude_if=lambda v: v is None,
         ),
     ]
     subject_besthit: Annotated[
         Literal[""] | None,
-        Field(default=None, alias="-subject_besthit", description="Turn on best hit per subject sequence."),
+        Field(
+            default=None,
+            alias="-subject_besthit",
+            description="Turn on best hit per subject sequence.",
+            exclude_if=lambda v: v is None,
+        ),
     ]
     max_target_seqs: Annotated[
         PositiveInt | None,
         Field(
-            default=None, alias="-max_target_seqs", description="Maximum number of aligned sequences to keep."
+            default=None,
+            alias="-max_target_seqs",
+            description="Maximum number of aligned sequences to keep.",
+            exclude_if=lambda v: v is None,
         ),
     ]
     template_type: Annotated[
@@ -665,19 +744,36 @@ class BlastnSearchParameters(BaseModel):
             default=None,
             alias="-template_type",
             description="Discontiguous MegaBLAST template type. Allowed values are coding, optimal and coding_and_optimal.",
+            exclude_if=lambda v: v is None,
         ),
     ]
     # template_length is actually int, but only 3 values, therefore implemented as literal
     template_length: Annotated[
         Literal["16", "18", "21"] | None,
-        Field(default=None, alias="-template_length", description="Discontiguous MegaBLAST template length."),
+        Field(
+            default=None,
+            alias="-template_length",
+            description="Discontiguous MegaBLAST template length.",
+            exclude_if=lambda v: v is None,
+        ),
     ]
     db_size: Annotated[
-        int | None, Field(default=None, alias="-db_size", description="Effective length of the database.")
+        int | None,
+        Field(
+            default=None,
+            alias="-db_size",
+            description="Effective length of the database.",
+            exclude_if=lambda v: v is None,
+        ),
     ]
     searchsp: Annotated[
         NonNegativeInt | None,
-        Field(default=None, alias="-searchsp", description="Effective length of the search space."),
+        Field(
+            default=None,
+            alias="-searchsp",
+            description="Effective length of the search space.",
+            exclude_if=lambda v: v is None,
+        ),
     ]
     # don't allow because extra file needed
     # import_search_strategy
@@ -688,6 +784,7 @@ class BlastnSearchParameters(BaseModel):
             default=None,
             alias="-xdrop_ungap",
             description="X-dropoff value (in bits) for ungapped extensions.",
+            exclude_if=lambda v: v is None,
         ),
     ]
     xdrop_gap: Annotated[
@@ -696,6 +793,7 @@ class BlastnSearchParameters(BaseModel):
             default=None,
             alias="-xdrop_gap",
             description="X-dropoff value (in bits) for preliminary gapped extensions.",
+            exclude_if=lambda v: v is None,
         ),
     ]
     xdrop_gap_final: Annotated[
@@ -704,11 +802,17 @@ class BlastnSearchParameters(BaseModel):
             default=None,
             alias="-xdrop_gap_final",
             description="X-dropoff value (in bits) for final gapped alignment.",
+            exclude_if=lambda v: v is None,
         ),
     ]
     no_greedy: Annotated[
         Literal[""] | None,
-        Field(default=None, alias="-no_greedy", description="Use non-greedy dynamic programming extension."),
+        Field(
+            default=None,
+            alias="-no_greedy",
+            description="Use non-greedy dynamic programming extension.",
+            exclude_if=lambda v: v is None,
+        ),
     ]
     min_raw_gapped_score: Annotated[
         int | None,
@@ -716,11 +820,17 @@ class BlastnSearchParameters(BaseModel):
             default=None,
             alias="-min_raw_gapped_score",
             description="Minimum raw gapped score to keep an alignment in the preliminary gapped and trace-back stages. Normally set based upon expect value.",
+            exclude_if=lambda v: v is None,
         ),
     ]
     ungapped: Annotated[
         Literal[""] | None,
-        Field(default=None, alias="-ungapped", description="Perform ungapped alignment only?"),
+        Field(
+            default=None,
+            alias="-ungapped",
+            description="Perform ungapped alignment only?",
+            exclude_if=lambda v: v is None,
+        ),
     ]
     window_size: Annotated[
         NonNegativeInt | None,
@@ -728,6 +838,7 @@ class BlastnSearchParameters(BaseModel):
             default=None,
             alias="-window_size",
             description="Multiple hits window size, use 0 to specify 1-hit algorithm.",
+            exclude_if=lambda v: v is None,
         ),
     ]
     off_diagonal_range: Annotated[
@@ -736,6 +847,7 @@ class BlastnSearchParameters(BaseModel):
             default=None,
             alias="-off_diagonal_range",
             description="Number of off-diagonals to search for the 2nd hit, use 0 to turn off.",
+            exclude_if=lambda v: v is None,
         ),
     ]
     # don't allow
