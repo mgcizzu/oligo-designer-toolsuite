@@ -866,9 +866,11 @@ class BlastnSearchParameters(BaseModel):
 class BlastnHitParameters(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
+    # set a default for coverage because BlastnHitParameters is not allowed to have both fields with
+    # None and we sometimes need to initialise it as default values
     coverage: Annotated[
         float | None,
-        Field(default=None, ge=0, le=100, description="alternatively, min_alignment_length can be used"),
+        Field(default=50, ge=0, le=100, description="alternatively, min_alignment_length can be used"),
     ]
     min_alignment_length: Annotated[
         NonNegativeInt | None, Field(default=None, description="alternatively, coverage can be used")
@@ -876,16 +878,10 @@ class BlastnHitParameters(BaseModel):
 
     @model_validator(mode="after")
     def check_mutually_exclusive(self) -> Self:
-        """Ensure exactly one of coverage or min_alignment_length is provided."""
+        """Ensure exactly one of coverage or min_alignment_length is provided and the other value is set to None."""
         if (self.coverage is None) == (self.min_alignment_length is None):
             # both None OR both set -> invalid
             raise ValueError("Exactly one of 'coverage' or 'min_alignment_length' must be set.")
-        # remove the parameter that is None because the code downstream expects only
-        # one parameter
-        if self.coverage is None:
-            delattr(self, "coverage")
-        else:
-            delattr(self, "min_alignment_length")
         return self
 
 

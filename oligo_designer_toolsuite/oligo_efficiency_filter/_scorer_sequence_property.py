@@ -5,6 +5,10 @@
 from oligo_designer_toolsuite.database import OligoDatabase
 from oligo_designer_toolsuite.oligo_efficiency_filter import BaseScorer
 from oligo_designer_toolsuite.oligo_property_calculator import calc_gc_content, calc_tm_nn
+from oligo_designer_toolsuite.pipelines._config_models import (
+    TmChemCorrectionParameters,
+    TmSaltCorrectionParameters,
+)
 
 ############################################
 # Sequence Property Scorer Classes
@@ -105,9 +109,9 @@ class DeviationFromOptimalTmScorer(SequencePropertyScorer):
     :param score_weight: Weight applied to the Tm deviation score.
     :type score_weight: float
     :param Tm_salt_correction_parameters: Parameters for salt correction.
-    :type Tm_salt_correction_parameters: dict
+    :type Tm_salt_correction_parameters: TmSaltCorrectionParameters
     :param Tm_chem_correction_parameters: Parameters for chemical correction.
-    :type Tm_chem_correction_parameters: dict
+    :type Tm_chem_correction_parameters: TmChemCorrectionParameters
     """
 
     def __init__(
@@ -115,8 +119,8 @@ class DeviationFromOptimalTmScorer(SequencePropertyScorer):
         Tm_opt: float,
         Tm_parameters: dict,
         score_weight: float,
-        Tm_salt_correction_parameters: dict | None = None,
-        Tm_chem_correction_parameters: dict | None = None,
+        Tm_salt_correction_parameters: TmSaltCorrectionParameters | None = None,
+        Tm_chem_correction_parameters: TmChemCorrectionParameters | None = None,
     ) -> None:
         """Constructor for the DeviationFromOptimalTmScorer class."""
 
@@ -251,9 +255,9 @@ class NormalizedDeviationFromOptimalTmScorer(SequencePropertyScorer):
     :param score_weight: Weight applied to the normalized deviation score.
     :type score_weight: float
     :param Tm_salt_correction_parameters: Salt correction parameters.
-    :type Tm_salt_correction_parameters: dict
+    :type Tm_salt_correction_parameters: TmSaltCorrectionParameters
     :param Tm_chem_correction_parameters: Chemical correction parameters.
-    :type Tm_chem_correction_parameters: dict
+    :type Tm_chem_correction_parameters: TmChemCorrectionParameters
 
     """
 
@@ -264,8 +268,8 @@ class NormalizedDeviationFromOptimalTmScorer(SequencePropertyScorer):
         Tm_max: float,
         Tm_parameters: dict,
         score_weight: float,
-        Tm_salt_correction_parameters: dict | None = None,
-        Tm_chem_correction_parameters: dict | None = None,
+        Tm_salt_correction_parameters: TmSaltCorrectionParameters | None = None,
+        Tm_chem_correction_parameters: TmChemCorrectionParameters | None = None,
     ) -> None:
         """Constructor for the NormalizedDeviationFromOptimalTmScorer class."""
 

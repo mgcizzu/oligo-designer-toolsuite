@@ -11,9 +11,9 @@ from datetime import datetime
 from typing import Any, Callable, TypeVar, cast
 
 import yaml
+from pydantic import BaseModel
 
 from oligo_designer_toolsuite.database import OligoDatabase
-from oligo_designer_toolsuite.pipelines._config_pipelines import PipelineBaseConfig
 
 F = TypeVar("F", bound=Callable[..., Any])
 
@@ -269,12 +269,12 @@ def format_sequence(database: OligoDatabase, property: str, region_id: str, olig
     return value
 
 
-def write_config_to_yaml(config: PipelineBaseConfig, dir_output: str) -> None:
+def write_config_to_yaml(config: BaseModel, dir_output: str) -> None:
     """
     Write the used configuration as a YAML file.
 
     :param config: Validated pydantic model of the configuration.
-    :type config: PipelineBaseConfig
+    :type config: BaseModel
     :param dir_output: Path to write the file to.
     :type dir_output: str
     """

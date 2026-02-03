@@ -10,6 +10,11 @@ from oligo_designer_toolsuite.oligo_property_calculator import (
     calc_tm_nn,
 )
 from oligo_designer_toolsuite.oligo_property_filter import BasePropertyFilter
+from oligo_designer_toolsuite.pipelines._config_models import (
+    HomopolymerThresholds,
+    TmChemCorrectionParameters,
+    TmSaltCorrectionParameters,
+)
 
 from ..utils._checkers_and_helpers import check_if_dna_sequence
 
@@ -131,22 +136,15 @@ class HomopolymericRunsFilter(BasePropertyFilter):
     of the same nucleotide repeated multiple times—based on criteria defined by the user.
     The filter is useful in various genomic applications where homopolymeric runs may cause issues.
 
-    :param base_n: A dictionary where keys are nucleotides (e.g., 'A', 'T') and values are the minimum number of repeats to define a homopolymeric run.
-    :type base_n: dict
+    :param base_n: A pydantic model where keys are nucleotides (e.g., 'A', 'T') and values are the minimum number of repeats to define a homopolymeric run.
+    :type base_n: HomopolymerThresholds
     """
 
-    def __init__(self, base_n: dict) -> None:
+    def __init__(self, base_n: HomopolymerThresholds) -> None:
         """Constructor for the HomopolymericRunsFilter class."""
         super().__init__()
-        # check that the nucleotides provided are valid
-        for b in base_n.keys():
-            if not check_if_dna_sequence(b):
-                raise ConfigurationError(
-                    f"Base '{b}' is not a valid DNA sequence. "
-                    f"DNA sequences must contain only A, C, T, G (and optionally U) characters."
-                )
         # create all homopolymeric runs
-        self.homopolymeric_runs = [base.upper() * n for base, n in base_n.items()]
+        self.homopolymeric_runs = [base.upper() * n for base, n in base_n]
 
     def apply(self, sequence: str) -> bool:
         """
@@ -346,11 +344,11 @@ class MeltingTemperatureNNFilter(BasePropertyFilter):
     :param Tm_salt_correction_parameters: Parameters for salt correction in Tm calculation (optional).
         For using Bio.SeqUtils.MeltingTemp default parameters set to ``{}``. For more information on parameters,
         see: https://biopython.org/docs/1.75/api/Bio.SeqUtils.MeltingTemp.html#Bio.SeqUtils.MeltingTemp.salt_correction
-    :type Tm_salt_correction_parameters: dict, optional
+    :type Tm_salt_correction_parameters: TmSaltCorrectionParameters, optional
     :param Tm_chem_correction_parameters: Parameters for chemical correction in Tm calculation (optional).
         For using Bio.SeqUtils.MeltingTemp default parameters set to ``{}``. For more information on parameters,
         see: https://biopython.org/docs/1.75/api/Bio.SeqUtils.MeltingTemp.html#Bio.SeqUtils.MeltingTemp.chem_correction
-    :type Tm_chem_correction_parameters: dict, optional
+    :type Tm_chem_correction_parameters: TmChemCorrectionParameters, optional
     """
 
     def __init__(
@@ -358,8 +356,8 @@ class MeltingTemperatureNNFilter(BasePropertyFilter):
         Tm_min: float,
         Tm_max: float,
         Tm_parameters: dict,
-        Tm_salt_correction_parameters: dict | None = None,
-        Tm_chem_correction_parameters: dict | None = None,
+        Tm_salt_correction_parameters: TmSaltCorrectionParameters | None = None,
+        Tm_chem_correction_parameters: TmChemCorrectionParameters | None = None,
     ) -> None:
         """Constructor for the MeltingTemperatureNNFilter class."""
         super().__init__()

@@ -5,6 +5,10 @@
 from oligo_designer_toolsuite._exceptions import ConfigurationError
 from oligo_designer_toolsuite.database import OligoDatabase
 from oligo_designer_toolsuite.oligo_property_calculator import BaseProperty
+from oligo_designer_toolsuite.pipelines._config_models import (
+    TmChemCorrectionParameters,
+    TmSaltCorrectionParameters,
+)
 from oligo_designer_toolsuite.utils import check_if_int, check_if_string
 
 from ._property_functions import (
@@ -115,18 +119,18 @@ class TmNNProperty(BaseProperty):
     :param Tm_salt_correction_parameters: Optional parameters for salt correction.
         For using Bio.SeqUtils.MeltingTemp default parameters set to ``{}``. For more information on parameters,
         see: https://biopython.org/docs/1.75/api/Bio.SeqUtils.MeltingTemp.html#Bio.SeqUtils.MeltingTemp.salt_correction
-    :type Tm_salt_correction_parameters: dict, optional
+    :type Tm_salt_correction_parameters: TmSaltCorrectionParameters, optional
     :param Tm_chem_correction_parameters: Optional parameters for chemical correction.
         For using Bio.SeqUtils.MeltingTemp default parameters set to ``{}``. For more information on parameters,
         see: https://biopython.org/docs/1.75/api/Bio.SeqUtils.MeltingTemp.html#Bio.SeqUtils.MeltingTemp.chem_correction
-    :type Tm_chem_correction_parameters: dict, optional
+    :type Tm_chem_correction_parameters: TmChemCorrectionParameters, optional
     """
 
     def __init__(
         self,
         Tm_parameters: dict,
-        Tm_salt_correction_parameters: dict | None = None,
-        Tm_chem_correction_parameters: dict | None = None,
+        Tm_salt_correction_parameters: TmSaltCorrectionParameters | None = None,
+        Tm_chem_correction_parameters: TmChemCorrectionParameters | None = None,
     ) -> None:
         """Constructor for the TmNNProperty class."""
         super().__init__()
@@ -559,9 +563,9 @@ class PadlockArmsProperty(BaseProperty):
     :param Tm_parameters: Parameters for the nearest-neighbor Tm calculation.
     :type Tm_parameters: dict
     :param Tm_salt_correction_parameters: Optional parameters for salt correction.
-    :type Tm_salt_correction_parameters: dict | None, optional
+    :type Tm_salt_correction_parameters: TmSaltCorrectionParameters | None, optional
     :param Tm_chem_correction_parameters: Optional parameters for chemical correction.
-    :type Tm_chem_correction_parameters: dict | None, optional
+    :type Tm_chem_correction_parameters: TmChemCorrectionParameters | None, optional
     """
 
     def __init__(
@@ -571,8 +575,8 @@ class PadlockArmsProperty(BaseProperty):
         arm_Tm_min: float,
         arm_Tm_max: float,
         Tm_parameters: dict,
-        Tm_salt_correction_parameters: dict | None = None,
-        Tm_chem_correction_parameters: dict | None = None,
+        Tm_salt_correction_parameters: TmSaltCorrectionParameters | None = None,
+        Tm_chem_correction_parameters: TmChemCorrectionParameters | None = None,
     ) -> None:
         """Constructor for the PadlockArmsProperty class."""
         super().__init__()

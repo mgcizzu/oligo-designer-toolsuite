@@ -5,7 +5,6 @@
 import os
 import re
 import subprocess
-import warnings
 from abc import abstractmethod
 
 import numpy as np
@@ -21,6 +20,7 @@ from oligo_designer_toolsuite.oligo_property_calculator import (
     SeedregionSiteProperty,
 )
 from oligo_designer_toolsuite.oligo_specificity_filter import AlignmentSpecificityFilter
+from oligo_designer_toolsuite.pipelines._config_models import BlastnHitParameters, BlastnSearchParameters
 
 from ..utils._sequence_processor import get_sequence_from_annotation
 
@@ -56,9 +56,9 @@ class BlastNFilter(AlignmentSpecificityFilter):
     :param remove_hits: If True, oligos overlapping variants are removed. If False, they are flagged.
     :type remove_hits: bool
     :param search_parameters: Parameters to configure the BLAST search.
-    :type search_parameters: dict
+    :type search_parameters: BlastnSearchParameters
     :param hit_parameters: Criteria for interpreting BLAST hits.
-    :type hit_parameters: dict
+    :type hit_parameters: BlastnHitParameters
     :param names_search_output: List of names for the BLAST search output fields.
     :type names_search_output: list
     :param filter_name: Name of the filter for identification purposes.
@@ -70,8 +70,10 @@ class BlastNFilter(AlignmentSpecificityFilter):
     def __init__(
         self,
         remove_hits: bool = True,
-        search_parameters: dict = {},
-        hit_parameters: dict = {},
+        # mypy doesn't work if we use a pydantic model that gets assigned None as default value
+        # in an Annotated field
+        search_parameters: BlastnSearchParameters = BlastnSearchParameters(),  # type: ignore[call-arg]
+        hit_parameters: BlastnHitParameters = BlastnHitParameters(),  # type: ignore[call-arg]
         names_search_output: list = [
             "query",
             "reference",
@@ -89,11 +91,6 @@ class BlastNFilter(AlignmentSpecificityFilter):
         self.search_parameters = search_parameters
         self.hit_parameters = hit_parameters
         self.names_search_output = names_search_output
-
-        # Define default output format for blast search filter. The fields are:
-        # query, reference, alignment_length, query_start, query_end, query_length
-        if "-outfmt" not in self.search_parameters.keys():
-            self.search_parameters["-outfmt"] = "6 qseqid sseqid length qstart qend qlen"
 
     def create_reference(
         self,
@@ -159,12 +156,15 @@ class BlastNFilter(AlignmentSpecificityFilter):
         file_blast_results = os.path.join(self.dir_output, f"blast_results_{region_id}.txt")
 
         cmd_parameters = ""
-        for parameter, value in self.search_parameters.items():
-            # add leading - if parameter doesn't have it (because of pydantic config validation)
-            parameter = parameter if bool(re.match("^-", parameter)) else f"-{parameter}"
-            # add quotes if list of strings seperated by whitespace
-            value = f'"{value}"' if " " in str(value) else value
-            cmd_parameters += f" {parameter} {value}"
+        for parameter, value in self.search_parameters:
+            # as the default instantiated BlastnSearchParameter pydantic model has None as default values
+            # for every parameter, test for None
+            if value is not None:
+                # add leading - if parameter doesn't have it (because of pydantic config validation)
+                parameter = parameter if bool(re.match("^-", parameter)) else f"-{parameter}"
+                # add quotes if list of strings seperated by whitespace
+                value = f'"{value}"' if " " in str(value) else value
+                cmd_parameters += f" {parameter} {value}"
 
         cmd = (
             "blastn"
@@ -176,6 +176,9 @@ class BlastNFilter(AlignmentSpecificityFilter):
             + os.path.join(self.dir_output, file_reference)
             + " "
             + cmd_parameters
+            # Define default output format for blast search filter. The fields are:
+            # query, reference, alignment_length, query_start, query_end, query_length
+            + " -outfmt 6 qseqid sseqid length qstart qend qlen"
         )
         process = subprocess.Popen(cmd, shell=True, cwd=self.dir_output, stdout=subprocess.DEVNULL).wait()
 
@@ -217,18 +220,10 @@ class BlastNFilter(AlignmentSpecificityFilter):
         :return: A DataFrame containing the filtered BLAST search hits.
         :rtype: pd.DataFrame
         """
-        if "min_alignment_length" in self.hit_parameters.keys():
-            if "coverage" in self.hit_parameters.keys():
-                warnings.warn(
-                    "Both, 'min_alignment_length' and 'coverage' parameters were provided. Using 'min_alignment_length' parameter."
-                )
-            min_alignment_length = self.hit_parameters["min_alignment_length"]
-        elif "coverage" in self.hit_parameters.keys():
-            min_alignment_length = search_results["query_length"] * self.hit_parameters["coverage"] / 100
+        if self.hit_parameters.min_alignment_length is not None:
+            min_alignment_length = self.hit_parameters.min_alignment_length
         else:
-            raise ConfigurationError(
-                "Please provide either 'coverage' or a 'min_alignment_length' in hit_parameters!"
-            )
+            min_alignment_length = search_results["query_length"] * self.hit_parameters.coverage / 100
 
         search_results["min_alignment_length"] = min_alignment_length
 
@@ -503,9 +498,9 @@ class BlastNSeedregionFilterBase(BlastNFilter):
     :param remove_hits: If True, oligos overlapping variants are removed. If False, they are flagged.
     :type remove_hits: bool
     :param search_parameters: Parameters to configure the BLAST search.
-    :type search_parameters: dict
+    :type search_parameters: BlastnSearchParameters
     :param hit_parameters: Criteria for interpreting BLAST hits.
-    :type hit_parameters: dict
+    :type hit_parameters: BlastnHitParameters
     :param names_search_output: List of names for the BLAST search output fields.
     :type names_search_output: list
     :param filter_name: Name of the filter for identification purposes.
@@ -517,17 +512,13 @@ class BlastNSeedregionFilterBase(BlastNFilter):
     def __init__(
         self,
         remove_hits: bool = True,
-        search_parameters: dict | None = None,
-        hit_parameters: dict | None = None,
+        search_parameters: BlastnSearchParameters = BlastnSearchParameters(),  # type: ignore[call-arg]
+        hit_parameters: BlastnHitParameters = BlastnHitParameters(),  # type: ignore[call-arg]
         names_search_output: list | None = None,
         filter_name: str = "blast_filter",
         dir_output: str = "output",
     ) -> None:
         """Constructor for the BlastNSeedregionFilterBase class."""
-        if not search_parameters:
-            search_parameters = {}
-        if not hit_parameters:
-            hit_parameters = {}
         if not names_search_output:
             names_search_output = [
                 "query",
@@ -590,18 +581,10 @@ class BlastNSeedregionFilterBase(BlastNFilter):
         :return: Filtered BLAST search results containing significant hits.
         :rtype: pd.DataFrame
         """
-        if "min_alignment_length" in self.hit_parameters.keys():
-            if "coverage" in self.hit_parameters.keys():
-                warnings.warn(
-                    "Both, 'min_alignment_length' and 'coverage' parameters were provided. Using 'min_alignment_length' parameter."
-                )
-            min_alignment_length = self.hit_parameters["min_alignment_length"]
-        elif "coverage" in self.hit_parameters.keys():
-            min_alignment_length = search_results["query_length"] * self.hit_parameters["coverage"] / 100
+        if self.hit_parameters.min_alignment_length is not None:
+            min_alignment_length = self.hit_parameters.min_alignment_length
         else:
-            raise ConfigurationError(
-                "Please provide either 'coverage' or a 'min_alignment_length' in hit_parameters!"
-            )
+            min_alignment_length = search_results["query_length"] * self.hit_parameters.coverage / 100
 
         search_results["min_alignment_length"] = min_alignment_length
 
@@ -660,9 +643,9 @@ class BlastNSeedregionFilter(BlastNSeedregionFilterBase):
     :param remove_hits: If True, oligos overlapping variants are removed. If False, they are flagged.
     :type remove_hits: bool
     :param search_parameters: Parameters to configure the BLAST search.
-    :type search_parameters: dict
+    :type search_parameters: BlastnSearchParameters
     :param hit_parameters: Criteria for interpreting BLAST hits.
-    :type hit_parameters: dict
+    :type hit_parameters: BlastnHitParameters
     :param names_search_output: List of names for the BLAST search output fields.
     :type names_search_output: list
     :param filter_name: Name of the filter for identification purposes.
@@ -676,17 +659,13 @@ class BlastNSeedregionFilter(BlastNSeedregionFilterBase):
         seedregion_start: int | float,
         seedregion_end: int | float,
         remove_hits: bool = True,
-        search_parameters: dict | None = None,
-        hit_parameters: dict | None = None,
+        search_parameters: BlastnSearchParameters = BlastnSearchParameters(),  # type: ignore[call-arg]
+        hit_parameters: BlastnHitParameters = BlastnHitParameters(),  # type: ignore[call-arg]
         names_search_output: list | None = None,
         filter_name: str = "blast_filter",
         dir_output: str = "output",
     ) -> None:
         """Constructor for the BlastNSeedregionFilter class."""
-        if not search_parameters:
-            search_parameters = {}
-        if not hit_parameters:
-            hit_parameters = {}
         if not names_search_output:
             names_search_output = [
                 "query",
@@ -782,7 +761,7 @@ class BlastNSeedregionSiteFilter(BlastNSeedregionFilterBase):
     :param search_parameters: Parameters to configure the BLAST search.
     :type search_parameters: dict
     :param hit_parameters: Criteria for interpreting BLAST hits.
-    :type hit_parameters: dict
+    :type hit_parameters: BlastnHitParameters
     :param names_search_output: List of names for the BLAST search output fields.
     :type names_search_output: list
     :param filter_name: Name of the filter for identification purposes.
@@ -796,8 +775,8 @@ class BlastNSeedregionSiteFilter(BlastNSeedregionFilterBase):
         seedregion_size: int,
         seedregion_site_name: str,
         remove_hits: bool = True,
-        search_parameters: dict = {},
-        hit_parameters: dict = {},
+        search_parameters: BlastnSearchParameters = BlastnSearchParameters(),  # type: ignore[call-arg]
+        hit_parameters: BlastnHitParameters = BlastnHitParameters(),  # type: ignore[call-arg]
         names_search_output: list = [
             "query",
             "reference",
