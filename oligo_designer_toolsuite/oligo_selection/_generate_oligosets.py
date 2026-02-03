@@ -200,50 +200,45 @@ class OligosetGeneratorIndependentSet:
         :rtype: tuple(csr_matrix, list)
         """
 
-        def _get_overlap(seq1_intervals: list[list[int]], seq2_intervals: list[list[int]]) -> bool:
-            # Determine if two ligos overlap based on a distance value
-            return any(
-                min(a[1], b[1]) - max(a[0], b[0]) >= -self.distance_between_oligos
-                for a in seq1_intervals
-                for b in seq2_intervals
+        def _get_distance(seq1_intervals: list[list[int]], seq2_intervals: list[list[int]]) -> int:
+            # Determine if two ligos do NOT overlap based on a distance value
+            distances = min(
+                [max(a[0], b[0]) - min(a[1], b[1]) for a in seq1_intervals for b in seq2_intervals]
             )
+            if distances <= self.distance_between_oligos:
+                return 0
+            return int(distances)
 
         # Keep track of the indices
         non_overlap_matrix_ids = list(oligo_database.database[region_id].keys())
 
         # Get all intervals (start, end)
-        intervals = [
-            [
-                [start[0], end[0]]
-                for start, end in zip(
-                    oligo_database.database[region_id][oligo_id]["start"],
-                    oligo_database.database[region_id][oligo_id]["end"],
-                )
-            ]
-            for oligo_id in non_overlap_matrix_ids
-        ]
+        intervals = []
+        for oligo_id in non_overlap_matrix_ids:
+            intervals.append(
+                [
+                    [s, e]
+                    # loop through sequences from different genomic regions for the same oligo (can have the same coordinates if coming from shorter and longer exons)
+                    for start, end in zip(
+                        oligo_database.database[region_id][oligo_id]["start"],
+                        oligo_database.database[region_id][oligo_id]["end"],
+                    )
+                    # loop through exon junction parts for the same oligo
+                    for s, e in zip(start, end)
+                ]
+            )
 
-        # Create a sparse overlap matrix
+        # Create a sparse non-overlap matrix
         n_oligos = len(non_overlap_matrix_ids)
         non_overlap_matrix = lil_matrix((n_oligos, n_oligos), dtype=int)
 
         # Calculate only upper triangle matrix since the matrix is symmetric
         for i in range(n_oligos):
             for j in range(i + 1, n_oligos):
-                if _get_overlap(intervals[i], intervals[j]):
-                    non_overlap_matrix[i, j] = 1
+                non_overlap_matrix[i, j] = _get_distance(intervals[i], intervals[j])
 
         # Fill values of lower triangle
-        non_overlap_matrix = non_overlap_matrix.maximum(non_overlap_matrix.transpose())
-        # Set diagonal elements to 1 as oligos always overlap with themselves
-        non_overlap_matrix.setdiag(1)
-
-        # Create a sparse matrix containing only ones
-        ones_matrix = lil_matrix((n_oligos, n_oligos), dtype=int)
-        ones_matrix[:, :] = 1
-
-        # Invert theoverlap matrix by subtracting the overlapping matrix from the ones matrix
-        non_overlap_matrix = ones_matrix - non_overlap_matrix
+        non_overlap_matrix += non_overlap_matrix.T
         non_overlap_matrix = non_overlap_matrix.tocsr()
 
         return non_overlap_matrix, non_overlap_matrix_ids
