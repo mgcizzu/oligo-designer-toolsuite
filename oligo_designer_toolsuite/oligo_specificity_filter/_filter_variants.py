@@ -176,8 +176,8 @@ class VariantsFilter(ReferenceSpecificityFilter):
             )
         else:
             raise ConfigurationError(
-                f"Mode '{mode}' is not available. Choose mode=0 for removing hits from the database, "
-                f"or mode=1 for flagging the hits in the database."
+                f"Mode '{mode}' is not available. Choose mode=0 for flagging the hits in the database, "
+                f"or mode=1 for removing hits from the database."
             )
 
         # remove temporary files
