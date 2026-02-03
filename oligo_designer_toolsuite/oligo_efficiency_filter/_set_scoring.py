@@ -20,6 +20,8 @@ class SetScoringBase(ABC):
     def __init__(self, ascending: bool) -> None:
         """Constructor for the SetScoringBase class."""
         self.ascending = ascending
+        self.score_1: str = ""
+        self.score_2: str = ""
 
     @abstractmethod
     def apply(self, oligo_set: pd.Series, n: int) -> tuple[list, dict]:

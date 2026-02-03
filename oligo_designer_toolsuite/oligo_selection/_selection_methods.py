@@ -478,6 +478,7 @@ class GraphBasedSelectionPolicy(OligoSelectionPolicy):
         # Initialize max_score with score from initial oligoset
         best_oligoset = oligoset_init
         _, best_scores = self.set_scoring.apply(oligos_scores.loc[best_oligoset], oligoset_size)
+        best_oligoset_score_1 = best_scores[self.set_scoring.score_1]
         best_oligoset_worst_score = best_scores["set_score_worst"]
 
         for first_idx in range(min(len(oligo_ids_sorted), heuristic_n_attempts)):
@@ -498,12 +499,17 @@ class GraphBasedSelectionPolicy(OligoSelectionPolicy):
             if len(oligoset_idxs) == oligoset_size:
                 oligoset = [oligo_ids_sorted[idx] for idx in oligoset_idxs]
                 _, oligoset_scores = self.set_scoring.apply(oligos_scores.loc[oligoset], oligoset_size)
+                oligoset_score_1 = oligoset_scores[self.set_scoring.score_1]
                 oligoset_worst_score = oligoset_scores["set_score_worst"]
 
-                if is_better(oligoset_worst_score, best_oligoset_worst_score):
+                if is_better(oligoset_score_1, best_oligoset_score_1):
+                    best_oligoset_score_1 = oligoset_score_1
                     best_oligoset_worst_score = oligoset_worst_score
                     best_oligoset = oligoset
 
+        # we need to use "set_score_worst" to filter the oligos here
+        # if we would use "score_1" we would filter the oligos based
+        # on the average score instead of the worst score, which removes oligos we need for the set
         if self.set_scoring.ascending:
             oligos_scores = oligos_scores[oligos_scores <= best_oligoset_worst_score]
         else:
