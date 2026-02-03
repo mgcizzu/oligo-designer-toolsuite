@@ -44,7 +44,6 @@ from oligo_designer_toolsuite.oligo_property_filter import (
 )
 from oligo_designer_toolsuite.oligo_selection import (
     GraphBasedSelectionPolicy,
-    GreedySelectionPolicy,
     OligoSelectionPolicy,
     OligosetGeneratorIndependentSet,
 )
@@ -1557,7 +1556,12 @@ class TargetProbeDesigner:
         :rtype: OligoDatabase
         """
         # Define all scorers
-        isoform_consensus_scorer = IsoformConsensusScorer(normalize=True, score_weight=isoform_weight)
+        isoform_consensus_scorer = IsoformConsensusScorer(
+            normalize=True,
+            score_weight=isoform_weight,
+            property_name_transcript_id="transcript_id",
+            property_name_number_total_transcripts="number_total_transcripts",
+        )
         Tm_scorer = DeviationFromOptimalTmScorer(
             Tm_opt=Tm_max,
             Tm_parameters=Tm_parameters,
@@ -1565,33 +1569,19 @@ class TargetProbeDesigner:
             Tm_chem_correction_parameters=Tm_chem_correction_parameters,
             score_weight=Tm_weight,
         )
-
         oligos_scoring = OligoScoring(scorers=[isoform_consensus_scorer, Tm_scorer])
-
         # the higher the score the better, because we want to have on average oligos with high melting temperatures
         set_scoring = AverageSetScoring(ascending=False)
 
-        # We change the processing dependent on the required number of probes in the probe sets.
-        # For small sets, we use the graph-based selection policy with heuristic optimization.
+        # Define the selection policy
         selection_policy: OligoSelectionPolicy
-        if set_size_opt < 30:
-            selection_policy = GraphBasedSelectionPolicy(
-                set_scoring=set_scoring,
-                n_attempts=n_attempts,
-                heuristic=heuristic,
-                heuristic_n_attempts=heuristic_n_attempts,
-            )
-            base_log_parameters({"selection_policy": "Graph-Based"})
-
-        # For large sets, we use the greedy selection policy.
-        else:
-            selection_policy = GreedySelectionPolicy(
-                set_scoring=set_scoring,
-                score_criteria=set_scoring.score_1,
-                penalty=0.01,
-                n_attempts=n_attempts,
-            )
-            base_log_parameters({"selection_policy": "Greedy"})
+        selection_policy = GraphBasedSelectionPolicy(
+            set_scoring=set_scoring,
+            n_attempts=n_attempts,
+            heuristic=heuristic,
+            heuristic_n_attempts=heuristic_n_attempts,
+        )
+        base_log_parameters({"selection_policy": "Graph-Based"})
 
         probeset_generator = OligosetGeneratorIndependentSet(
             selection_policy=selection_policy,

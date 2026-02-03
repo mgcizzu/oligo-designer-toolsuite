@@ -42,7 +42,6 @@ from oligo_designer_toolsuite.oligo_property_filter import (
 )
 from oligo_designer_toolsuite.oligo_selection import (
     GraphBasedSelectionPolicy,
-    GreedySelectionPolicy,
     OligoSelectionPolicy,
     OligosetGeneratorIndependentSet,
 )
@@ -1525,36 +1524,23 @@ class TargetProbeDesigner:
         :rtype: OligoDatabase
         """
         # Define all scorers
-        utr_scorer = OverlapUTRScorer(score_weight=UTR_weight)
+        utr_scorer = OverlapUTRScorer(score_weight=UTR_weight, property_name="regiontype")
         GC_scorer = DeviationFromOptimalGCContentScorer(
             GC_content_opt=GC_content_opt,
             score_weight=GC_weight,
         )
         oligos_scoring = OligoScoring(scorers=[utr_scorer, GC_scorer])
-
         set_scoring = LowestSetScoring(ascending=True)
 
-        # We change the processing dependent on the required number of probes in the probe sets.
-        # For small sets, we use the graph-based selection policy with heuristic optimization.
+        # Define the selection policy
         selection_policy: OligoSelectionPolicy
-        if set_size_opt < 30:
-            selection_policy = GraphBasedSelectionPolicy(
-                set_scoring=set_scoring,
-                n_attempts=n_attempts,
-                heuristic=heuristic,
-                heuristic_n_attempts=heuristic_n_attempts,
-            )
-            base_log_parameters({"selection_policy": "Graph-Based"})
-
-        # For large sets, we use the greedy selection policy.
-        else:
-            selection_policy = GreedySelectionPolicy(
-                set_scoring=set_scoring,
-                score_criteria=set_scoring.score_1,
-                penalty=0.01,
-                n_attempts=n_attempts,
-            )
-            base_log_parameters({"selection_policy": "Greedy"})
+        selection_policy = GraphBasedSelectionPolicy(
+            set_scoring=set_scoring,
+            n_attempts=n_attempts,
+            heuristic=heuristic,
+            heuristic_n_attempts=heuristic_n_attempts,
+        )
+        base_log_parameters({"selection_policy": "Graph-Based"})
 
         probeset_generator = OligosetGeneratorIndependentSet(
             selection_policy=selection_policy,
