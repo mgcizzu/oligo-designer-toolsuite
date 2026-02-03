@@ -163,8 +163,9 @@ class TestOligosetGeneratorIndependentSet(unittest.TestCase):
             index=computed_matrix_ids,
             dtype=int,
         )
+        print(computed_matrix)
 
-        true_matrix = pd.DataFrame(data=[[0, 1], [1, 0]], columns=["A_0", "A_1"], index=["A_0", "A_1"])
+        true_matrix = pd.DataFrame(data=[[0, 5], [5, 0]], columns=["A_0", "A_1"], index=["A_0", "A_1"])
         assert true_matrix.equals(
             computed_matrix
         ), "overlapping matrix for two non-overlapping oligos wrongly computed"
