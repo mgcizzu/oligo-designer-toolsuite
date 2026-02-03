@@ -23,13 +23,16 @@ class OverlapTargetedExonsScorer(BaseScorer):
     :type targeted_exons: list
     :param score_weight: Weight to apply if an oligo overlaps with a targeted exon.
     :type score_weight: float
+    :param property_name: Name of the property to use for scoring.
+    :type property_name: str, optional
     """
 
-    def __init__(self, targeted_exons: list[str], score_weight: float):
+    def __init__(self, targeted_exons: list[str], score_weight: float, property_name: str = "exon_number"):
         """Constructor for the OverlapTargetedExonsScorer class."""
 
         self.targeted_exons = sorted(targeted_exons)
         self.score_weight = score_weight
+        self.property_name = property_name
 
     def apply(
         self, oligo_database: OligoDatabase, region_id: str, oligo_id: str, sequence_type: str
@@ -49,7 +52,7 @@ class OverlapTargetedExonsScorer(BaseScorer):
         :rtype: float
         """
         exon_numbers = oligo_database.get_oligo_property_value(
-            "exon_number", flatten=True, region_id=region_id, oligo_id=oligo_id
+            self.property_name, flatten=True, region_id=region_id, oligo_id=oligo_id
         )
         exon_numbers = cast_to_list(exon_numbers) if exon_numbers else None
 
@@ -75,12 +78,15 @@ class OverlapUTRScorer(BaseScorer):
 
     :param score_weight: Weight to apply if an oligo originates from a UTR.
     :type score_weight: float
+    :param property_name: Name of the property to use for scoring the region type.
+    :type property_name: str, optional
     """
 
-    def __init__(self, score_weight: float) -> None:
+    def __init__(self, score_weight: float, property_name: str = "regiontype") -> None:
         """Constructor for the OverlapUTRScorer class."""
 
         self.score_weight = score_weight
+        self.property_name = property_name
 
     def apply(
         self, oligo_database: OligoDatabase, region_id: str, oligo_id: str, sequence_type: str
@@ -100,7 +106,7 @@ class OverlapUTRScorer(BaseScorer):
         :rtype: float
         """
         regiontype = oligo_database.get_oligo_property_value(
-            property="regiontype", region_id=region_id, oligo_id=oligo_id, flatten=True
+            property=self.property_name, region_id=region_id, oligo_id=oligo_id, flatten=True
         )
         if regiontype:
             sequence_originates_from_UTR = "three_prime_UTR" in regiontype or "five_prime_UTR" in regiontype
@@ -123,13 +129,25 @@ class IsoformConsensusScorer(BaseScorer):
     :type normalize: bool
     :param score_weight: Weight to apply to the consensus score.
     :type score_weight: float
+    :param property_name_transcript_id: Name of the property to use for scoring the transcript ID.
+    :type property_name_transcript_id: str, optional
+    :param property_name_number_total_transcripts: Name of the property to use for scoring the number of total transcripts.
+    :type property_name_number_total_transcripts: str, optional
     """
 
-    def __init__(self, normalize: bool, score_weight: float) -> None:
+    def __init__(
+        self,
+        normalize: bool,
+        score_weight: float,
+        property_name_transcript_id: str = "transcript_id",
+        property_name_number_total_transcripts: str = "number_total_transcripts",
+    ) -> None:
         """Constructor for the IsoformConsensusScorer class."""
 
         self.normalize = normalize
         self.score_weight = score_weight
+        self.property_name_transcript_id = property_name_transcript_id
+        self.property_name_number_total_transcripts = property_name_number_total_transcripts
 
     def apply(
         self, oligo_database: OligoDatabase, region_id: str, oligo_id: str, sequence_type: str
@@ -149,11 +167,14 @@ class IsoformConsensusScorer(BaseScorer):
         :rtype: float
         """
         transcript_id = oligo_database.get_oligo_property_value(
-            property="transcript_id", region_id=region_id, oligo_id=oligo_id, flatten=True
+            property=self.property_name_transcript_id, region_id=region_id, oligo_id=oligo_id, flatten=True
         )
 
         number_transcripts = oligo_database.get_oligo_property_value(
-            property="number_total_transcripts", region_id=region_id, oligo_id=oligo_id, flatten=True
+            property=self.property_name_number_total_transcripts,
+            region_id=region_id,
+            oligo_id=oligo_id,
+            flatten=True,
         )
 
         if transcript_id and number_transcripts:
