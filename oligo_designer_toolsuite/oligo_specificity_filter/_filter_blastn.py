@@ -178,7 +178,7 @@ class BlastNFilter(AlignmentSpecificityFilter):
             + cmd_parameters
             # Define default output format for blast search filter. The fields are:
             # query, reference, alignment_length, query_start, query_end, query_length
-            + " -outfmt 6 qseqid sseqid length qstart qend qlen"
+            + ' -outfmt "6 qseqid sseqid length qstart qend qlen"'
         )
         process = subprocess.Popen(cmd, shell=True, cwd=self.dir_output, stdout=subprocess.DEVNULL).wait()
 
