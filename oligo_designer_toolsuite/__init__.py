@@ -12,16 +12,8 @@ Submodules:
 - utils: Includes various utility functions and helper methods used across the package.
 """
 
-from . import (
-    database,
-    oligo_efficiency_filter,
-    oligo_property_filter,
-    oligo_selection,
-    oligo_specificity_filter,
-    pipelines,
-    sequence_generator,
-    utils,
-)
+import importlib
+import types
 
 __all__ = [
     "database",
@@ -33,3 +25,9 @@ __all__ = [
     "sequence_generator",
     "utils",
 ]
+
+
+def __getattr__(name: str) -> types.ModuleType:
+    if name in __all__:
+        return importlib.import_module("." + name, __name__)
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
