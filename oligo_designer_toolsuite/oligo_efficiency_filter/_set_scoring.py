@@ -38,6 +38,16 @@ class SetScoringBase(ABC):
         :rtype: tuple[list, dict]
         """
 
+    @property
+    def score_names(self) -> list[str]:
+        """
+        Returns a list of the score names.
+
+        :return: A list of the score names.
+        :rtype: list[str]
+        """
+        return [s for s in (self.score_1, self.score_2) if s]
+
 
 class LowestSetScoring(SetScoringBase):
     """
