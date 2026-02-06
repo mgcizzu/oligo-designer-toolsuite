@@ -341,7 +341,6 @@ class TestOligoDatabase(unittest.TestCase):
                 "strand",
                 "transcript_id",
             ],
-            top_n_sets=2,
             ascending=True,
         )
 
@@ -391,7 +390,6 @@ class TestOligoDatabase(unittest.TestCase):
 
         self.oligo_database.write_ready_to_order_yaml(
             properties=["oligo", "target", "test_property"],
-            top_n_sets=2,
             ascending=True,
             filename="test_ready_to_order",
         )
@@ -442,7 +440,6 @@ class TestOligoDatabase(unittest.TestCase):
 
         self.oligo_database.write_oligosets_to_table(
             properties=["oligo", "target", "test_property"],
-            top_n_sets=3,
             ascending=True,
         )
 

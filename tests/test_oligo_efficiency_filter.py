@@ -206,16 +206,15 @@ class TestOligoScoring(unittest.TestCase):
         oligos_scoring = OligoScoring(
             scorers=[self.exon_scorer, self.isoform_consensus_scorer, self.Tm_scorer, self.GC_norm_scorer]
         )
-        oligos_scoring.apply(
-            oligo_database=self.oligo_database, region_id="region_1", sequence_type=self.sequence_type
+        oligo_scores = oligos_scoring.apply(
+            oligo_database=self.oligo_database,
+            region_id="region_1",
+            oligo_ids=["region_1::1", "region_1::2"],
+            sequence_type=self.sequence_type,
         )
 
-        assert (
-            self.oligo_database.database["region_1"]["region_1::1"]["oligo_score"] == 1.25
-        ), "error: wrong score computed for oligo region_1::1"
-        assert (
-            self.oligo_database.database["region_1"]["region_1::2"]["oligo_score"] == 2.25
-        ), "error: wrong score computed for oligo region_1::2"
+        assert oligo_scores.loc["region_1::1"] == 1.25, "error: wrong score computed for oligo region_1::1"
+        assert oligo_scores.loc["region_1::2"] == 2.25, "error: wrong score computed for oligo region_1::2"
 
 
 class TestSetScoring(unittest.TestCase):
