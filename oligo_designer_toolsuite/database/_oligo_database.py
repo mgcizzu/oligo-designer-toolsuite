@@ -639,7 +639,6 @@ class OligoDatabase:
     def write_oligosets_to_yaml(
         self,
         properties: str | list[str],
-        top_n_sets: int,
         ascending: bool,
         filename: str = "oligosets",
         dir_output: str | None = None,
@@ -651,8 +650,6 @@ class OligoDatabase:
 
         :param properties: A list of properties to include in the YAML file.
         :type properties: str | list[str]
-        :param top_n_sets: Number of top oligosets to include based on their score.
-        :type top_n_sets: int
         :param ascending: If True, sort oligosets by score in ascending order (the smaller the score the better the oligo set);
             otherwise, in descending order (the higher the score the better the oligo set).
         :type ascending: bool
@@ -678,8 +675,8 @@ class OligoDatabase:
             ]
 
             oligosets_region = oligosets_region.sort_values(by=oligosets_score_columns, ascending=ascending)
-            oligosets_region_oligos = oligosets_region.head(top_n_sets)[oligosets_oligo_columns]
-            oligosets_region_scores = oligosets_region.head(top_n_sets)[oligosets_score_columns]
+            oligosets_region_oligos = oligosets_region[oligosets_oligo_columns]
+            oligosets_region_scores = oligosets_region[oligosets_score_columns]
 
             for idx, oligoset in oligosets_region_oligos.iterrows():
                 oligoset_id = f"Oligoset {idx + 1}"
@@ -715,7 +712,6 @@ class OligoDatabase:
     def write_oligosets_to_table(
         self,
         properties: str | list[str],
-        top_n_sets: int,
         ascending: bool,
         filename: str = "oligosets",
         dir_output: str | None = None,
@@ -735,7 +731,7 @@ class OligoDatabase:
             ]
 
             oligosets_region = oligosets_region.sort_values(by=oligosets_score_columns, ascending=ascending)
-            oligosets_region = oligosets_region.head(top_n_sets)[oligosets_oligo_columns]
+            oligosets_region = oligosets_region[oligosets_oligo_columns]
             oligosets_region = oligosets_region.reset_index(drop=True)
 
             # iterate through all oligo sets
@@ -802,7 +798,6 @@ class OligoDatabase:
     def write_ready_to_order_yaml(
         self,
         properties: str | list[str],
-        top_n_sets: int,
         ascending: bool,
         filename: str = "ready_to_order",
         dir_output: str | None = None,
@@ -831,7 +826,7 @@ class OligoDatabase:
             ]
 
             oligosets_region = oligosets_region.sort_values(by=oligosets_score_columns, ascending=ascending)
-            oligosets_region = oligosets_region.head(top_n_sets)[oligosets_oligo_columns]
+            oligosets_region = oligosets_region[oligosets_oligo_columns]
             oligosets_region = oligosets_region.reset_index(drop=True)
 
             # iterate through all oligo sets
