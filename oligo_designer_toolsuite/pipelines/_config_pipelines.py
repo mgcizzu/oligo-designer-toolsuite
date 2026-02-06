@@ -6,16 +6,20 @@ from pydantic import BaseModel, ConfigDict, Field, PositiveInt
 
 from ._config_models import (
     DeveloperParametersCycleHCR,
+    DeveloperParametersMerfish,
     DirOutputT,
     ExonExonJunctionBlockSizeT,
     General,
     GenomicRegions,
     PrimerCycleHCR,
+    PrimerMerfish,
     ReadoutProbeCycleHCR,
+    ReadoutProbeMerfish,
     SourceParamsCustom,
     SourceParamsEnsembl,
     SourceParamsNcbi,
     TargetProbeCycleHCR,
+    TargetProbeMerfish,
 )
 
 
@@ -122,3 +126,21 @@ class CycleHCRProbeDesignerConfig(BaseModel):
     readout_probe: ReadoutProbeCycleHCR
     primer: PrimerCycleHCR
     developer_param: DeveloperParametersCycleHCR
+
+
+class MerfishProbeDesignerConfig(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    schema_version: PositiveInt
+    general: Annotated[
+        General,
+        Field(
+            default_factory=lambda: General(
+                n_jobs=4, dir_output="output_merfish_probe_designer", top_n_sets=3
+            ),
+            description="General parameters of the pipeline.",
+        ),
+    ]
+    target_probe: TargetProbeMerfish
+    readout_probe: ReadoutProbeMerfish
+    primer: PrimerMerfish
+    developer_param: DeveloperParametersMerfish

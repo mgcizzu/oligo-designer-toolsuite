@@ -144,7 +144,7 @@ class HomopolymericRunsFilter(BasePropertyFilter):
         """Constructor for the HomopolymericRunsFilter class."""
         super().__init__()
         # create all homopolymeric runs
-        self.homopolymeric_runs = [base.upper() * n for base, n in base_n]
+        self.homopolymeric_runs = [base.upper() * n for base, n in base_n if n is not None]
 
     def apply(self, sequence: str) -> bool:
         """

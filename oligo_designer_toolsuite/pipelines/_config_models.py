@@ -1,11 +1,13 @@
 from __future__ import annotations
 
+from math import isclose
 from typing import Annotated, Any, Literal
 
 from pydantic import (
     BaseModel,
     ConfigDict,
     Field,
+    NonNegativeFloat,
     NonNegativeInt,
     NonPositiveInt,
     PositiveInt,
@@ -167,10 +169,21 @@ class General(BaseModel):
 
 class HomopolymerThresholds(BaseModel):
     model_config = ConfigDict(extra="forbid")
-    A: PositiveInt
-    T: PositiveInt
-    C: PositiveInt
-    G: PositiveInt
+    A: Annotated[PositiveInt | None, Field(default=None)]
+    T: Annotated[PositiveInt | None, Field(default=None)]
+    C: Annotated[PositiveInt | None, Field(default=None)]
+    G: Annotated[PositiveInt | None, Field(default=None)]
+
+
+FilesFastaReferenceDatabaseT = Annotated[
+    list[str],
+    Field(
+        description="(list of) fasta file(s) with sequences used as reference for the specificity filters. Hint: use the genomic_region_generator pipeline to create fasta files of genomic regions of interest"
+    ),
+]
+
+GCContentMinT = Annotated[float, Field(description="minimum GC content of oligos", ge=0, le=100)]
+GCContentMaxT = Annotated[float, Field(description="maximum GC content of oligos", ge=0, le=100)]
 
 
 class TargetProbeBase(BaseModel):
@@ -189,12 +202,7 @@ class TargetProbeBase(BaseModel):
             description="fasta file with sequences form which the probes should be generated. Hint: use the genomic_region_generator pipeline to create fasta files of genomic regions of interest"
         ),
     ]
-    files_fasta_reference_database: Annotated[
-        list[str],
-        Field(
-            description="fasta file with sequences used as reference for the specificity filters. Hint: use the genomic_region_generator pipeline to create fasta files of genomic regions of interest"
-        ),
-    ]
+    files_fasta_reference_database: FilesFastaReferenceDatabaseT
 
     isoform_consensus: Annotated[
         float,
@@ -204,8 +212,8 @@ class TargetProbeBase(BaseModel):
             le=100,
         ),
     ]
-    GC_content_min: Annotated[float, Field(description="minimum GC content of oligos", ge=0, le=100)]
-    GC_content_max: Annotated[float, Field(description="maximum GC content of oligos", ge=0, le=100)]
+    GC_content_min: GCContentMinT
+    GC_content_max: GCContentMaxT
     homopolymeric_base_n: Annotated[
         HomopolymerThresholds,
         Field(description="minimum number of nucleotides to consider it a homopolymeric run per base"),
@@ -227,18 +235,29 @@ class TargetProbeBase(BaseModel):
     n_sets: Annotated[PositiveInt, Field(description="maximum number of sets to generate")]
 
 
+TmMinT = Annotated[NonNegativeFloat, Field(description="minimum melting temperature of oligos")]
+TmOptT = Annotated[NonNegativeFloat, Field(description="optimal melting temperature of oligos")]
+TmMaxT = Annotated[NonNegativeFloat, Field(description="maximum melting temperature of oligos")]
+
+TSecondaryStructureT = Annotated[
+    PositiveInt, Field(description=" Temperature at which the free energy is calculated")
+]
+
+WeightT = Annotated[float, Field(description="weight in the efficiency score  of the respective measure")]
+
+
 class TargetProbeCycleHCR(TargetProbeBase):
     files_fasta_database: list[str] = [
         "data/genomic_regions/exon_annotation_source-NCBI_species-Homo_sapiens_annotation_release-110_genome_assemly-GRCh38.fna",
         "data/genomic_regions/exon_exon_junction_annotation_source-NCBI_species-Homo_sapiens_annotation_release-110_genome_assemly-GRCh38.fna",
     ]
-    files_fasta_reference_database: list[str] = [
+    files_fasta_reference_database: FilesFastaReferenceDatabaseT = [
         "data/genomic_regions/gene_annotation_source-NCBI_species-Homo_sapiens_annotation_release-110_genome_assemly-GRCh38.fna"
     ]
 
     isoform_consensus: float = 0
-    GC_content_min: float = 30
-    GC_content_max: float = 90
+    GC_content_min: GCContentMinT = 30
+    GC_content_max: GCContentMaxT = 90
     homopolymeric_base_n: Annotated[
         HomopolymerThresholds, Field(default_factory=lambda: HomopolymerThresholds(A=6, T=6, C=6, G=6))
     ]
@@ -265,11 +284,9 @@ class TargetProbeCycleHCR(TargetProbeBase):
             description="L + spacer + R sequence should equal the total probe length, e.g. 45 + 2 + 45 = 92",
         ),
     ]
-    Tm_min: Annotated[PositiveInt, Field(default=90, description="minimum melting temperature of oligos")]
-    Tm_max: Annotated[PositiveInt, Field(default=200, description="maximum melting temperature of oligos")]
-    T_secondary_structure: Annotated[
-        PositiveInt, Field(default=90, description=" Temperature at which the free energy is calculated")
-    ]
+    Tm_min: TmMinT = 90
+    Tm_max: TmMaxT = 200
+    T_secondary_structure: TSecondaryStructureT = 90
     junction_region_size: Annotated[
         NonNegativeInt,
         Field(
@@ -277,20 +294,8 @@ class TargetProbeCycleHCR(TargetProbeBase):
             description="size of the seed region around the junction site for blast seed region filter; set to 0 if junction region should not be considered for blast search",
         ),
     ]
-    Tm_weight: Annotated[
-        float,
-        Field(
-            default=1,
-            description="weight of the Tm of the probe in the efficiency score, where score in abs(Tm_max - Tm_probe)",
-        ),
-    ]
-    isoform_weight: Annotated[
-        float,
-        Field(
-            default=10,
-            description="weight of the isoform consensus of the probe in the efficiency score, where score is between 0 and 1",
-        ),
-    ]
+    Tm_weight: WeightT = 1
+    isoform_weight: WeightT = 10
     linker_sequence: Annotated[
         DNA, Field(default="TT", description="linker sequence between readout probe and target sequence")
     ]
@@ -382,8 +387,8 @@ class TmParameters(BaseModel):
     tmm_table: Annotated[Literal["DNA_TMM1"], Field(default="DNA_TMM1", description="default")]
     imm_table: Annotated[Literal["DNA_IMM1"], Field(default="DNA_IMM1", description="default")]
     de_table: Annotated[Literal["DNA_DE1"], Field(default="DNA_DE1", description="default")]
-    dnac1: Annotated[PositiveInt, Field(default=25, description="[nM]; default")]
-    dnac2: Annotated[PositiveInt, Field(default=25, description="[nM]; default")]
+    dnac1: Annotated[NonNegativeInt, Field(default=25, description="[nM]; default")]
+    dnac2: Annotated[NonNegativeInt, Field(default=25, description="[nM]; default")]
     saltcorr: Annotated[
         NonNegativeInt,
         Field(
@@ -866,30 +871,74 @@ class BlastnSearchParameters(BaseModel):
 class BlastnHitParameters(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
-    # set a default for coverage because BlastnHitParameters is not allowed to have both fields with
-    # None and we sometimes need to initialise it as default values
     coverage: Annotated[
         float | None,
-        Field(default=50, ge=0, le=100, description="alternatively, min_alignment_length can be used"),
+        Field(
+            default=50,
+            ge=0,
+            le=100,
+            description="alternatively, min_alignment_length can be used (ignored if min_alignment_length is set)",
+        ),
     ]
     min_alignment_length: Annotated[
-        NonNegativeInt | None, Field(default=None, description="alternatively, coverage can be used")
+        NonNegativeInt | None,
+        Field(
+            default=None,
+            description="alternatively, coverage can be used",
+        ),
     ]
 
+    @model_validator(mode="before")
+    @classmethod
+    def _normalize_and_enforce(cls, data: Any) -> Any:
+        # Allow constructing from None / already validated model
+        if data is None:
+            return {}
+        if isinstance(data, cls):
+            return data
+        if not isinstance(data, dict):
+            return data  # let pydantic raise its own error
+
+        has_cov = "coverage" in data
+        has_min = "min_alignment_length" in data
+
+        # If both are explicitly provided -> error
+        if (
+            has_cov
+            and has_min
+            and data.get("coverage") is not None
+            and data.get("min_alignment_length") is not None
+        ):
+            raise ValueError("Provide only one of 'coverage' or 'min_alignment_length', not both.")
+
+        # Precedence rule: if min_alignment_length is provided (non-None) and coverage not explicitly provided,
+        # then drop coverage (so default 50 won't conflict)
+        if data.get("min_alignment_length") is not None and not has_cov:
+            data = dict(data)
+            data["coverage"] = None
+
+        return data
+
     @model_validator(mode="after")
-    def check_mutually_exclusive(self) -> Self:
-        """Ensure exactly one of coverage or min_alignment_length is provided and the other value is set to None."""
+    def _check_mutually_exclusive(self) -> Self:
         if (self.coverage is None) == (self.min_alignment_length is None):
-            # both None OR both set -> invalid
             raise ValueError("Exactly one of 'coverage' or 'min_alignment_length' must be set.")
         return self
 
 
-class TargetProbeDevCycleHCR(BaseModel):
+SecondaryStructuresThresholdDeltaGT = Annotated[
+    float,
+    Field(
+        default=0,
+        description="threshold for the secondary structure free energy -> oligo rejected if it presents a structure with a negative free energy at the defined temperature",
+    ),
+]
+
+
+class TargetProbeDev(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
-    Tm_parameters: Annotated[TmParameters, Field(default_factory=lambda: TmParameters(saltcorr=0))]
-
+    Tm_parameters: TmParameters
     Tm_chem_correction_parameters: Annotated[
         TmChemCorrectionParameters | None,
         Field(default=None, description="if chem correction desired, please add parameters below"),
@@ -898,13 +947,15 @@ class TargetProbeDevCycleHCR(BaseModel):
         TmSaltCorrectionParameters | None,
         Field(default=None, description="if salt correction desired, please add parameters below"),
     ]
-    secondary_structures_threshold_deltaG: Annotated[
-        float,
-        Field(
-            default=0,
-            description="threshold for the secondary structure free energy -> oligo rejected if it presents a structure with a negative free energy at the defined temperature",
-        ),
-    ]
+    secondary_structures_threshold_deltaG: SecondaryStructuresThresholdDeltaGT
+    specificity_blastn_search_parameters: BlastnSearchParameters
+    specificity_blastn_hit_parameters: BlastnHitParameters
+    cross_hybridization_blastn_search_parameters: BlastnSearchParameters
+    cross_hybridization_blastn_hit_parameters: BlastnHitParameters
+
+
+class TargetProbeDevCycleHCR(TargetProbeDev):
+    Tm_parameters: Annotated[TmParameters, Field(default_factory=lambda: TmParameters(saltcorr=0))]
 
     specificity_blastn_search_parameters: Annotated[
         BlastnSearchParameters,
@@ -949,6 +1000,370 @@ class DeveloperParametersBase(BaseModel):
 
 
 class DeveloperParametersCycleHCR(DeveloperParametersBase):
+    target_probe: TargetProbeDevCycleHCR
+
+
+############################################################
+# Merfish
+############################################################
+
+LengthMinT = Annotated[NonNegativeInt, Field(description="mininum length of probe")]
+LengthMaxT = Annotated[NonNegativeInt, Field(description="maximum length of probe")]
+
+
+class TargetProbeMerfish(TargetProbeBase):
+    files_fasta_database: list[str] = [
+        "data/genomic_regions/exon_annotation_source-NCBI_species-Homo_sapiens_annotation_release-110_genome_assemly-GRCh38.fna",
+        "data/genomic_regions/exon_exon_junction_annotation_source-NCBI_species-Homo_sapiens_annotation_release-110_genome_assemly-GRCh38.fna",
+    ]
+    files_fasta_reference_database: FilesFastaReferenceDatabaseT = [
+        "data/genomic_regions/exon_annotation_source-NCBI_species-Homo_sapiens_annotation_release-110_genome_assemly-GRCh38.fna",
+        "data/genomic_regions/exon_exon_junction_annotation_source-NCBI_species-Homo_sapiens_annotation_release-110_genome_assemly-GRCh38.fna",
+    ]
+
+    isoform_consensus: float = 50
+    GC_content_min: GCContentMinT = 43
+    GC_content_max: GCContentMaxT = 63
+    homopolymeric_base_n: Annotated[
+        HomopolymerThresholds, Field(default_factory=lambda: HomopolymerThresholds(A=6, T=6, C=6, G=6))
+    ]
+
+    set_size_min: PositiveInt = 50
+    set_size_opt: PositiveInt = 50
+    distance_between_target_probes: NonNegativeInt = 0
+    n_sets: PositiveInt = 100
+
+    GC_content_opt: Annotated[
+        float, Field(default=53, description="optimal GC content of oligos", ge=0, le=100)
+    ]
+
+    length_min: LengthMinT = 30
+    length_max: LengthMaxT = 30
+
+    Tm_min: TmMinT = 66
+    Tm_opt: TmOptT = 72
+    Tm_max: TmMaxT = 76
+
+    T_secondary_structure: TSecondaryStructureT = 76
+
+    GC_weight: WeightT = 1
+    Tm_weight: WeightT = 1
+    isoform_weight: WeightT = 2
+
+
+class BaseProbabilities(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
-    target_probe: TargetProbeDevCycleHCR
+    A: Annotated[float, Field(default=0.25, ge=0, le=1)]
+    C: Annotated[float, Field(default=0.25, ge=0, le=1)]
+    G: Annotated[float, Field(default=0.25, ge=0, le=1)]
+    T: Annotated[float, Field(default=0.25, ge=0, le=1)]
+
+    @model_validator(mode="after")
+    def _check_sums_up_to_1(self) -> Self:
+        sum_probabilities = self.A + self.C + self.G + self.T
+        if not isclose(sum_probabilities, 1):
+            raise ValueError("The probabilities for all 4 bases needs to sum up to 1.")
+        return self
+
+
+class ReadoutProbeFish(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    files_fasta_reference_database: Annotated[
+        FilesFastaReferenceDatabaseT,
+        Field(
+            default=[
+                "data/genomic_regions/exon_annotation_source-NCBI_species-Homo_sapiens_annotation_release-110_genome_assemly-GRCh38.fna",
+                "data/genomic_regions/exon_exon_junction_annotation_source-NCBI_species-Homo_sapiens_annotation_release-110_genome_assemly-GRCh38.fna",
+            ]
+        ),
+    ]
+    length: Annotated[PositiveInt, Field(description="length of readout probes")]
+    base_probabilities: Annotated[
+        BaseProbabilities,
+        Field(description="probabilities of each base for random readout probe sequence generation"),
+    ]
+    GC_content_min: GCContentMinT
+    GC_content_max: GCContentMaxT
+    homopolymeric_base_n: Annotated[
+        HomopolymerThresholds,
+        Field(
+            default_factory=lambda: HomopolymerThresholds(G=3),
+            description="minimum number of nucleotides to consider it a homopolymeric run per base",
+        ),
+    ]
+    channels_ids: Annotated[
+        list[str],
+        Field(default=["Alexa488", "Cy3b", "Alexa647"], description="names of fluorescent channels"),
+    ]
+
+
+class OligoPropertyWeights(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    length_oligo: Annotated[float | None, Field(default=None)]
+    GC_content_oligo: Annotated[float | None, Field(default=None)]
+    TmNN_oligo: Annotated[float | None, Field(default=None)]
+    DG_secondary_structure_oligo: Annotated[float | None, Field(default=None)]
+    length_selfcomplement_oligo: Annotated[float | None, Field(default=None)]
+
+
+class ReadoutProbeMerfish(ReadoutProbeFish):
+
+    length: PositiveInt = 20
+    base_probabilities: Annotated[
+        BaseProbabilities, Field(default_factory=lambda: BaseProbabilities(A=0.25, C=0.00, G=0.50, T=0.25))
+    ]
+    GC_content_min: GCContentMinT = 40
+    GC_content_max: GCContentMaxT = 50
+    set_size: Annotated[PositiveInt, Field(default=16, description="total number of readout probes")]
+    homogeneous_properties_weights: Annotated[
+        OligoPropertyWeights,
+        Field(default_factory=lambda: OligoPropertyWeights(TmNN_oligo=1.0, GC_content_oligo=1.0)),
+    ]
+    n_bits: Annotated[PositiveInt, Field(default=16, description="number of bits contained in each barcode")]
+    min_hamming_dist: Annotated[
+        PositiveInt, Field(default=4, description="minimum distance between two valid barcodes")
+    ]
+    hamming_weight: Annotated[
+        PositiveInt, Field(default=2, description="number of bits containing one in each barcode")
+    ]
+
+
+class PrimerFish(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    files_fasta_reference_database: Annotated[
+        FilesFastaReferenceDatabaseT,
+        Field(
+            default=[
+                "data/genomic_regions/exon_annotation_source-NCBI_species-Homo_sapiens_annotation_release-110_genome_assemly-GRCh38.fna",
+                "data/genomic_regions/exon_exon_junction_annotation_source-NCBI_species-Homo_sapiens_annotation_release-110_genome_assemly-GRCh38.fna",
+            ]
+        ),
+    ]
+    reverse_primer_sequence: Annotated[
+        DNA,
+        Field(
+            default="CCCTATAGTGAGTCGTATTA",
+            description="defaults to reverse complement of 20 nt T7 promoter sequence, change if different sequence desired",
+        ),
+    ]
+    length: Annotated[PositiveInt, Field(default=20, description="length of forward primer")]
+    base_probabilities: Annotated[
+        BaseProbabilities,
+        Field(description="probabilities of each base for random primer sequence generation"),
+    ]
+    GC_content_min: GCContentMinT = 50
+    GC_content_max: GCContentMaxT = 65
+    number_GC_GCclamp: Annotated[
+        NonNegativeInt,
+        Field(
+            default=1,
+            description="the minimum number of G or C nucleotides required within the specified number of bases",
+        ),
+    ]
+    number_three_prime_base_GCclamp: Annotated[
+        NonNegativeInt,
+        Field(default=2, description="the number of bases to consider from the 3' end of the sequence"),
+    ]
+    homopolymeric_base_n: Annotated[
+        HomopolymerThresholds, Field(default_factory=lambda: HomopolymerThresholds(A=4, T=4, C=4, G=4))
+    ]
+    max_len_selfcomplement: Annotated[NonNegativeInt, Field(default=6)]
+    max_len_complement_reverse_primer: Annotated[NonNegativeInt, Field(default=5)]
+    Tm_min: TmMinT = 60
+    Tm_max: TmMaxT = 75
+    T_secondary_structure: TSecondaryStructureT = 76
+
+
+class PrimerMerfish(PrimerFish):
+    secondary_structures_threshold_deltaG: SecondaryStructuresThresholdDeltaGT
+
+
+class TargetProbeDevMerfish(TargetProbeDev):
+    Tm_parameters: Annotated[
+        TmParameters,
+        Field(default_factory=lambda: TmParameters(nn_table="DNA_NN4", dnac1=5, dnac2=0, Na=300)),
+    ]
+
+    specificity_blastn_search_parameters: Annotated[
+        BlastnSearchParameters,
+        Field(
+            default_factory=lambda: BlastnSearchParameters(
+                perc_identity=80,
+                strand="minus",
+                word_size=10,
+                dust="no",
+                soft_masking=False,
+                max_target_seqs=10,
+                max_hsps=1000,
+            )
+        ),
+    ]
+    specificity_blastn_hit_parameters: Annotated[
+        BlastnHitParameters, Field(default_factory=lambda: BlastnHitParameters(min_alignment_length=17))
+    ]
+
+    cross_hybridization_blastn_search_parameters: Annotated[
+        BlastnSearchParameters,
+        Field(
+            default_factory=lambda: BlastnSearchParameters(
+                perc_identity=80,
+                strand="minus",
+                word_size=7,
+                dust="no",
+                soft_masking=False,
+                max_target_seqs=10,
+            )
+        ),
+    ]
+    cross_hybridization_blastn_hit_parameters: Annotated[
+        BlastnHitParameters, Field(default_factory=lambda: BlastnHitParameters(min_alignment_length=17))
+    ]
+
+
+class ReadoutProbeDevFish(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    initial_num_sequences: Annotated[
+        PositiveInt,
+        Field(
+            default=100000, description="if not enough readout probes can be generated, increase this number"
+        ),
+    ]
+    specificity_blastn_search_parameters: Annotated[
+        BlastnSearchParameters,
+        Field(
+            default_factory=lambda: BlastnSearchParameters(
+                perc_identity=100,
+                strand="minus",
+                word_size=7,
+                dust="no",
+                soft_masking=False,
+                max_target_seqs=10,
+                max_hsps=1000,
+            )
+        ),
+    ]
+    specificity_blastn_hit_parameters: BlastnHitParameters
+    cross_hybridization_blastn_search_parameters: Annotated[
+        BlastnSearchParameters,
+        Field(
+            default_factory=lambda: BlastnSearchParameters(
+                perc_identity=100,
+                strand="minus",
+                word_size=7,
+                dust="no",
+                soft_masking=False,
+                max_target_seqs=10,
+            )
+        ),
+    ]
+    cross_hybridization_blastn_hit_parameters: BlastnHitParameters
+
+
+class ReadoutProbeDevMerfish(ReadoutProbeDevFish):
+    Tm_parameters: Annotated[
+        TmParameters, Field(default_factory=lambda: TmParameters(nn_table="DNA_NN4", Na=300))
+    ]
+    Tm_chem_correction_parameters: Annotated[
+        TmChemCorrectionParameters | None,
+        Field(default=None, description="if chem correction desired, please add parameters below"),
+    ]
+    Tm_salt_correction_parameters: Annotated[
+        TmSaltCorrectionParameters | None,
+        Field(default=None, description="if salt correction desired, please add parameters below"),
+    ]
+    specificity_blastn_hit_parameters: Annotated[
+        BlastnHitParameters, Field(default_factory=lambda: BlastnHitParameters(min_alignment_length=11))
+    ]
+    cross_hybridization_blastn_hit_parameters: Annotated[
+        BlastnHitParameters, Field(default_factory=lambda: BlastnHitParameters(min_alignment_length=11))
+    ]
+    n_combinations: Annotated[
+        PositiveInt,
+        Field(
+            default=100000,
+            description="number of random combinations of readout probe sets to iterate through",
+        ),
+    ]
+
+
+class PrimerDevFish(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    initial_num_sequences: Annotated[
+        PositiveInt,
+        Field(
+            default=100000, description="if not enough readout probes can be generated, increase this number"
+        ),
+    ]
+    Tm_parameters: Annotated[
+        TmParameters,
+        Field(
+            default_factory=lambda: TmParameters(
+                nn_table="DNA_NN4",
+                dnac1=250,
+                dnac2=250,
+                Na=300,
+            )
+        ),
+    ]
+    Tm_chem_correction_parameters: Annotated[
+        TmChemCorrectionParameters | None,
+        Field(default=None, description="if chem correction desired, please add parameters below"),
+    ]
+    Tm_salt_correction_parameters: Annotated[
+        TmSaltCorrectionParameters | None,
+        Field(default=None, description="if salt correction desired, please add parameters below"),
+    ]
+    specificity_refrence_blastn_search_parameters: Annotated[
+        BlastnSearchParameters,
+        Field(
+            default_factory=lambda: BlastnSearchParameters(
+                perc_identity=100,
+                strand="minus",
+                word_size=7,
+                dust="no",
+                soft_masking=False,
+                max_target_seqs=10,
+                max_hsps=1000,
+            )
+        ),
+    ]
+    specificity_refrence_blastn_hit_parameters: Annotated[
+        BlastnHitParameters,
+        Field(
+            default_factory=lambda: BlastnHitParameters(min_alignment_length=14),
+            description="can be turned into coverage",
+        ),
+    ]
+    specificity_hybridization_probes_blastn_search_parameters: Annotated[
+        BlastnSearchParameters,
+        Field(
+            default_factory=lambda: BlastnSearchParameters(
+                perc_identity=100,
+                strand="minus",
+                word_size=7,
+                dust="no",
+                soft_masking=False,
+                max_target_seqs=10,
+                max_hsps=1000,
+            )
+        ),
+    ]
+    specificity_hybridization_probes_blastn_hit_parameters: Annotated[
+        BlastnHitParameters,
+        Field(
+            default_factory=lambda: BlastnHitParameters(min_alignment_length=11),
+            description="can be turned into coverage",
+        ),
+    ]
+
+
+class DeveloperParametersMerfish(DeveloperParametersBase):
+    target_probe: TargetProbeDevMerfish
+    readout_probe: ReadoutProbeDevMerfish
+    primer: PrimerDevFish
