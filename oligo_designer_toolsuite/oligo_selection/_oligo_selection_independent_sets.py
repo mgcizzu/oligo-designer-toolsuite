@@ -279,70 +279,84 @@ class IndependentSetsOligoSelection(BaseOligoSelection):
         :return: Dict mapping tuple of oligo IDs to their set score dict.
         :rtype: dict[tuple[str, ...], dict[str, float]]
         """
-        # Find initial clique using greedy heuristic
-        G = nx.from_scipy_sparse_array(non_overlap_matrix)
-        G = nx.relabel_nodes(G, {i: non_overlap_matrix_ids[i] for i in range(len(non_overlap_matrix_ids))})
-        clique_init = self._greedy_max_clique(G)
-        if len(clique_init) < self.set_size_min:
-            return {}
-        oligoset_size = min(self.set_size_opt, len(clique_init))
-        oligos_scores = self.oligos_scoring.apply(
-            oligo_database=oligo_database,
-            region_id=region_id,
-            oligo_ids=clique_init,
-            sequence_type=sequence_type,
-        )
-        oligoset_init, oligoset_init_scores = self.set_scoring.apply(oligos_scores, oligoset_size)
-        oligosets = {tuple(sorted(oligoset_init)): oligoset_init_scores}
 
-        # Find additional cliques using random node removal
-        n_nodes_removed = int(self.diversification_fraction * len(non_overlap_matrix_ids))
+        def _add_clique_to_oligosets(clique: list[str], oligoset_size: int) -> None:
+            oligos_scores = self.oligos_scoring.apply(
+                oligo_database=oligo_database,
+                region_id=region_id,
+                oligo_ids=clique,
+                sequence_type=sequence_type,
+                non_overlap_matrix=non_overlap_matrix,
+                non_overlap_matrix_ids=non_overlap_matrix_ids,
+                set_oligo_ids=clique,
+                oligoset_size=oligoset_size,
+            )
+            oligoset, oligoset_scores = self.set_scoring.apply(oligos_scores, oligoset_size)
+            oligosets[tuple(sorted(oligoset))] = oligoset_scores
+
+        oligosets: dict[tuple[str, ...], dict[str, float]] = {}
+        oligoset_size = self.set_size_min
+
         rng = np.random.default_rng(seed)
+        n_nodes_removed = int(self.diversification_fraction * len(non_overlap_matrix_ids))
+
         for attempt in range(self.n_attempts_graph):
 
+            # --- Build full graph ---
             G = nx.from_scipy_sparse_array(non_overlap_matrix)
-            G = nx.relabel_nodes(
-                G, {i: non_overlap_matrix_ids[i] for i in range(len(non_overlap_matrix_ids))}
-            )
-            # kepp the full graph for the first attempt
-            if attempt > 0:
-                # we weight the removal of nodes based on the oligo scores
-                # alpha defines the impact of the oligo scores on the removal of nodes
-                # lower alpha: weights barely matter and removal becomes ~uniform random
-                # higher alpha: weights matter more and removal becomes more biased towards higher scoring oligos
+            G = nx.relabel_nodes(G, dict(enumerate(non_overlap_matrix_ids)))
+
+            # --- Diversification: remove nodes (except first attempt) ---
+            if attempt > 0 and n_nodes_removed > 0:
+                # Weight node removal by oligo scores to bias diversification.
+                # alpha controls the strength of this bias:
+                #   alpha → 0 : nearly uniform random removal
+                #   alpha → 1 : increasingly biased by oligo scores
                 alpha = attempt / self.n_attempts_graph
-                weights = self.oligos_scoring.apply(
+
+                oligos_scores = self.oligos_scoring.apply(
                     oligo_database=oligo_database,
                     region_id=region_id,
                     oligo_ids=list(G.nodes),
                     sequence_type=sequence_type,
+                    non_overlap_matrix=non_overlap_matrix,
+                    non_overlap_matrix_ids=non_overlap_matrix_ids,
+                    set_oligo_ids=None,
+                    oligoset_size=None,
                 )
-                weights = weights ** (alpha)
+
+                weights = oligos_scores ** (alpha)
                 weights = weights / weights.sum()
+
                 nodes_to_remove = rng.choice(
                     list(G.nodes),
                     size=n_nodes_removed,
                     replace=False,
                     p=weights,
                 )
-                G.remove_nodes_from(list(nodes_to_remove))
-                # if the clique is too small, skip the enumeration
-                if len(self._greedy_max_clique(G)) < oligoset_size:
-                    continue
 
-            cliques = nx.find_cliques(G)
-            for i, clique in enumerate(cliques):
+                G.remove_nodes_from(list(nodes_to_remove))
+
+            # --- Check feasibility via greedy clique ---
+            greedy_max_clique = self._greedy_max_clique(G)
+
+            if len(greedy_max_clique) < oligoset_size:
+                if attempt == 0:
+                    break  # even full graph cannot support min size
+                continue
+
+            oligoset_size = min(self.set_size_opt, len(greedy_max_clique))
+            _add_clique_to_oligosets(greedy_max_clique, oligoset_size)
+
+            # --- Enumerate cliques ---
+            for i, clique in enumerate(nx.find_cliques(G)):
                 if i >= self.n_attempts_clique_enum:
                     break
-                if len(clique) >= oligoset_size:
-                    oligos_scores = self.oligos_scoring.apply(
-                        oligo_database=oligo_database,
-                        region_id=region_id,
-                        oligo_ids=clique,
-                        sequence_type=sequence_type,
-                    )
-                    oligoset, oligoset_scores = self.set_scoring.apply(oligos_scores, oligoset_size)
-                    oligosets[tuple(sorted(oligoset))] = oligoset_scores
+                if len(clique) < oligoset_size:
+                    continue
+
+                _add_clique_to_oligosets(clique, oligoset_size)
+
         return oligosets
 
     def _greedy_max_clique(self, G: nx.Graph) -> list[str]:

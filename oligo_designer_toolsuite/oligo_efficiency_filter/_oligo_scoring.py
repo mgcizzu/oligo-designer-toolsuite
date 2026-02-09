@@ -38,7 +38,7 @@ class OligoScoring:
         region_id: str,
         oligo_ids: list[str],
         sequence_type: str,
-        **kwargs: dict[str, Any],
+        **kwargs: Any,
     ) -> pd.Series:
         """
         Apply all configured scorers to the oligonucleotides within a given region and sequence type.
@@ -55,8 +55,8 @@ class OligoScoring:
         :type oligo_ids: list[str]
         :param sequence_type: Type of sequence being processed.
         :type sequence_type: str
-        :param kwargs: Additional keyword arguments.
-        :type kwargs: dict[str, Any]
+        :param kwargs: Additional keyword arguments passed through to each scorer (e.g. non_overlap_matrix, set_oligo_ids).
+        :type kwargs: Any
         :return: A pandas Series of scores indexed by oligo ID.
         :rtype: pd.Series
         """
