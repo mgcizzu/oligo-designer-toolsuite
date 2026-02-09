@@ -8,6 +8,7 @@ import unittest
 
 from Bio.SeqUtils import MeltingTemp as mt
 from pandas import Series
+from scipy.sparse import csr_matrix
 
 from oligo_designer_toolsuite.database import OligoDatabase
 from oligo_designer_toolsuite.oligo_efficiency_filter import (
@@ -21,6 +22,7 @@ from oligo_designer_toolsuite.oligo_efficiency_filter import (
     OligoScoring,
     OverlapTargetedExonsScorer,
     OverlapUTRScorer,
+    UniformDistanceScorer,
 )
 
 ############################################
@@ -104,6 +106,7 @@ class TestOligoScoring(unittest.TestCase):
             GC_content_max=80,
             score_weight=1,
         )
+        self.uniform_distance_scorer = UniformDistanceScorer(average_oligo_length=5.0, score_weight=1.0)
 
     def tearDown(self) -> None:
         shutil.rmtree(self.tmp_path)
@@ -201,6 +204,22 @@ class TestOligoScoring(unittest.TestCase):
             sequence_type=self.sequence_type,
         )
         assert oligo_score == 0.25, "error: scoring for GC content incorrect."
+
+    def test_uniform_distance_scorer(self) -> None:
+        # Three oligos with pairwise distances 5, 15, 5 -> dist_opt=5; oligo 1 with set [2,3] has d_min=5 -> score 0
+        matrix = csr_matrix([[0, 5, 15], [5, 0, 5], [15, 5, 0]])
+        ids = ["region_1::1", "region_1::2", "region_1::3"]
+        oligo_score = self.uniform_distance_scorer.apply(
+            oligo_database=self.oligo_database,
+            region_id="region_1",
+            oligo_id="region_1::1",
+            sequence_type=self.sequence_type,
+            non_overlap_matrix=matrix,
+            non_overlap_matrix_ids=ids,
+            set_oligo_ids=["region_1::2", "region_1::3"],
+            oligoset_size=3,
+        )
+        assert oligo_score == 0, "error: uniform distance scoring incorrect."
 
     def test_oligo_scoring(self) -> None:
         oligos_scoring = OligoScoring(
