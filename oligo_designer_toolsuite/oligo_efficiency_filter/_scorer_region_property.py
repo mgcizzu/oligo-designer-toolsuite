@@ -2,6 +2,8 @@
 # imports
 ############################################
 
+from typing import Any
+
 from oligo_designer_toolsuite.database import OligoDatabase
 from oligo_designer_toolsuite.oligo_efficiency_filter import BaseScorer
 from oligo_designer_toolsuite.oligo_property_calculator._property_functions import calc_isoform_consensus
@@ -35,7 +37,12 @@ class OverlapTargetedExonsScorer(BaseScorer):
         self.property_name = property_name
 
     def apply(
-        self, oligo_database: OligoDatabase, region_id: str, oligo_id: str, sequence_type: str
+        self,
+        oligo_database: OligoDatabase,
+        region_id: str,
+        oligo_id: str,
+        sequence_type: str,
+        **_: Any,
     ) -> float:
         """
         Apply the targeted exon overlap scoring strategy to a given oligo.
@@ -48,6 +55,8 @@ class OverlapTargetedExonsScorer(BaseScorer):
         :type oligo_id: str
         :param sequence_type: Type of sequence being processed.  Note: This parameter is not used in this function.
         :type sequence_type: str
+        :param kwargs: Additional keyword arguments.
+        :type kwargs: dict[str, Any]
         :return: Weighted score based on overlap with targeted exons.
         :rtype: float
         """
@@ -89,7 +98,12 @@ class OverlapUTRScorer(BaseScorer):
         self.property_name = property_name
 
     def apply(
-        self, oligo_database: OligoDatabase, region_id: str, oligo_id: str, sequence_type: str
+        self,
+        oligo_database: OligoDatabase,
+        region_id: str,
+        oligo_id: str,
+        sequence_type: str,
+        **_: Any,
     ) -> float:
         """
         Apply the UTR overlap scoring strategy to a given oligo.
@@ -102,6 +116,8 @@ class OverlapUTRScorer(BaseScorer):
         :type oligo_id: str
         :param sequence_type: Type of sequence being processed.  Note: This parameter is not used in this function.
         :type sequence_type: str
+        :param kwargs: Additional keyword arguments.
+        :type kwargs: dict[str, Any]
         :return: Weighted score based on UTR overlap.
         :rtype: float
         """
@@ -150,7 +166,12 @@ class IsoformConsensusScorer(BaseScorer):
         self.property_name_number_total_transcripts = property_name_number_total_transcripts
 
     def apply(
-        self, oligo_database: OligoDatabase, region_id: str, oligo_id: str, sequence_type: str
+        self,
+        oligo_database: OligoDatabase,
+        region_id: str,
+        oligo_id: str,
+        sequence_type: str,
+        **_: Any,
     ) -> float:
         """
         Apply the isoform consensus scoring strategy to a given oligo.
@@ -163,6 +184,8 @@ class IsoformConsensusScorer(BaseScorer):
         :type oligo_id: str
         :param sequence_type: Type of sequence being processed.  Note: This parameter is not used in this function.
         :type sequence_type: str
+        :param kwargs: Additional keyword arguments.
+        :type kwargs: dict[str, Any]
         :return: Weighted score based on isoform consensus.
         :rtype: float
         """
