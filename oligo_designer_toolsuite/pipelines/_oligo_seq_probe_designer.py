@@ -19,6 +19,7 @@ from oligo_designer_toolsuite.oligo_efficiency_filter import (
     NormalizedDeviationFromOptimalTmScorer,
     OligoScoring,
     OverlapTargetedExonsScorer,
+    UniformDistanceScorer,
 )
 from oligo_designer_toolsuite.oligo_property_calculator import (
     GCContentProperty,
@@ -167,10 +168,11 @@ class OligoSeqProbeDesigner:
         target_probe_GC_weight: float,
         target_probe_Tm_opt: int,
         target_probe_Tm_weight: float,
+        n_sets: int,
         set_size_min: int,
         set_size_opt: int,
         distance_between_target_probes: int,
-        n_sets: int,
+        uniform_distance_weight: float,
         n_attempts_graph: int,
         n_attempts_clique_enum: int,
         diversification_fraction: float,
@@ -325,6 +327,9 @@ class OligoSeqProbeDesigner:
         :type target_probe_Tm_opt: int
         :param target_probe_Tm_weight: Weight assigned to melting temperature in the scoring function.
         :type target_probe_Tm_weight: float
+        :param n_sets: Number of oligo sets to generate per region. Multiple sets allow for redundancy and selection
+            of the best-performing set based on scoring criteria.
+        :type n_sets: int
         :param set_size_min: Minimum size (number of probes) required for each oligo set. Sets with fewer probes than
             this value will be rejected, and regions that cannot generate sets meeting this minimum will be removed.
         :type set_size_min: int
@@ -335,9 +340,8 @@ class OligoSeqProbeDesigner:
             within the same set. This spacing constraint prevents probes from binding too close together, which could
             lead to reduced hybridization efficiency.
         :type distance_between_target_probes: int
-        :param n_sets: Number of oligo sets to generate per region. Multiple sets allow for redundancy and selection
-            of the best-performing set based on scoring criteria.
-        :type n_sets: int
+        :param uniform_distance_weight: Weight assigned to uniform distance in the scoring function.
+        :type uniform_distance_weight: float
         :param n_attempts_graph: Number of randomized graph attempts. In each attempt, a fraction of nodes is randomly
             removed from the compatibility graph to create diversity; more attempts increase diversity at the cost of runtime.
         :type n_attempts_graph: int
@@ -364,7 +368,6 @@ class OligoSeqProbeDesigner:
             split_region=target_probe_split_region,
             files_fasta_oligo_database=files_fasta_target_probe_database,
             min_oligos_per_gene=set_size_min,
-            isoform_consensus=target_probe_isoform_consensus,
         )
 
         if self.write_intermediate_steps:
@@ -373,6 +376,7 @@ class OligoSeqProbeDesigner:
 
         oligo_database = target_probe_designer.filter_by_property(
             oligo_database=oligo_database,
+            isoform_consensus=target_probe_isoform_consensus,
             GC_content_min=target_probe_GC_content_min,
             GC_content_max=target_probe_GC_content_max,
             Tm_min=target_probe_Tm_min,
@@ -425,10 +429,11 @@ class OligoSeqProbeDesigner:
             Tm_parameters=target_probe_Tm_parameters,
             Tm_chem_correction_parameters=target_probe_Tm_chem_correction_parameters,
             Tm_salt_correction_parameters=target_probe_Tm_salt_correction_parameters,
+            n_sets=n_sets,
             set_size_min=set_size_min,
             set_size_opt=set_size_opt,
             distance_between_oligos=distance_between_target_probes,
-            n_sets=n_sets,
+            uniform_distance_weight=uniform_distance_weight,
             n_attempts_graph=n_attempts_graph,
             n_attempts_clique_enum=n_attempts_clique_enum,
             diversification_fraction=diversification_fraction,
@@ -542,7 +547,7 @@ class OligoSeqProbeDesigner:
         )
 
         oligo_database.write_ready_to_order_yaml(
-            properties=["sequence_oligo"],
+            properties=["oligo"],
             ascending=True,
             filename="oligo_seq_probes_order",
         )
@@ -601,7 +606,6 @@ class TargetProbeDesigner:
         split_region: int,
         files_fasta_oligo_database: list[str],
         min_oligos_per_gene: int,
-        isoform_consensus: float,
     ) -> OligoDatabase:
         """
         Create an initial oligo database by generating sequences using a sliding window approach
@@ -635,10 +639,6 @@ class TargetProbeDesigner:
         :param min_oligos_per_gene: Minimum number of oligos required per region (gene) after filtering.
             Regions with fewer oligos than this threshold will be removed from the database.
         :type min_oligos_per_gene: int
-        :param isoform_consensus: Threshold for isoform consensus filtering (typically between 0.0 and 1.0).
-            Probes with isoform consensus values below this threshold will be filtered out. This ensures
-            that selected probes target sequences that are conserved across multiple transcript isoforms.
-        :type isoform_consensus: float
         :return: An `OligoDatabase` object containing the generated target probe sequences with their
             component sequences (target, oligo, oligo_short) and calculated properties (isoform_consensus).
             The database is filtered to only include regions that meet the minimum oligo requirement.
@@ -681,19 +681,6 @@ class TargetProbeDesigner:
             oligo_database=oligo_database, sequence_type="target", n_jobs=self.n_jobs
         )
 
-        ##### pre-filter oligo database for certain properties #####
-        # Calculate isoform consensus using new PropertyCalculator pattern
-        isoform_consensus_property = IsoformConsensusProperty()
-        calculator = PropertyCalculator(properties=[isoform_consensus_property])
-        oligo_database = calculator.apply(
-            oligo_database=oligo_database, sequence_type="target", n_jobs=self.n_jobs
-        )
-        oligo_database.filter_database_by_property_threshold(
-            property_name="isoform_consensus",
-            property_thr=isoform_consensus,
-            remove_if_smaller_threshold=True,
-        )
-
         dir = oligo_sequences.dir_output
         shutil.rmtree(dir) if os.path.exists(dir) else None
 
@@ -706,6 +693,7 @@ class TargetProbeDesigner:
     def filter_by_property(
         self,
         oligo_database: OligoDatabase,
+        isoform_consensus: float,
         GC_content_min: int,
         GC_content_max: int,
         Tm_min: int,
@@ -741,6 +729,10 @@ class TargetProbeDesigner:
             and their associated properties. This database should contain target probes with their
             component sequences already calculated.
         :type oligo_database: OligoDatabase
+        :param isoform_consensus: Threshold for isoform consensus filtering (typically between 0.0 and 1.0).
+            Probes with isoform consensus values below this threshold will be filtered out. This ensures
+            that selected probes target sequences that are conserved across multiple transcript isoforms.
+        :type isoform_consensus: float
         :param GC_content_min: Minimum acceptable GC content for oligos, expressed as a fraction
             between 0.0 and 1.0.
         :type GC_content_min: int
@@ -795,10 +787,27 @@ class TargetProbeDesigner:
             Regions with insufficient oligos after filtering are removed.
         :rtype: OligoDatabase
         """
+        ##### pre-filter oligo database for certain properties #####
+        isoform_consensus_property = IsoformConsensusProperty()
+        calculator = PropertyCalculator(properties=[isoform_consensus_property])
+        oligo_database = calculator.apply(
+            oligo_database=oligo_database, sequence_type="target", n_jobs=self.n_jobs
+        )
+        oligo_database.filter_database_by_property_threshold(
+            property_name="isoform_consensus",
+            property_thr=isoform_consensus,
+            remove_if_smaller_threshold=True,
+        )
 
         # define the filters
         hard_masked_sequences = HardMaskedSequenceFilter()
         soft_masked_sequences = SoftMaskedSequenceFilter()
+        self_comp = SelfComplementFilter(
+            max_len_selfcomplement=max_len_selfcomplement,
+        )
+        homopolymeric_runs = HomopolymericRunsFilter(
+            base_n=homopolymeric_base_n,
+        )
         gc_content = GCContentFilter(GC_content_min=GC_content_min, GC_content_max=GC_content_max)
         melting_temperature = MeltingTemperatureNNFilter(
             Tm_min=Tm_min,
@@ -811,26 +820,19 @@ class TargetProbeDesigner:
             T=secondary_structures_T,
             thr_DG=secondary_structures_threshold_deltaG,
         )
-        homopolymeric_runs = HomopolymericRunsFilter(
-            base_n=homopolymeric_base_n,
-        )
         prohibited_sequence_filter = ProhibitedSequenceFilter(
             prohibited_sequences=prohibited_sequences,
-        )
-        self_comp = SelfComplementFilter(
-            max_len_selfcomplement=max_len_selfcomplement,
         )
 
         filters = [
             hard_masked_sequences,
             soft_masked_sequences,
+            self_comp,
             prohibited_sequence_filter,
             homopolymeric_runs,
             gc_content,
             melting_temperature,
-            self_comp,
             secondary_sctructure,
-            homopolymeric_runs,
         ]
 
         # initialize the preoperty filter class
@@ -1092,10 +1094,11 @@ class TargetProbeDesigner:
         Tm_parameters: dict,
         Tm_chem_correction_parameters: dict | None,
         Tm_salt_correction_parameters: dict | None,
+        n_sets: int,
         set_size_opt: int,
         set_size_min: int,
         distance_between_oligos: int,
-        n_sets: int,
+        uniform_distance_weight: float,
         n_attempts_graph: int,
         n_attempts_clique_enum: int,
         diversification_fraction: float,
@@ -1169,6 +1172,9 @@ class TargetProbeDesigner:
             For more information, see:
             https://biopython.org/docs/1.75/api/Bio.SeqUtils.MeltingTemp.html#Bio.SeqUtils.MeltingTemp.salt_correction
         :type Tm_salt_correction_parameters: dict | None
+        :param n_sets: Number of oligo sets to generate per region. Multiple sets allow for redundancy and selection
+            of the best-performing set based on scoring criteria.
+        :type n_sets: int
         :param set_size_opt: Optimal size (number of probes) for each oligo set. The set selection algorithm will
             attempt to generate sets of this size, but may produce sets with fewer probes if constraints cannot be met.
         :type set_size_opt: int
@@ -1179,9 +1185,8 @@ class TargetProbeDesigner:
             within the same set. This spacing constraint prevents probes from binding too close together, which could
             lead to reduced hybridization efficiency.
         :type distance_between_oligos: int
-        :param n_sets: Number of oligo sets to generate per region. Multiple sets allow for redundancy and selection
-            of the best-performing set based on scoring criteria.
-        :type n_sets: int
+        :param uniform_distance_weight: Weight assigned to uniform distance in the scoring function.
+        :type uniform_distance_weight: float
         :param n_attempts_graph: Number of randomized graph attempts. In each attempt, a fraction of nodes is randomly
             removed from the compatibility graph to create diversity.
         :type n_attempts_graph: int
@@ -1198,8 +1203,15 @@ class TargetProbeDesigner:
             `set_size_opt` probes. Regions with insufficient oligos are removed.
         :rtype: OligoDatabase
         """
+        oligo_lengths = [
+            len(sequence) for sequence in oligo_database.get_sequence_list(sequence_type="oligo")
+        ]
+        average_oligo_length = sum(oligo_lengths) / len(oligo_lengths)
 
         # Define all scorers
+        uniform_distance_scorer = UniformDistanceScorer(
+            average_oligo_length=average_oligo_length, score_weight=uniform_distance_weight
+        )
         exon_scorer = OverlapTargetedExonsScorer(
             targeted_exons=targeted_exons,
             score_weight=targeted_exons_weight,
@@ -1222,7 +1234,9 @@ class TargetProbeDesigner:
             score_weight=GC_weight,
         )
 
-        oligos_scoring = OligoScoring(scorers=[exon_scorer, isoform_scorer, Tm_scorer, GC_scorer])
+        oligos_scoring = OligoScoring(
+            scorers=[exon_scorer, isoform_scorer, Tm_scorer, GC_scorer, uniform_distance_scorer]
+        )
         set_scoring = AverageSetScoring(ascending=True)
 
         base_log_parameters({"Set Selection": "Independent Sets"})
@@ -1371,10 +1385,11 @@ def main() -> None:
         target_probe_GC_weight=config["target_probe_GC_weight"],
         target_probe_Tm_opt=config["target_probe_Tm_opt"],
         target_probe_Tm_weight=config["target_probe_Tm_weight"],
+        n_sets=config["n_sets"],
         set_size_min=config["set_size_min"],
         set_size_opt=config["set_size_opt"],
         distance_between_target_probes=config["distance_between_target_probes"],
-        n_sets=config["n_sets"],
+        uniform_distance_weight=config["uniform_distance_weight"],
         n_attempts_graph=config["n_attempts_graph"],
         n_attempts_clique_enum=config["n_attempts_clique_enum"],
         diversification_fraction=config["diversification_fraction"],
