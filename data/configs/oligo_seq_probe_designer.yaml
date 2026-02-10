@@ -31,7 +31,7 @@ target_probe_Tm_max: 70 # maximum melting temperature of oligos
 target_probe_secondary_structures_T: 37 # temperature to compute the secondary structure free energy
 target_probe_secondary_structures_threshold_deltaG: 0 # threshold for the secondary structure free energy -> oligo rejected if it presents a structure with a negative free energy at the defined temperature
 target_probe_homopolymeric_base_n: {"A": 6, "T": 6, "C": 6, "G": 6} # minimum number of nucleotides to consider it a homopolymeric run per base
-target_probe_kmer_abundance_threshold: {"3": 0.0469, "4": 0.0117, "5": 0.0029, "6": 0.00073} # The maximum abundance of a k-mer allowed. If a k-mer has an abundance greater than this threshold, all oligos containing this k-mer will be filtered out. This is a dictionary with the k-mer length as the key and the threshold as the value.
+target_probe_kmer_abundance_threshold: {3: 0.0469, 4: 0.0117, 5: 0.0029, 6: 0.00073} # The maximum abundance of a k-mer allowed. If a k-mer has an abundance greater than this threshold, all oligos containing this k-mer will be filtered out. This is a dictionary with the k-mer length as the key and the threshold as the value.
 target_probe_prohibited_sequences: ["TCT", "CTC"] # The sequences to prohibit in the oligos. If an oligo contains any of these sequences, it will be filtered out.
 target_probe_max_len_selfcomplement: 10 # The maximum length of self-complementary sequence allowed to avoid homodimer formation.
 target_probe_read_length_bias: 20 # minimum length of sequencing reads. The first <target_probe_read_length_bias> bases of an oligo should not match the <target_probe_read_length_bias> bases of another oligo to account for shorter sequencing reads that would align to multiple positions.
