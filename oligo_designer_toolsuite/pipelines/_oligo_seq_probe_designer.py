@@ -827,10 +827,10 @@ class TargetProbeDesigner:
         filters = [
             hard_masked_sequences,
             soft_masked_sequences,
-            self_comp,
             prohibited_sequence_filter,
             homopolymeric_runs,
             gc_content,
+            self_comp,
             melting_temperature,
             secondary_sctructure,
         ]
