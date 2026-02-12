@@ -71,6 +71,8 @@ class UniformDistanceScorer(BaseScorer):
 
         d_max = float(non_overlap_matrix.data.max())
         dist_opt = max(0.0, d_max - (oligoset_size - 2) * self.average_oligo_length) / (oligoset_size - 1)
+        if dist_opt == 0:
+            return 0.0
 
         oligo_idx = non_overlap_matrix_ids.index(oligo_id)
         set_idxs = [non_overlap_matrix_ids.index(id) for id in set_oligo_ids]
