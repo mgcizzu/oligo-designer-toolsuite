@@ -346,7 +346,8 @@ class IndependentSetsOligoSelection(BaseOligoSelection):
                     break  # even full graph cannot support min size
                 continue
 
-            oligoset_size = min(self.set_size_opt, len(greedy_max_clique))
+            if attempt == 0:
+                oligoset_size = min(self.set_size_opt, len(greedy_max_clique))
             _add_clique_to_oligosets(greedy_max_clique, oligoset_size)
 
             # --- Enumerate cliques ---
