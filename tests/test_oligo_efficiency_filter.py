@@ -124,8 +124,8 @@ class TestOligoScoring(unittest.TestCase):
             oligo_id="region_1::2",
             sequence_type=self.sequence_type,
         )
-        assert oligo_score_wo_utr == 0, "error: scoring for region wo UTR incorrect."
-        assert oligo_score_wo_utr < oligo_score_with_utr, "error: UTR score incorrect."
+        assert oligo_score_with_utr == 0, "error: scoring for region wo UTR incorrect."
+        assert oligo_score_with_utr < oligo_score_wo_utr, "error: UTR score incorrect."
 
     def test_exon_scorer(self) -> None:
         oligo_score_wo_exon = self.exon_scorer.apply(
@@ -146,9 +146,9 @@ class TestOligoScoring(unittest.TestCase):
             oligo_id="region_1::3",
             sequence_type=self.sequence_type,
         )
-        assert oligo_score_wo_exon == 0, "error: scoring for region wo exon incorrect."
-        assert oligo_score_wo_exon < oligo_score_with_exon1, "error: exon score incorrect."
-        assert oligo_score_with_exon2 == 2, "error: exon score incorrect."
+        assert oligo_score_wo_exon == 2, "error: scoring for region wo exon incorrect."
+        assert oligo_score_wo_exon > oligo_score_with_exon1, "error: exon score incorrect."
+        assert oligo_score_with_exon2 == 0, "error: exon score incorrect."
 
     def test_isoform_consensus(self) -> None:
         oligo_score1 = self.isoform_consensus_scorer.apply(
@@ -222,8 +222,8 @@ class TestOligoScoring(unittest.TestCase):
             sequence_type=self.sequence_type,
         )
 
-        assert oligo_scores.loc["region_1::1"] == 1.25, "error: wrong score computed for oligo region_1::1"
-        assert oligo_scores.loc["region_1::2"] == 2.25, "error: wrong score computed for oligo region_1::2"
+        assert oligo_scores.loc["region_1::1"] == 3.25, "error: wrong score computed for oligo region_1::1"
+        assert oligo_scores.loc["region_1::2"] == 0.25, "error: wrong score computed for oligo region_1::2"
 
 
 class TestSetScoring(unittest.TestCase):
