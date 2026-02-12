@@ -807,9 +807,9 @@ class TargetProbeDesigner:
         filters = [
             hard_masked_sequences,
             soft_masked_sequences,
-            prohibited_sequence_filter,
             homopolymeric_runs,
             gc_content,
+            prohibited_sequence_filter,
             self_comp,
             melting_temperature,
             secondary_structure,
@@ -1188,7 +1188,7 @@ class TargetProbeDesigner:
 ############################################
 
 
-def _config_to_parameters(config_file: str) -> dict:
+def _config_to_parameters(config_file: str) -> dict[str, Any]:
     """
     Load config from YAML, validate required and filter parameters, return config in same dict structure.
 
@@ -1204,7 +1204,7 @@ def _config_to_parameters(config_file: str) -> dict:
         raise ValueError("Config file is empty or invalid YAML.")
 
     # -----  Required top-level keys (cannot be disabled / always needed)  -----
-    required_top = [
+    required_top: list[str] = [
         "n_jobs",
         "dir_output",
         "write_intermediate_steps",
@@ -1222,7 +1222,7 @@ def _config_to_parameters(config_file: str) -> dict:
     design = config["target_probe_design_parameters"]
     if not isinstance(design, dict):
         raise ValueError("'target_probe_design_parameters' must be a mapping.")
-    required_design = [
+    required_design: list[str] = [
         "file_regions",
         "files_fasta_probe_database",
         "probe_length_min",
@@ -1237,7 +1237,7 @@ def _config_to_parameters(config_file: str) -> dict:
     selection = config["target_probe_set_selection_parameters"]
     if not isinstance(selection, dict):
         raise ValueError("'target_probe_set_selection_parameters' must be a mapping.")
-    required_selection = [
+    required_selection: list[str] = [
         "n_sets",
         "set_size_min",
         "set_size_opt",
