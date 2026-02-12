@@ -1136,7 +1136,7 @@ class TargetProbeDesigner:
             score_weight=targeted_exons_weight,
             property_name="exon_number",
         )
-        isoform_scorer = IsoformConsensusScorer(normalize=True, score_weight=isoform_weight)
+        isoform_scorer = IsoformConsensusScorer(score_weight=isoform_weight)
         Tm_scorer = NormalizedDeviationFromOptimalTmScorer(
             Tm_min=Tm_min,
             Tm_opt=Tm_opt,

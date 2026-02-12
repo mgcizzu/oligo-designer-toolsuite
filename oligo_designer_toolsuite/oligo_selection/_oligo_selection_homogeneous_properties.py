@@ -105,7 +105,12 @@ class HomogeneousPropertyOligoSelection(BaseOligoSelection):
 
     def _score_combination(self, oligo_df: pd.DataFrame, combination: list[str]) -> tuple[list[str], float]:
         """
-        Scores a combination of oligos by calculating the variance of each oligo's properties in the set.
+        Score a candidate oligo set by measuring how homogeneous its properties are.
+
+        For the given list of oligo IDs, this method computes the variance of each configured
+        property across the set, weights each variance by the weight of the property, and sums
+        them to obtain a single scalar score. Lower scores correspond to more homogeneous
+        (less variable) oligo sets.
 
         :param oligo_df: The DataFrame containing the oligo information.
         :type oligo_df: pd.DataFrame
@@ -125,7 +130,10 @@ class HomogeneousPropertyOligoSelection(BaseOligoSelection):
 
     @staticmethod
     def _generate_random_combinations(
-        arr: list[str], combination_size: int, number_of_combinations: int
+        arr: list[str],
+        combination_size: int,
+        number_of_combinations: int,
+        seed: int = 42,
     ) -> list[tuple[str, ...]]:
         """
         Generates oligo sets of specified size from random combinations of oligos.
@@ -136,9 +144,12 @@ class HomogeneousPropertyOligoSelection(BaseOligoSelection):
         :type combination_size: int
         :param number_of_combinations: The number of random combinations to generate.
         :type number_of_combinations: int
+        :param seed: The seed for the random number generator.
+        :type seed: int, optional
         :return: A list of random combinations.
         :rtype: list[tuple[str, ...]]
         """
+        random.seed(seed)
         total_combinations = comb(len(arr), combination_size)
 
         if total_combinations <= number_of_combinations:

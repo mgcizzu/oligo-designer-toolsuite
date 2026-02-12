@@ -66,16 +66,19 @@ class UniformDistanceScorer(BaseScorer):
         :return: Weighted score reflecting deviation from uniform spacing (lower is better).
         :rtype: float
         """
-        if not set_oligo_ids or self.score_weight == 0:
+        if not set_oligo_ids or oligoset_size < 2 or self.score_weight == 0:
             return 0.0
 
         d_max = float(non_overlap_matrix.data.max())
-        dist_opt = max(0.0, d_max - (oligoset_size - 2) * self.average_oligo_length) / (oligoset_size - 1)
+        dist_opt = max(0.0, (d_max - (oligoset_size - 2) * self.average_oligo_length)) / (oligoset_size - 1)
 
         oligo_idx = non_overlap_matrix_ids.index(oligo_id)
         set_idxs = [non_overlap_matrix_ids.index(id) for id in set_oligo_ids]
 
         row = non_overlap_matrix[oligo_idx, set_idxs]
-        d_min = float(row.data.min())
+        if row.data.size == 0 or dist_opt == 0:
+            d_min = 0.0
+        else:
+            d_min = float(row.data.min())
         score = abs(dist_opt - d_min) / dist_opt
         return score * self.score_weight

@@ -1399,7 +1399,6 @@ class TargetProbeDesigner:
 
         # Define all scorers
         isoform_consensus_scorer = IsoformConsensusScorer(
-            normalize=True,
             score_weight=isoform_weight,
             property_name_transcript_id="transcript_id",
             property_name_number_total_transcripts="number_total_transcripts",

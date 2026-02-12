@@ -21,10 +21,11 @@ from ._oligo_selection_base import BaseOligoSelection
 
 class IndependentSetsOligoSelection(BaseOligoSelection):
     """
-    Generates multiple non-overlapping sets of oligos using a graph-based selection strategy.
-    Optimizes sets according to per-oligo and set-level scoring, while respecting minimum/maximum
-    set size and minimum distance between oligos. Uses a compatibility graph (non-overlap matrix)
-    and clique-finding to select diverse, high-scoring sets.
+    Generate multiple non-overlapping oligo sets using a graph-based selection strategy.
+
+    The algorithm builds a compatibility graph from a non-overlap matrix, scores individual
+    oligos and candidate sets, and then selects sets greedily while enforcing size and
+    diversity constraints. All scorers follow a \"lower score is better\" convention.
 
     :param oligos_scoring: Scoring method for individual oligos.
     :type oligos_scoring: OligoScoring
@@ -88,9 +89,16 @@ class IndependentSetsOligoSelection(BaseOligoSelection):
         n_sets: int,
     ) -> None:
         """
-        Computes the oligo set for a specific region by building a non-overlap matrix, then
-        selecting oligo sets via the graph-based (clique) strategy. Optionally prunes the
-        database to keep only oligos that appear in the selected sets.
+        Compute oligo sets for a specific region using the graph-based (clique) strategy.
+
+        This method:
+        1. Builds a non-overlap (compatibility) matrix from genomic intervals.
+        2. Pre-filters oligos by degree so only candidates that can form sets of the
+           requested size remain.
+        3. Generates and scores candidate oligo sets.
+        4. Selects a diverse subset of sets.
+        5. Prunes the region in `oligo_database` to keep only oligos that appear in
+           at least one selected set and stores the sets as a DataFrame.
 
         :param oligo_database: The OligoDatabase instance containing oligonucleotide sequences and
             their associated properties. This database stores oligo data organized by genomic regions.
@@ -152,16 +160,21 @@ class IndependentSetsOligoSelection(BaseOligoSelection):
         region_id: str,
     ) -> tuple[csr_matrix, list[str]]:
         """
-        Generates a sparse matrix that represents the overlap between oligos in the specified region of the oligo database.
-        The matrix is computed based on the intervals (start, end) of each oligo, with a distance threshold to determine overlap.
-        The matrix has dimensions n_oligos * n_oligos. Each entry contains 1 if the correspondent oligos don't overlap and 0 if they overlap.
+        Build a sparse matrix encoding pairwise non-overlap distances between oligos.
+
+        For each pair of oligos in the region, a distance (in bases) between their
+        covered genomic intervals is computed. If the distance is less than or equal
+        to `distance_between_oligos`, the corresponding matrix entry is set to 0
+        (incompatible / overlapping within the threshold). Otherwise the entry stores
+        the positive distance. The result is a symmetric `n_oligos × n_oligos` matrix
+        together with the ordered list of oligo IDs.
 
         :param oligo_database: The OligoDatabase instance containing oligonucleotide sequences and their associated properties. This database stores oligo data organized by genomic regions and can be used for filtering, property calculations, set generation, and output operations.
         :type oligo_database: OligoDatabase
         :param region_id: Region ID to process.
         :type region_id: str
-        :return: A sparse matrix representing the non-overlap between oligos, and a list of oligo IDs.
-        :rtype: tuple(csr_matrix, list)
+        :return: A sparse distance matrix and the corresponding list of oligo IDs.
+        :rtype: tuple[csr_matrix, list[str]]
         """
 
         def _get_distance(seq1_intervals: list[list[int]], seq2_intervals: list[list[int]]) -> int:
@@ -214,12 +227,13 @@ class IndependentSetsOligoSelection(BaseOligoSelection):
         min_oligoset_size: int,
     ) -> tuple[csr_matrix, list[str]]:
         """
-        Pre-filters oligos by removing nodes that cannot participate in any oligo set of size
-        at least min_oligoset_size due to insufficient degree in the compatibility graph.
+        Pre-filter oligos by graph degree so only nodes that can appear in a set of
+        size `min_oligoset_size` remain.
 
-        A necessary condition for a node to be in a k-sized compatible set (clique) is
-        degree(node) >= k - 1. Therefore only nodes with degree >= (min_oligoset_size - 1)
-        are kept.
+        In a compatibility graph, a necessary condition for a node to be part of a
+        k-sized clique is that its degree is at least k - 1. This routine keeps only
+        nodes with degree ≥ (min_oligoset_size - 1) and returns the filtered matrix
+        and ID list.
 
         :param non_overlap_matrix: Sparse matrix of non-overlap (compatibility) between oligos.
         :type non_overlap_matrix: csr_matrix
@@ -257,12 +271,14 @@ class IndependentSetsOligoSelection(BaseOligoSelection):
         seed: int = 42,
     ) -> dict[tuple[str, ...], dict[str, float]]:
         """
-        Generates candidate oligo sets by finding cliques in the compatibility graph and scoring them.
+        Generate candidate oligo sets by finding and scoring cliques in the compatibility graph.
 
-        Builds a graph from the non-overlap matrix, finds an initial maximal clique with a greedy
-        heuristic, then repeatedly removes a random fraction of nodes and enumerates cliques to
-        discover diverse candidate sets. Each set is scored using the oligo and set scoring
-        methods. Returns a dict mapping oligo tuple (set) to its score dict.
+        A graph is built from the non-overlap matrix, an initial maximal clique is found with
+        a greedy heuristic, and then multiple diversified graph variants are explored by
+        randomly removing a fraction of nodes. For each graph, cliques of at least
+        `oligoset_size` are enumerated and scored using the configured `OligoScoring`
+        (per-oligo) and `SetScoringBase` (per-set) strategies. Scores follow the convention
+        that lower is better.
 
         :param oligo_database: The OligoDatabase instance containing oligo sequences and properties.
         :type oligo_database: OligoDatabase
@@ -325,8 +341,9 @@ class IndependentSetsOligoSelection(BaseOligoSelection):
                     oligoset_size=None,
                 )
 
-                weights = oligos_scores ** (alpha)
-                weights = weights / weights.sum()
+                weights = oligos_scores**alpha
+                total = weights.sum()
+                weights = np.ones_like(weights) / len(weights) if total == 0 else weights / total
 
                 nodes_to_remove = rng.choice(
                     list(G.nodes),
@@ -345,7 +362,8 @@ class IndependentSetsOligoSelection(BaseOligoSelection):
                     break  # even full graph cannot support min size
                 continue
 
-            oligoset_size = min(self.set_size_opt, len(greedy_max_clique))
+            if attempt == 0:
+                oligoset_size = min(self.set_size_opt, len(greedy_max_clique))
             _add_clique_to_oligosets(greedy_max_clique, oligoset_size)
 
             # --- Enumerate cliques ---
@@ -388,13 +406,19 @@ class IndependentSetsOligoSelection(BaseOligoSelection):
         n_sets: int,
     ) -> dict[tuple[str, ...], dict[str, float]]:
         """
-        Selects diverse oligo sets from a list of candidate sets.
+        Select a diverse subset of candidate oligo sets based on scores and Jaccard overlap.
 
-        :param oligosets: Dictionary of candidate sets.
+        Candidate sets are first sorted by the configured set scores (ascending or
+        descending depending on `set_scoring.ascending`). Sets are then added greedily
+        if their Jaccard overlap with all previously selected sets stays below a
+        gradually relaxed threshold (`jaccard_opt`, increased in steps of
+        `jaccard_step` if not enough sets are found).
+
+        :param oligosets: Dictionary mapping oligo tuples to their set score dicts.
         :type oligosets: dict[tuple[str, ...], dict[str, float]]
-        :param n_sets: Number of sets to select.
+        :param n_sets: Target number of sets to select.
         :type n_sets: int
-        :return: Dictionary of selected sets.
+        :return: Dictionary of selected sets and their scores.
         :rtype: dict[tuple[str, ...], dict[str, float]]
         """
         if not oligosets:
@@ -441,14 +465,16 @@ class IndependentSetsOligoSelection(BaseOligoSelection):
         oligosets: dict[tuple[str, ...], dict[str, float]],
     ) -> pd.DataFrame:
         """
-        Formats the list of candidate oligo sets into a DataFrame, deduplicates by oligo composition,
-        sorts by the set score columns, and greedily selects up to n_sets sets while enforcing a
-        Jaccard diversity constraint so that selected sets are not too similar. If not enough sets
-        are found, the Jaccard threshold is relaxed in steps.
+        Convert selected oligo sets and their scores into a tidy `DataFrame`.
 
-        :param oligosets: List of candidate sets; each element is a list of oligo IDs followed by score values.
+        Each row corresponds to one oligo set, with columns:
+        - `oligoset_id`: an integer identifier
+        - `oligo_0`, ..., `oligo_n`: oligo IDs in the set
+        - one column per set score in `set_scoring.score_names`
+
+        :param oligosets: Dictionary mapping oligo tuples to their set score dicts.
         :type oligosets: dict[tuple[str, ...], dict[str, float]]
-        :return: DataFrame with columns oligoset_id, oligo_0, ..., oligo_n, and the set score columns.
+        :return: DataFrame with one row per oligo set.
         :rtype: pd.DataFrame
         """
         if not oligosets:
