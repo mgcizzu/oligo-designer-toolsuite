@@ -66,14 +66,15 @@ class OverlapTargetedExonsScorer(BaseScorer):
         exon_numbers = cast_to_list(exon_numbers) if exon_numbers else None
 
         if exon_numbers is None:
-            in_targeted_exons = False
+            # if no exon numbers are available, consider the oligo to be in a targeted exon
+            in_targeted_exons = True
         else:
             in_targeted_exons = any(
                 any(exon in self.targeted_exons for exon in str(exon_number).split("__JUNC__"))
                 for exon_number in exon_numbers
             )
 
-        score = self.score_weight * in_targeted_exons
+        score = self.score_weight * (1 - in_targeted_exons)
 
         return score
 
@@ -127,9 +128,10 @@ class OverlapUTRScorer(BaseScorer):
         if regiontype:
             sequence_originates_from_UTR = "three_prime_UTR" in regiontype or "five_prime_UTR" in regiontype
         else:
-            sequence_originates_from_UTR = False
+            # if no regiontype is available, consider the oligo to originate from a UTR
+            sequence_originates_from_UTR = True
 
-        score = self.score_weight * sequence_originates_from_UTR
+        score = self.score_weight * (1 - sequence_originates_from_UTR)
 
         return score
 
@@ -138,11 +140,9 @@ class IsoformConsensusScorer(BaseScorer):
     """
     Scores oligos based on their presence across transcript isoforms (isoform consensus).
 
-    Oligos that are found in more transcript isoforms receive a lower score (after normalization),
-    allowing the user to favor isoform-specific or consensus-targeting designs.
+    The consensus (in percent) is normalized to a 0–1 range and inverted so that
+    higher consensus yields lower scores.
 
-    :param normalize: Whether to normalize the consensus score to a range of 0–1.
-    :type normalize: bool
     :param score_weight: Weight to apply to the consensus score.
     :type score_weight: float
     :param property_name_transcript_id: Name of the property to use for scoring the transcript ID.
@@ -153,14 +153,11 @@ class IsoformConsensusScorer(BaseScorer):
 
     def __init__(
         self,
-        normalize: bool,
         score_weight: float,
         property_name_transcript_id: str = "transcript_id",
         property_name_number_total_transcripts: str = "number_total_transcripts",
     ) -> None:
         """Constructor for the IsoformConsensusScorer class."""
-
-        self.normalize = normalize
         self.score_weight = score_weight
         self.property_name_transcript_id = property_name_transcript_id
         self.property_name_number_total_transcripts = property_name_number_total_transcripts
@@ -205,13 +202,13 @@ class IsoformConsensusScorer(BaseScorer):
                 transcript_id=cast_to_list(transcript_id),
                 number_total_transcripts=cast_to_list(number_transcripts),
             )
-            if self.normalize:
-                # isoform consensus is given in % (0-100), hence we devide by 100
-                # we use 1 - isoform consensus as normalized score
-                isoform_consensus = 1 - (isoform_consensus / 100)
+            # isoform consensus is given in % (0–100); use 1 - consensus/100 so higher
+            # consensus leads to a lower score (better oligo).
+            isoform_consensus = 1 - (isoform_consensus / 100)
         else:
             # if information not available, don't consider isoform consensus in scoring
             isoform_consensus = 0
+
         score = self.score_weight * isoform_consensus
 
         return score
