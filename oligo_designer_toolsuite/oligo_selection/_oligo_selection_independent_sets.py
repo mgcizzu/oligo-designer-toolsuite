@@ -325,8 +325,9 @@ class IndependentSetsOligoSelection(BaseOligoSelection):
                     oligoset_size=None,
                 )
 
-                weights = oligos_scores ** (alpha)
-                weights = weights / weights.sum()
+                weights = oligos_scores**alpha
+                total = weights.sum()
+                weights = np.ones_like(weights) / len(weights) if total == 0 else weights / total
 
                 nodes_to_remove = rng.choice(
                     list(G.nodes),
