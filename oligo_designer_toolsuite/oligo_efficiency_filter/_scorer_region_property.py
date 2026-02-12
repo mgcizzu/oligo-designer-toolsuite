@@ -55,8 +55,8 @@ class OverlapTargetedExonsScorer(BaseScorer):
         :type oligo_id: str
         :param sequence_type: Type of sequence being processed.  Note: This parameter is not used in this function.
         :type sequence_type: str
-        :param kwargs: Additional keyword arguments.
-        :type kwargs: dict[str, Any]
+        :param _: Additional keyword arguments accepted for extensibility. These are ignored by this method.
+        :type _: Any
         :return: Weighted score based on overlap with targeted exons.
         :rtype: float
         """
@@ -117,8 +117,8 @@ class OverlapUTRScorer(BaseScorer):
         :type oligo_id: str
         :param sequence_type: Type of sequence being processed.  Note: This parameter is not used in this function.
         :type sequence_type: str
-        :param kwargs: Additional keyword arguments.
-        :type kwargs: dict[str, Any]
+        :param _: Additional keyword arguments accepted for extensibility. These are ignored by this method.
+        :type _: Any
         :return: Weighted score based on UTR overlap.
         :rtype: float
         """
@@ -181,8 +181,8 @@ class IsoformConsensusScorer(BaseScorer):
         :type oligo_id: str
         :param sequence_type: Type of sequence being processed.  Note: This parameter is not used in this function.
         :type sequence_type: str
-        :param kwargs: Additional keyword arguments.
-        :type kwargs: dict[str, Any]
+        :param _: Additional keyword arguments accepted for extensibility. These are ignored by this method.
+        :type _: Any
         :return: Weighted score based on isoform consensus.
         :rtype: float
         """
