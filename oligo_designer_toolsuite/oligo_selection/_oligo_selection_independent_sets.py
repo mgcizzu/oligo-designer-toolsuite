@@ -357,6 +357,9 @@ class IndependentSetsOligoSelection(BaseOligoSelection):
 
                 _add_clique_to_oligosets(clique, oligoset_size)
 
+            del G
+            gc.collect()
+
         return oligosets
 
     def _greedy_max_clique(self, G: nx.Graph) -> list[str]:
