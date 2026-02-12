@@ -919,7 +919,12 @@ class OligoDatabase:
         :rtype: list[str]
         """
         region_ids = cast_to_list(region_ids) if region_ids else list(self.database.keys())
-        oligo_ids = [oligo_id for region_id in region_ids for oligo_id in self.database[region_id].keys()]
+        oligo_ids = [
+            oligo_id
+            for region_id in region_ids
+            if self.database[region_id]  # skip regions without any oligos
+            for oligo_id in self.database[region_id].keys()
+        ]
 
         return oligo_ids
 
@@ -938,6 +943,7 @@ class OligoDatabase:
         sequences = [
             str(oligo_properties[sequence_type])
             for region_id, database_region in self.database.items()
+            if database_region  # skip regions without any oligos
             for oligo_id, oligo_properties in database_region.items()
         ]
 
@@ -961,6 +967,9 @@ class OligoDatabase:
         oligoid_sequence_mapping = {}
 
         for region_id, database_region in self.database.items():
+            if not database_region:
+                # Skip regions without any oligos
+                continue
             for oligo_id, oligo_properties in database_region.items():
                 seq = oligo_properties[sequence_type]
                 if sequence_to_upper:
@@ -987,6 +996,9 @@ class OligoDatabase:
         sequence_oligoids_mapping = {}
 
         for region_id, database_region in self.database.items():
+            if not database_region:
+                # Skip regions without any oligos
+                continue
             for oligo_id, oligo_properties in database_region.items():
                 seq = oligo_properties[sequence_type]
                 if sequence_to_upper:
