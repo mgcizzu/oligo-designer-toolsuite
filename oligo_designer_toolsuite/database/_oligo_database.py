@@ -639,7 +639,6 @@ class OligoDatabase:
     def write_oligosets_to_yaml(
         self,
         properties: str | list[str],
-        top_n_sets: int,
         ascending: bool,
         filename: str = "oligosets",
         dir_output: str | None = None,
@@ -651,8 +650,6 @@ class OligoDatabase:
 
         :param properties: A list of properties to include in the YAML file.
         :type properties: str | list[str]
-        :param top_n_sets: Number of top oligosets to include based on their score.
-        :type top_n_sets: int
         :param ascending: If True, sort oligosets by score in ascending order (the smaller the score the better the oligo set);
             otherwise, in descending order (the higher the score the better the oligo set).
         :type ascending: bool
@@ -678,8 +675,8 @@ class OligoDatabase:
             ]
 
             oligosets_region = oligosets_region.sort_values(by=oligosets_score_columns, ascending=ascending)
-            oligosets_region_oligos = oligosets_region.head(top_n_sets)[oligosets_oligo_columns]
-            oligosets_region_scores = oligosets_region.head(top_n_sets)[oligosets_score_columns]
+            oligosets_region_oligos = oligosets_region[oligosets_oligo_columns]
+            oligosets_region_scores = oligosets_region[oligosets_score_columns]
 
             for idx, oligoset in oligosets_region_oligos.iterrows():
                 oligoset_id = f"Oligoset {idx + 1}"
@@ -715,7 +712,6 @@ class OligoDatabase:
     def write_oligosets_to_table(
         self,
         properties: str | list[str],
-        top_n_sets: int,
         ascending: bool,
         filename: str = "oligosets",
         dir_output: str | None = None,
@@ -735,7 +731,7 @@ class OligoDatabase:
             ]
 
             oligosets_region = oligosets_region.sort_values(by=oligosets_score_columns, ascending=ascending)
-            oligosets_region = oligosets_region.head(top_n_sets)[oligosets_oligo_columns]
+            oligosets_region = oligosets_region[oligosets_oligo_columns]
             oligosets_region = oligosets_region.reset_index(drop=True)
 
             # iterate through all oligo sets
@@ -802,7 +798,6 @@ class OligoDatabase:
     def write_ready_to_order_yaml(
         self,
         properties: str | list[str],
-        top_n_sets: int,
         ascending: bool,
         filename: str = "ready_to_order",
         dir_output: str | None = None,
@@ -831,7 +826,7 @@ class OligoDatabase:
             ]
 
             oligosets_region = oligosets_region.sort_values(by=oligosets_score_columns, ascending=ascending)
-            oligosets_region = oligosets_region.head(top_n_sets)[oligosets_oligo_columns]
+            oligosets_region = oligosets_region[oligosets_oligo_columns]
             oligosets_region = oligosets_region.reset_index(drop=True)
 
             # iterate through all oligo sets
@@ -873,7 +868,7 @@ class OligoDatabase:
         regions_to_remove = [
             region_id
             for region_id in region_ids
-            if len(self.database[region_id]) <= self.min_oligos_per_region
+            if len(self.database[region_id]) < self.min_oligos_per_region
         ]
 
         for region in regions_to_remove:
@@ -924,7 +919,12 @@ class OligoDatabase:
         :rtype: list[str]
         """
         region_ids = cast_to_list(region_ids) if region_ids else list(self.database.keys())
-        oligo_ids = [oligo_id for region_id in region_ids for oligo_id in self.database[region_id].keys()]
+        oligo_ids = [
+            oligo_id
+            for region_id in region_ids
+            if self.database[region_id]  # skip regions without any oligos
+            for oligo_id in self.database[region_id].keys()
+        ]
 
         return oligo_ids
 
@@ -943,6 +943,7 @@ class OligoDatabase:
         sequences = [
             str(oligo_properties[sequence_type])
             for region_id, database_region in self.database.items()
+            if database_region  # skip regions without any oligos
             for oligo_id, oligo_properties in database_region.items()
         ]
 
@@ -966,6 +967,9 @@ class OligoDatabase:
         oligoid_sequence_mapping = {}
 
         for region_id, database_region in self.database.items():
+            if not database_region:
+                # Skip regions without any oligos
+                continue
             for oligo_id, oligo_properties in database_region.items():
                 seq = oligo_properties[sequence_type]
                 if sequence_to_upper:
@@ -992,6 +996,9 @@ class OligoDatabase:
         sequence_oligoids_mapping = {}
 
         for region_id, database_region in self.database.items():
+            if not database_region:
+                # Skip regions without any oligos
+                continue
             for oligo_id, oligo_properties in database_region.items():
                 seq = oligo_properties[sequence_type]
                 if sequence_to_upper:
@@ -1126,7 +1133,9 @@ class OligoDatabase:
             if seq_type not in self.database_sequence_types:
                 self.database_sequence_types.append(seq_type)
 
-    def update_oligo_properties(self, new_oligo_property: dict) -> None:
+    def update_oligo_properties(
+        self, new_oligo_property: dict, region_ids: str | list[str] | None = None
+    ) -> None:
         """
         Updates the properties and properties of oligos in the database with the values provided in `new_oligo_property`.
         This function iterates over the current database and updates each oligo's properties if a corresponding
@@ -1142,8 +1151,15 @@ class OligoDatabase:
         :param new_oligo_property: A dictionary containing new properties for oligos, where keys are oligo IDs
                                     and values are the properties to be updated.
         :type new_oligo_property: dict
+        :param region_ids: If provided, only oligos in these regions are updated. Can be a single region ID (str)
+                           or a list of region IDs (list[str]). Otherwise all regions are scanned.
+        :type region_ids: str | list[str] | None
         """
-        for region_id, database_region in self.database.items():
+        region_ids = cast_to_list(region_ids) if region_ids is not None else list(self.database.keys())
+        for region_id in region_ids:
+            if region_id not in self.database:
+                continue
+            database_region = self.database[region_id]
             for oligo_id, oligo_properties in database_region.items():
                 if oligo_id in new_oligo_property:
                     oligo_properties.update(

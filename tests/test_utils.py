@@ -160,7 +160,9 @@ class TestCheckers(unittest.TestCase):
         """Test if cast_to_list_of_lists works correctly for a string."""
         value = "test"
         result = cast_to_list_of_lists(value)
-        assert result == [[value]], f"error: cast_to_list_of_lists failed. Expected: [[{value}]], got: {result}"
+        assert result == [
+            [value]
+        ], f"error: cast_to_list_of_lists failed. Expected: [[{value}]], got: {result}"
 
     def test_cast_to_list_of_lists_list(self) -> None:
         """Test if cast_to_list_of_lists works correctly for a list."""
