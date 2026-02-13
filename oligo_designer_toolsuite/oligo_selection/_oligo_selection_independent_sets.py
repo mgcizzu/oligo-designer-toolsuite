@@ -446,7 +446,7 @@ class IndependentSetsOligoSelection(BaseOligoSelection):
 
                 S = set(oligos)
 
-                if all(len(S & T) / len(S) <= current_jaccard for T in selected_sets):
+                if all(len(S & T) / len(S | T) <= current_jaccard for T in selected_sets):
                     selected[oligos] = scores
                     selected_sets.append(S)
 
