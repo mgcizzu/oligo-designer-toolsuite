@@ -316,11 +316,23 @@ class IndependentSetsOligoSelection(BaseOligoSelection):
         rng = np.random.default_rng(seed)
         n_nodes_removed = int(self.diversification_fraction * len(non_overlap_matrix_ids))
 
-        for attempt in range(self.n_attempts_graph):
+        # --- Build full graph once ---
+        G_full = nx.from_scipy_sparse_array(non_overlap_matrix)
+        G_full = nx.relabel_nodes(G_full, dict(enumerate(non_overlap_matrix_ids)))
+        all_nodes = np.array(list(G_full.nodes))
 
-            # --- Build full graph ---
-            G = nx.from_scipy_sparse_array(non_overlap_matrix)
-            G = nx.relabel_nodes(G, dict(enumerate(non_overlap_matrix_ids)))
+        oligos_scores = self.oligos_scoring.apply(
+            oligo_database=oligo_database,
+            region_id=region_id,
+            oligo_ids=all_nodes.tolist(),
+            sequence_type=sequence_type,
+            non_overlap_matrix=non_overlap_matrix,
+            non_overlap_matrix_ids=non_overlap_matrix_ids,
+            set_oligo_ids=None,
+            oligoset_size=None,
+        )
+
+        for attempt in range(self.n_attempts_graph):
 
             # --- Diversification: remove nodes (except first attempt) ---
             if attempt > 0 and n_nodes_removed > 0:
@@ -330,29 +342,23 @@ class IndependentSetsOligoSelection(BaseOligoSelection):
                 #   alpha → 1 : increasingly biased by oligo scores
                 alpha = attempt / self.n_attempts_graph
 
-                oligos_scores = self.oligos_scoring.apply(
-                    oligo_database=oligo_database,
-                    region_id=region_id,
-                    oligo_ids=list(G.nodes),
-                    sequence_type=sequence_type,
-                    non_overlap_matrix=non_overlap_matrix,
-                    non_overlap_matrix_ids=non_overlap_matrix_ids,
-                    set_oligo_ids=None,
-                    oligoset_size=None,
-                )
-
                 weights = oligos_scores**alpha
                 total = weights.sum()
                 weights = np.ones_like(weights) / len(weights) if total == 0 else weights / total
 
                 nodes_to_remove = rng.choice(
-                    list(G.nodes),
+                    all_nodes,
                     size=n_nodes_removed,
                     replace=False,
                     p=weights,
                 )
 
-                G.remove_nodes_from(list(nodes_to_remove))
+                nodes_remaining = set(all_nodes) - set(nodes_to_remove)
+
+                # Create lightweight view (no data duplication)
+                G = G_full.subgraph(nodes_remaining)
+            else:
+                G = G_full
 
             # --- Check feasibility via greedy clique ---
             greedy_max_clique = self._greedy_max_clique(G)
@@ -374,9 +380,6 @@ class IndependentSetsOligoSelection(BaseOligoSelection):
                     continue
 
                 _add_clique_to_oligosets(clique, oligoset_size)
-
-            del G
-            gc.collect()
 
         return oligosets
 
