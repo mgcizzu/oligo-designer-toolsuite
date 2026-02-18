@@ -296,15 +296,16 @@ class IndependentSetsOligoSelection(BaseOligoSelection):
         :rtype: dict[tuple[str, ...], dict[str, float]]
         """
 
-        def _add_clique_to_oligosets(clique: list[str], oligoset_size: int) -> None:
+        def _add_clique_to_oligosets(clique: list[int], oligoset_size: int) -> None:
+            oligo_ids = [non_overlap_matrix_ids[v] for v in clique]
             oligos_scores = self.oligos_scoring.apply(
                 oligo_database=oligo_database,
                 region_id=region_id,
-                oligo_ids=clique,
+                oligo_ids=oligo_ids,
                 sequence_type=sequence_type,
                 non_overlap_matrix=non_overlap_matrix,
                 non_overlap_matrix_ids=non_overlap_matrix_ids,
-                set_oligo_ids=clique,
+                set_oligo_ids=oligo_ids,
                 oligoset_size=oligoset_size,
             )
             oligoset, oligoset_scores = self.set_scoring.apply(oligos_scores, oligoset_size)
@@ -318,13 +319,12 @@ class IndependentSetsOligoSelection(BaseOligoSelection):
 
         # --- Build full graph once ---
         G_full = nx.from_scipy_sparse_array(non_overlap_matrix)
-        G_full = nx.relabel_nodes(G_full, dict(enumerate(non_overlap_matrix_ids)))
         all_nodes = np.array(list(G_full.nodes))
 
         oligos_scores = self.oligos_scoring.apply(
             oligo_database=oligo_database,
             region_id=region_id,
-            oligo_ids=all_nodes.tolist(),
+            oligo_ids=non_overlap_matrix_ids,
             sequence_type=sequence_type,
             non_overlap_matrix=non_overlap_matrix,
             non_overlap_matrix_ids=non_overlap_matrix_ids,
