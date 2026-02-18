@@ -55,7 +55,8 @@ class GenomicRegionGenerator:
         :param source: The source of the annotations. Options: 'ncbi', 'ensembl', 'custom'.
         :type source: str
         :param source_params: Parameters required for loading the annotations depending on the source.
-            If source is 'ncbi', it should contain 'taxon', 'species', and 'annotation_release'.
+            If source is 'ncbi', it should contain 'taxon', 'species', 'annotation_release' and can optionally
+            contain 'assembly_source', 'refseq_assembly_accession', and 'assembly_name'.
             If source is 'ensembl', it should contain 'species' and 'annotation_release'.
             If source is 'custom', it should contain 'file_annotation', 'file_sequence', 'files_source',
             'species', 'annotation_release', and 'genome_assembly'.
@@ -79,9 +80,12 @@ class GenomicRegionGenerator:
         if source == "ncbi":
             # dowload the fasta files formthe NCBI server
             region_generator = NcbiGenomicRegionGenerator(
-                taxon=source_params["taxon"],
-                species=source_params["species"],
-                annotation_release=source_params["annotation_release"],
+                taxon=source_params.get("taxon"),
+                species=source_params.get("species"),
+                annotation_release=source_params.get("annotation_release"),
+                assembly_source=source_params.get("assembly_source", "auto"),
+                refseq_assembly_accession=source_params.get("refseq_assembly_accession"),
+                assembly_name=source_params.get("assembly_name"),
                 dir_output=self.dir_output,
             )
         elif source == "ensembl":

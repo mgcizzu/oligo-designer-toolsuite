@@ -1204,7 +1204,10 @@ class CustomGenomicRegionGenerator:
 class NcbiGenomicRegionGenerator(CustomGenomicRegionGenerator):
     """
     This class generates custom genomic regions using data from NCBI.
-    It automatically downloads and processes annotation and sequence files based on the provided taxon, species, and annotation release.
+    It automatically downloads and processes annotation and sequence files. They can either be specified by taxon, species,
+    and annotation release (and optionally the assembly source). Alternatively, the RefSeq assembly accession number and
+    the assembly name can be specified directly. Only one mode can be used and the other parameters need to be set to
+    None.
 
     :param taxon: The taxonomic classification of the species, used to locate the appropriate NCBI files, defaults to "vertebrate_mammalian".
     :type taxon: str, optional
@@ -1212,6 +1215,13 @@ class NcbiGenomicRegionGenerator(CustomGenomicRegionGenerator):
     :type species: str, optional
     :param annotation_release: The version of the annotation release to use, defaults to "current".
     :type annotation_release: str, optional
+    :param assembly_source: NCBI assembly source to use. Supported values are "auto", "annotation_releases",
+        "latest_assembly_versions", and "reference". Defaults to "auto".
+    :type assembly_source: str, optional
+    :param refseq_assembly_accession: Optional direct RefSeq assembly accession (e.g., "GCF_000001405.38").
+    :type refseq_assembly_accession: str | None, optional
+    :param assembly_name: Optional direct assembly name (e.g., "GRCh38.p12").
+    :type assembly_name: str | None, optional
     :param dir_output: Directory path where output files will be saved. Defaults to "output".
     :type dir_output: str, optional
     """
@@ -1221,26 +1231,46 @@ class NcbiGenomicRegionGenerator(CustomGenomicRegionGenerator):
         taxon: str | None = None,
         species: str | None = None,
         annotation_release: str | None = None,
+        assembly_source: str | None = None,
+        refseq_assembly_accession: str | None = None,
+        assembly_name: str | None = None,
         dir_output: str = "output",
     ) -> None:
         """Constructor for the NcbiGenomicRegionGenerator class."""
         files_source = "NCBI"
-        if taxon is None:
-            taxon = "vertebrate_mammalian"
-            warnings.warn(f"No taxon defined. Using default taxon {taxon}!")
+        has_direct_mode = refseq_assembly_accession is not None or assembly_name is not None
 
-        if species is None:
-            species = "Homo_sapiens"
-            warnings.warn(f"No species defined. Using default species {species}!")
+        if has_direct_mode and assembly_source is None:
+            assembly_source = "auto"
+        elif not has_direct_mode:
+            if taxon is None:
+                taxon = "vertebrate_mammalian"
+                warnings.warn(f"No taxon defined. Using default taxon {taxon}!")
 
-        if annotation_release is None:
-            annotation_release = "current"
-            warnings.warn(f"No annotation release defined. Using default release {annotation_release}!")
+            if species is None:
+                species = "Homo_sapiens"
+                warnings.warn(f"No species defined. Using default species {species}!")
+
+            if annotation_release is None:
+                annotation_release = "current"
+                warnings.warn(f"No annotation release defined. Using default release {annotation_release}!")
+
+            if assembly_source is None:
+                assembly_source = "auto"
+                warnings.warn(f"No assembly source defined. Using default assembly source {assembly_source}!")
 
         self.dir_output = os.path.join(dir_output, "annotation")
         Path(self.dir_output).mkdir(parents=True, exist_ok=True)
 
-        ftp = FtpLoaderNCBI(self.dir_output, taxon, species, annotation_release)
+        ftp = FtpLoaderNCBI(
+            self.dir_output,
+            taxon=taxon,
+            species=species,
+            annotation_release=annotation_release,
+            assembly_source=assembly_source if assembly_source is not None else "auto",
+            refseq_assembly_accession=refseq_assembly_accession,
+            assembly_name=assembly_name,
+        )
         annotation_file, annotation_release, genome_assembly = ftp.download_files("gtf")
         sequence_file, _, _ = ftp.download_files("fasta")
 
@@ -1248,7 +1278,7 @@ class NcbiGenomicRegionGenerator(CustomGenomicRegionGenerator):
             annotation_file,
             sequence_file,
             files_source,
-            species,
+            species if species is not None else "unknown",
             annotation_release,
             genome_assembly,
             dir_output,
