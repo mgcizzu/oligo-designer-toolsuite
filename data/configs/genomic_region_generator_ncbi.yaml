@@ -15,8 +15,8 @@ source_params:
   annotation_release: 110 # required in Mode A; use release number only with assembly_source=annotation_releases; otherwise set to 'current'
 
   # Mode B (direct assembly): set both fields below and set Mode A fields above to None
-  refseq_assembly_accession: None # GCF_000001405.38
-  assembly_name: None # GRCh38.p12
+  refseq_assembly_accession: # GCF_000001405.38
+  assembly_name: # GRCh38.p12
 
 ### Parameters for sequences generation
 # List of genomic regions that should be generated, set the genomic regions you want to generate to true

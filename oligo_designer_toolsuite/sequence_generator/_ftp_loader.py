@@ -11,7 +11,7 @@ import shutil
 import warnings
 from ftplib import FTP, error_perm
 from pathlib import Path
-from typing import get_args
+from typing import IO, get_args
 
 import pandas as pd
 from Bio import SeqIO
@@ -248,9 +248,10 @@ class FtpLoaderNCBI(BaseFtpLoader):
         "archaea": {"latest_assembly_versions", "reference"},
         "bacteria": {"latest_assembly_versions", "reference"},
         "fungi": {"latest_assembly_versions", "reference"},
-        "invertebrate": {"latest_assembly_versions", "reference"},
+        "invertebrate": {"annotation_releases", "latest_assembly_versions", "reference"},
         "metagenomes": {"latest_assembly_versions"},
-        "plants": {"latest_assembly_versions", "reference"},
+        "plant": {"annotation_releases", "latest_assembly_versions", "reference"},
+        "plants": {"annotation_releases", "latest_assembly_versions", "reference"},
         "protozoa": {"latest_assembly_versions", "reference"},
         "unknown": {"latest_assembly_versions"},
         "vertebrate_mammalian": {"annotation_releases", "latest_assembly_versions", "reference"},
@@ -338,7 +339,7 @@ class FtpLoaderNCBI(BaseFtpLoader):
         else:
             source_subdir = self._resolve_source_subdir()
             ftp_directory = self._resolve_base_directory(source_subdir)
-            self._resolve_assembly_metadata(ftp_directory, source_subdir)
+            self._resolve_assembly_metadata(ftp_directory)
             # all the numeric annotations (up until 110) have the following directory structure:
             # /genomes/refseq/vertebrate_mammalian/Homo_sapiens/annotation_releases/110
             # |- GCF_000001405.40_GRCh38.p14/
@@ -433,7 +434,7 @@ class FtpLoaderNCBI(BaseFtpLoader):
 
     def _resolve_source_subdir(self) -> str:
         if self.taxon is None:
-            raise ConfigurationError("Taxon is not defined.")
+            raise ConfigurationError("taxon cannot be none.")
         available_sources = self.SUPPORTED_TAXA_SOURCES[self.taxon]
         if self.assembly_source != "auto":
             return self.assembly_source
@@ -504,47 +505,51 @@ class FtpLoaderNCBI(BaseFtpLoader):
             f"{self.assembly_accession}_{self.assembly_name}/"
         )
 
-    def _resolve_assembly_metadata(self, ftp_directory: str, source_subdir: str) -> None:
+    def _resolve_assembly_metadata(self, ftp_directory: str) -> None:
         self.assembly_name = ""
         self.assembly_accession = ""
 
         # all species where information about the used annotation is available
         # have a README_{annotation name} file; either in the directory that contains
         # the subdirectory with the data and also in the directory with all the data
-        if source_subdir == "annotation_releases":
-            try:
-                file_readme = self._download(
-                    self.ftp_link, ftp_directory, f"README_.*{self.annotation_release}"
-                )
-                with open(file_readme, "r") as handle:
-                    for line in handle:
-                        if line.startswith("ASSEMBLY NAME:"):
-                            self.assembly_name = line.strip().split("\t")[1]
-                        if line.startswith("ASSEMBLY ACCESSION:"):
-                            self.assembly_accession = line.strip().split("\t")[1]
-                            break
-                os.remove(file_readme)
-            except FileNotFoundError:
-                pass
-        else:
-            try:
-                file_assembly_report = self._download(
-                    self.ftp_link, ftp_directory, ".*_assembly_report\\.txt"
-                )
-                with open(file_assembly_report, "r") as handle:
-                    for line in handle:
-                        if line.startswith("# Assembly name:"):
-                            self.assembly_name = line.split(":", 1)[1].strip()
-                        if line.startswith("# RefSeq assembly accession:"):
-                            self.assembly_accession = line.split(":", 1)[1].strip()
-                            break
-                os.remove(file_assembly_report)
-            except FileNotFoundError:
-                pass
+        # define parser helpers
+        def parse_readme(handle: IO) -> None:
+            for line in handle:
+                if line.startswith("ASSEMBLY NAME:"):
+                    self.assembly_name = line.strip().split("\t", 1)[1]
+                if line.startswith("ASSEMBLY ACCESSION:"):
+                    self.assembly_accession = line.strip().split("\t", 1)[1]
+                    break
 
-        if self.assembly_accession and self.assembly_name:
-            return
-        else:
+        def parse_assembly_report(handle: IO) -> None:
+            for line in handle:
+                if line.startswith("# Assembly name:"):
+                    self.assembly_name = line.split(":", 1)[1].strip()
+                if line.startswith("# RefSeq assembly accession:"):
+                    self.assembly_accession = line.split(":", 1)[1].strip()
+                    break
+
+        candidates = [
+            (r"README_(?!patch_release\.txt$).*", parse_readme),
+            (r".*_assembly_report\.txt", parse_assembly_report),
+        ]
+        success = False
+        for pattern, parser in candidates:
+            try:
+                file_path = self._download(self.ftp_link, ftp_directory, pattern)
+                try:
+                    with open(file_path, "r") as handle:
+                        parser(handle)
+                finally:
+                    os.remove(file_path)
+                if self.assembly_accession and self.assembly_name:
+                    success = True
+                    break
+            except FileNotFoundError:
+                # try next candidate
+                continue
+
+        if not success:
             raise ConfigurationError(
                 f"Could not resolve assembly metadata from '{ftp_directory}' on NCBI FTP."
             )
@@ -556,7 +561,7 @@ class FtpLoaderNCBI(BaseFtpLoader):
         this is not found, keep the default value ("no_annotation_info").
         """
         try:
-            file_readme = self._download(self.ftp_link, ftp_directory, f"README_.*{self.annotation_release}")
+            file_readme = self._download(self.ftp_link, ftp_directory, r"README_(?!patch_release\.txt$).*")
             with open(file_readme, "r") as handle:
                 for line in handle:
                     if line.startswith("ANNOTATION RELEASE NAME:"):
