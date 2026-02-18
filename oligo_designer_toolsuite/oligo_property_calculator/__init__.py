@@ -23,7 +23,7 @@ from ._property_functions import (
     calculate_seedregion_site,
     calculate_shortened_sequence,
 )
-from ._property_region import IsoformConsensusProperty, NumTargetedTranscriptsProperty
+from ._property_region import IsoformConsensusProperty, NumTargetedTranscriptsProperty, TargetedExonsProperty
 from ._property_sequence import (
     DetectOligoProperty,
     DGSecondaryStructureProperty,
@@ -58,6 +58,7 @@ __all__ = [
     "DetectOligoProperty",
     "NumTargetedTranscriptsProperty",
     "IsoformConsensusProperty",
+    "TargetedExonsProperty",
     # Calculation functions
     "calc_oligo_length",
     "calc_gc_content",

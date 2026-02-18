@@ -19,9 +19,10 @@ class NumTargetedTranscriptsProperty(BaseProperty):
     A property class for calculating the number of unique transcripts targeted by an oligonucleotide.
     """
 
-    def __init__(self) -> None:
+    def __init__(self, property_name: str = "transcript_id") -> None:
         """Constructor for the NumTargetedTranscriptsProperty class."""
         super().__init__()
+        self.property_name = property_name
 
     def apply(self, oligo_database: OligoDatabase, region_id: str, oligo_id: str, sequence_type: str) -> dict:
         """
@@ -39,7 +40,7 @@ class NumTargetedTranscriptsProperty(BaseProperty):
         :rtype: dict
         """
         transcript_id = oligo_database.get_oligo_property_value(
-            property="transcript_id", region_id=region_id, oligo_id=oligo_id, flatten=True
+            property=self.property_name, region_id=region_id, oligo_id=oligo_id, flatten=True
         )
 
         if transcript_id:
@@ -54,14 +55,61 @@ class NumTargetedTranscriptsProperty(BaseProperty):
         }
 
 
+class TargetedExonsProperty(BaseProperty):
+    """
+    A property class for calculating the targeted exons for an oligonucleotide.
+    """
+
+    def __init__(self, property_name: str = "exon_number") -> None:
+        """Constructor for the TargetedExonsProperty class."""
+        super().__init__()
+        self.property_name = property_name
+
+    def apply(self, oligo_database: OligoDatabase, region_id: str, oligo_id: str, sequence_type: str) -> dict:
+        """
+        Calculate the targeted exons for the oligonucleotide.
+
+        :param oligo_database: The OligoDatabase instance containing oligonucleotide sequences and their associated properties. This database stores oligo data organized by genomic regions and can be used for filtering, property calculations, set generation, and output operations.
+        :type oligo_database: OligoDatabase
+        :param region_id: Region ID to process.
+        :type region_id: str
+        :param oligo_id: The ID of the oligo for which the property is calculated.
+        :type oligo_id: str
+        :param sequence_type: Type of sequence being processed.  Note: This parameter is not used for this property.
+        :type sequence_type: str
+        :return: A dictionary containing the calculated targeted exons property.
+        :rtype: dict
+        """
+        exon_numbers = oligo_database.get_oligo_property_value(
+            property=self.property_name,
+            region_id=region_id,
+            oligo_id=oligo_id,
+            flatten=True,
+        )
+        exon_numbers = cast_to_list(exon_numbers) if exon_numbers else []
+        exon_numbers = set(
+            [exon for exon_number in exon_numbers for exon in str(exon_number).split("__JUNC__")]
+        )
+
+        return {
+            "targeted_exons": list(exon_numbers),
+        }
+
+
 class IsoformConsensusProperty(BaseProperty):
     """
     A property class for calculating the isoform consensus for an oligonucleotide.
     """
 
-    def __init__(self) -> None:
+    def __init__(
+        self,
+        property_name_transcript_id: str = "transcript_id",
+        property_name_number_total_transcripts: str = "number_total_transcripts",
+    ) -> None:
         """Constructor for the IsoformConsensusProperty class."""
         super().__init__()
+        self.property_name_transcript_id = property_name_transcript_id
+        self.property_name_number_total_transcripts = property_name_number_total_transcripts
 
     def apply(self, oligo_database: OligoDatabase, region_id: str, oligo_id: str, sequence_type: str) -> dict:
         """
@@ -79,11 +127,17 @@ class IsoformConsensusProperty(BaseProperty):
         :rtype: dict
         """
         number_total_transcripts = oligo_database.get_oligo_property_value(
-            property="number_total_transcripts", region_id=region_id, oligo_id=oligo_id, flatten=True
+            property=self.property_name_number_total_transcripts,
+            region_id=region_id,
+            oligo_id=oligo_id,
+            flatten=True,
         )
 
         transcript_id = oligo_database.get_oligo_property_value(
-            property="transcript_id", region_id=region_id, oligo_id=oligo_id, flatten=True
+            property=self.property_name_transcript_id,
+            region_id=region_id,
+            oligo_id=oligo_id,
+            flatten=True,
         )
 
         if transcript_id and number_total_transcripts:
