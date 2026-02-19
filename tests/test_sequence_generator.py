@@ -9,6 +9,7 @@ from abc import abstractmethod
 from pathlib import Path
 from typing import cast
 
+from oligo_designer_toolsuite._exceptions import ConfigurationError
 from oligo_designer_toolsuite.database import OligoDatabase
 from oligo_designer_toolsuite.oligo_property_calculator import (
     LengthProperty,
@@ -84,6 +85,16 @@ class TestFTPLoaderNCBICurrent(FTPLoaderDownloadBase, unittest.TestCase):
         return FtpLoaderNCBI(self.tmp_path, taxon, species, annotation_release)
 
 
+class TestFTPLoaderNCBICurrentProkaryotes(FTPLoaderDownloadBase, unittest.TestCase):
+    def setup_ftp_loader(self) -> FtpLoaderNCBI:
+        # Parameters
+        taxon = "bacteria"  # taxon the species belongs to
+        species = "Actinomadura_yumaensis"
+        annotation_release = "current"
+
+        return FtpLoaderNCBI(self.tmp_path, taxon, species, annotation_release)
+
+
 class TestFTPLoaderEnsemblCurrent(FTPLoaderDownloadBase, unittest.TestCase):
     def setup_ftp_loader(self) -> FtpLoaderEnsembl:
         # Parameters
@@ -91,6 +102,41 @@ class TestFTPLoaderEnsemblCurrent(FTPLoaderDownloadBase, unittest.TestCase):
         annotation_release = "current"
 
         return FtpLoaderEnsembl(self.tmp_path, species, annotation_release)
+
+
+class TestFTPLoaderNCBIModeValidation(unittest.TestCase):
+    def setUp(self) -> None:
+        self.tmp_path = os.path.join(os.getcwd(), "tmp_ftp_loader_mode_validation")
+        os.makedirs(self.tmp_path, exist_ok=True)
+
+    def tearDown(self) -> None:
+        shutil.rmtree(self.tmp_path)
+
+    def test_direct_mode_requires_both_fields(self) -> None:
+        with self.assertRaises(ConfigurationError):
+            FtpLoaderNCBI(
+                self.tmp_path,
+                refseq_assembly_accession="GCF_000001405.38",
+            )
+
+    def test_direct_mode_rejects_taxon_mode_fields(self) -> None:
+        with self.assertRaises(ConfigurationError):
+            FtpLoaderNCBI(
+                self.tmp_path,
+                taxon="vertebrate_mammalian",
+                species="Homo_sapiens",
+                annotation_release="current",
+                refseq_assembly_accession="GCF_000001405.38",
+                assembly_name="GRCh38.p12",
+            )
+
+    def test_direct_mode_accepts_valid_pair(self) -> None:
+        loader = FtpLoaderNCBI(
+            self.tmp_path,
+            refseq_assembly_accession="GCF_000001405.38",
+            assembly_name="GRCh38.p12",
+        )
+        assert loader is not None
 
 
 class FTPLoaderFilesBase:
@@ -157,7 +203,7 @@ class TestFTPLoaderNCBIOldAnnotations(FTPLoaderFilesBase, unittest.TestCase):
         return FtpLoaderNCBI(self.tmp_path, taxon, species, annotation_release)
 
     def get_correct_metadata(self) -> tuple[str, str]:
-        annotation_release = "110"
+        annotation_release = "NCBI_Homo_sapiens_Annotation_Release_110"
         assembly_name = "GRCh38.p14"
 
         return annotation_release, assembly_name
@@ -170,6 +216,60 @@ class TestFTPLoaderNCBIOldAnnotations(FTPLoaderFilesBase, unittest.TestCase):
 
     def get_correct_fasta(self) -> str:
         return "GCF_000001405.40_GRCh38.p14_genomic.fna"
+
+
+class TestFTPLoaderNCBIReference(FTPLoaderFilesBase, unittest.TestCase):
+    def setup_ftp_loader(self) -> FtpLoaderNCBI:
+        # Parameters
+        taxon = "vertebrate_mammalian"  # taxon the species belongs to
+        species = "Homo_sapiens"
+        annotation_release = "current"
+        assembly_source = "reference"
+
+        return FtpLoaderNCBI(
+            self.tmp_path, taxon, species, annotation_release, assembly_source=assembly_source
+        )
+
+    def get_correct_metadata(self) -> tuple[str, str]:
+        annotation_release = "GCF_000001405.40-RS_2025_08"
+        assembly_name = "GRCh38.p14"
+
+        return annotation_release, assembly_name
+
+    def get_correct_gff(self) -> str:
+        return "GCF_000001405.40_GRCh38.p14_genomic.gff"
+
+    def get_correct_gtf(self) -> str:
+        return "GCF_000001405.40_GRCh38.p14_genomic.gtf"
+
+    def get_correct_fasta(self) -> str:
+        return "GCF_000001405.40_GRCh38.p14_genomic.fna"
+
+
+class TestFTPLoaderNCBIAssemblyNumber(FTPLoaderFilesBase, unittest.TestCase):
+    def setup_ftp_loader(self) -> FtpLoaderNCBI:
+        # Parameters
+        refseq_assembly_accession = "GCF_000068585.1"
+        assembly_name = "ASM6858v1"
+
+        return FtpLoaderNCBI(
+            self.tmp_path, refseq_assembly_accession=refseq_assembly_accession, assembly_name=assembly_name
+        )
+
+    def get_correct_metadata(self) -> tuple[str, str]:
+        annotation_release = "no_annotation_info"
+        assembly_name = "ASM6858v1"
+
+        return annotation_release, assembly_name
+
+    def get_correct_gff(self) -> str:
+        return "GCF_000068585.1_ASM6858v1_genomic.gff"
+
+    def get_correct_gtf(self) -> str:
+        return "GCF_000068585.1_ASM6858v1_genomic.gtf"
+
+    def get_correct_fasta(self) -> str:
+        return "GCF_000068585.1_ASM6858v1_genomic.fna"
 
 
 class TestFTPLoaderEnsemblOldAnnotations(FTPLoaderFilesBase, unittest.TestCase):
