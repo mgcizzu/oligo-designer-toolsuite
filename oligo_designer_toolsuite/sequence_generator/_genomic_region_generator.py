@@ -1187,13 +1187,19 @@ class CustomGenomicRegionGenerator:
     def _get_number_total_transcripts(self) -> pd.DataFrame:
         """
         Calculates the total number of transcripts per gene from the annotation data.
+        If no transcript information is available, return "None".
 
         :return: A DataFrame where each row represents a gene with the total count of its transcripts.
         :rtype: pd.DataFrame
         """
         annotation = self._load_annotation()
-        annotation = self._get_annotation_region_of_interest(annotation, "transcript")
-        number_total_transcripts = annotation["gene_id"].value_counts()
+        annotation_interest = self._get_annotation_region_of_interest(annotation, "transcript")
+        if annotation_interest.shape[0] > 0:
+            number_total_transcripts = annotation_interest["gene_id"].value_counts()
+        else:
+            warnings.warn("Could not calculate the number of total transcripts, set to 1.")
+            number_total_transcripts = annotation.drop_duplicates(subset=["gene_id"])
+            number_total_transcripts = number_total_transcripts["gene_id"].value_counts()
 
         number_total_transcripts_df = number_total_transcripts.reset_index()
         number_total_transcripts_df.columns = ["gene_id", "transcript_count"]
