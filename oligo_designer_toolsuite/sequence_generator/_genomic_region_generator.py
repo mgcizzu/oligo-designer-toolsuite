@@ -407,10 +407,6 @@ class CustomGenomicRegionGenerator:
         annotation = self._load_annotation()
         annotation = self._get_annotation_region_of_interest(annotation, "exon")
 
-        # add transcript counts for each gene
-        number_total_transcripts = self._get_number_total_transcripts()
-        annotation = pd.merge(annotation, number_total_transcripts, on="gene_id", how="left")
-
         # generate region_id
         annotation["region_id"] = annotation["gene_id"].astype("str")
         annotation["add_inf"] = (
@@ -424,6 +420,17 @@ class CustomGenomicRegionGenerator:
         # remove duplicated entries
         if collapse_duplicated_regions:
             annotation = self._collapse_duplicated_regions(annotation)
+
+        # add transcript counts for each gene
+        number_total_transcripts = self._get_number_total_transcripts()
+        if number_total_transcripts is not None:
+            annotation = pd.merge(annotation, number_total_transcripts, on="gene_id", how="left")
+            annotation_transcript_inf = (
+                f"{SEPARATOR_FASTA_HEADER_FIELDS_LIST}number_total_transcripts="
+                + annotation["transcript_count"].astype("str")
+            )
+        else:
+            annotation_transcript_inf = ""
 
         # add BED12 fields
         annotation["start"] = annotation["start_0base"]
@@ -440,8 +447,7 @@ class CustomGenomicRegionGenerator:
             + annotation["gene_id"].astype("str")
             + SEPARATOR_FASTA_HEADER_FIELDS_LIST
             + annotation["add_inf"]
-            + f"{SEPARATOR_FASTA_HEADER_FIELDS_LIST}number_total_transcripts="
-            + annotation["transcript_count"].astype("str")
+            + annotation_transcript_inf
             + SEPARATOR_FASTA_HEADER_FIELDS
             + annotation["region"]
         )
@@ -615,10 +621,6 @@ class CustomGenomicRegionGenerator:
         annotation = self._load_annotation()
         annotation = self._get_annotation_region_of_interest(annotation, "CDS")
 
-        # add transcript counts for each gene
-        number_total_transcripts = self._get_number_total_transcripts()
-        annotation = pd.merge(annotation, number_total_transcripts, on="gene_id", how="left")
-
         # generate region_id
         annotation["region_id"] = annotation["gene_id"].astype("str")
         annotation["add_inf"] = (
@@ -632,6 +634,17 @@ class CustomGenomicRegionGenerator:
         # remove duplicated entries
         if collapse_duplicated_regions:
             annotation = self._collapse_duplicated_regions(annotation)
+
+        # add transcript counts for each gene
+        number_total_transcripts = self._get_number_total_transcripts()
+        if number_total_transcripts is not None:
+            annotation = pd.merge(annotation, number_total_transcripts, on="gene_id", how="left")
+            annotation_transcript_inf = (
+                f"{SEPARATOR_FASTA_HEADER_FIELDS_LIST}number_total_transcripts="
+                + annotation["transcript_count"].astype("str")
+            )
+        else:
+            annotation_transcript_inf = ""
 
         # add BED12 fields
         annotation["start"] = annotation["start_0base"]
@@ -648,8 +661,7 @@ class CustomGenomicRegionGenerator:
             + annotation["gene_id"].astype("str")
             + SEPARATOR_FASTA_HEADER_FIELDS_LIST
             + annotation["add_inf"]
-            + f"{SEPARATOR_FASTA_HEADER_FIELDS_LIST}number_total_transcripts="
-            + annotation["transcript_count"].astype("str")
+            + annotation_transcript_inf
             + SEPARATOR_FASTA_HEADER_FIELDS
             + annotation["region"]
         )
@@ -755,10 +767,6 @@ class CustomGenomicRegionGenerator:
         if three_prime == False:
             annotation = annotation[annotation.type == "five_prime_UTR"]
 
-        # add transcript counts for each gene
-        number_total_transcripts = self._get_number_total_transcripts()
-        annotation = pd.merge(annotation, number_total_transcripts, on="gene_id", how="left")
-
         # generate region_id
         annotation["region_id"] = annotation["gene_id"].astype("str")
         annotation["add_inf"] = (
@@ -775,6 +783,17 @@ class CustomGenomicRegionGenerator:
         if collapse_duplicated_regions:
             annotation = self._collapse_duplicated_regions(annotation)
 
+        # add transcript counts for each gene
+        number_total_transcripts = self._get_number_total_transcripts()
+        if number_total_transcripts is not None:
+            annotation = pd.merge(annotation, number_total_transcripts, on="gene_id", how="left")
+            annotation_transcript_inf = (
+                f"{SEPARATOR_FASTA_HEADER_FIELDS_LIST}number_total_transcripts="
+                + annotation["transcript_count"].astype("str")
+            )
+        else:
+            annotation_transcript_inf = ""
+
         # add BED12 fields
         annotation["start"] = annotation["start_0base"]
         annotation["score"] = 0
@@ -789,6 +808,7 @@ class CustomGenomicRegionGenerator:
             + annotation["type"]
             + SEPARATOR_FASTA_HEADER_FIELDS_LIST
             + annotation["add_inf"]
+            + annotation_transcript_inf
             + SEPARATOR_FASTA_HEADER_FIELDS
             + annotation["region"]
         )
@@ -972,10 +992,6 @@ class CustomGenomicRegionGenerator:
         # compute exon junctions
         annotation = _compute_exon_exon_junction_annotation(annotation, block_size)
 
-        # add transcript counts for each gene
-        number_total_transcripts = self._get_number_total_transcripts()
-        annotation = pd.merge(annotation, number_total_transcripts, on="gene_id", how="left")
-
         # generate region_id
         annotation["region_id"] = annotation["gene_id"].astype("str")
         annotation["add_inf"] = (
@@ -990,6 +1006,17 @@ class CustomGenomicRegionGenerator:
         # remove duplicated entries
         if collapse_duplicated_regions:
             annotation = self._collapse_duplicated_regions(annotation)
+
+        # add transcript counts for each gene
+        number_total_transcripts = self._get_number_total_transcripts()
+        if number_total_transcripts is not None:
+            annotation = pd.merge(annotation, number_total_transcripts, on="gene_id", how="left")
+            annotation_transcript_inf = (
+                f"{SEPARATOR_FASTA_HEADER_FIELDS_LIST}number_total_transcripts="
+                + annotation["transcript_count"].astype("str")
+            )
+        else:
+            annotation_transcript_inf = ""
 
         # add BED12 fields
         annotation["score"] = 0
@@ -1008,8 +1035,7 @@ class CustomGenomicRegionGenerator:
             + annotation["gene_id"].astype("str")
             + SEPARATOR_FASTA_HEADER_FIELDS_LIST
             + annotation["add_inf"]
-            + f"{SEPARATOR_FASTA_HEADER_FIELDS_LIST}number_total_transcripts="
-            + annotation["transcript_count"].astype("str")
+            + annotation_transcript_inf
             + SEPARATOR_FASTA_HEADER_FIELDS
             + annotation["region"]
         )
@@ -1061,6 +1087,8 @@ class CustomGenomicRegionGenerator:
         :rtype: pd.DataFrame
         """
         region_annotation = annotation.loc[annotation["type"] == region]
+        if region_annotation.shape[0] == 0:
+            raise ConfigurationError(f"type {region} is not contained in the annotation file.")
         region_annotation.reset_index(inplace=True, drop=True)
         return region_annotation
 
@@ -1184,27 +1212,25 @@ class CustomGenomicRegionGenerator:
         )
         os.remove(file_bed)
 
-    def _get_number_total_transcripts(self) -> pd.DataFrame:
+    def _get_number_total_transcripts(self) -> pd.DataFrame | None:
         """
         Calculates the total number of transcripts per gene from the annotation data.
-        If no transcript information is available, return "None".
+        If no transcript information is available, returns None.
 
         :return: A DataFrame where each row represents a gene with the total count of its transcripts.
         :rtype: pd.DataFrame
         """
         annotation = self._load_annotation()
-        annotation_interest = self._get_annotation_region_of_interest(annotation, "transcript")
-        if annotation_interest.shape[0] > 0:
+        try:
+            annotation_interest = self._get_annotation_region_of_interest(annotation, "transcript")
             number_total_transcripts = annotation_interest["gene_id"].value_counts()
-        else:
-            warnings.warn("Could not calculate the number of total transcripts, set to 1.")
-            number_total_transcripts = annotation.drop_duplicates(subset=["gene_id"])
-            number_total_transcripts = number_total_transcripts["gene_id"].value_counts()
-
-        number_total_transcripts_df = number_total_transcripts.reset_index()
-        number_total_transcripts_df.columns = ["gene_id", "transcript_count"]
-
-        return number_total_transcripts_df
+            number_total_transcripts_df = number_total_transcripts.reset_index()
+            number_total_transcripts_df.columns = ["gene_id", "transcript_count"]
+        except ConfigurationError:
+            warnings.warn("Could not calculate the number of total transcripts.")
+            number_total_transcripts_df = None
+        finally:
+            return number_total_transcripts_df
 
 
 class NcbiGenomicRegionGenerator(CustomGenomicRegionGenerator):
