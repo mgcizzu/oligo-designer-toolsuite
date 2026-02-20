@@ -383,7 +383,7 @@ class IndependentSetsOligoSelection(BaseOligoSelection):
 
         return oligosets
 
-    def _greedy_max_clique(self, G: nx.Graph) -> list[str]:
+    def _greedy_max_clique(self, G: nx.Graph) -> list[int]:
         """
         Finds a maximal clique in the graph using a greedy degree-based heuristic.
 
@@ -391,13 +391,13 @@ class IndependentSetsOligoSelection(BaseOligoSelection):
         if it is adjacent to all nodes currently in the clique. The result is guaranteed
         to be a valid maximal clique but not necessarily a maximum-size clique.
 
-        :param G: The compatibility graph (nodes = oligo IDs, edges = compatible pairs).
+        :param G: The compatibility graph (nodes = indices, edges = compatible pairs).
         :type G: nx.Graph
-        :return: List of node IDs (oligo IDs) in the computed clique.
-        :rtype: list[str]
+        :return: List of node indices in the computed clique.
+        :rtype: list[int]
         """
         nodes = sorted(G.nodes(), key=lambda n: G.degree(n), reverse=True)
-        clique: list[str] = []
+        clique: list[int] = []
         for n in nodes:
             if all(G.has_edge(n, c) for c in clique):
                 clique.append(n)
