@@ -8,6 +8,7 @@ import unittest
 from abc import abstractmethod
 from pathlib import Path
 from typing import cast
+from unittest.mock import patch
 
 from oligo_designer_toolsuite._exceptions import ConfigurationError
 from oligo_designer_toolsuite.database import OligoDatabase
@@ -137,6 +138,154 @@ class TestFTPLoaderNCBIModeValidation(unittest.TestCase):
             assembly_name="GRCh38.p12",
         )
         assert loader is not None
+
+
+class TestFTPLoaderNCBIUnitBehavior(unittest.TestCase):
+    def setUp(self) -> None:
+        self.tmp_path = os.path.join(os.getcwd(), "tmp_ftp_loader_unit_behavior")
+        os.makedirs(self.tmp_path, exist_ok=True)
+
+    def tearDown(self) -> None:
+        shutil.rmtree(self.tmp_path)
+
+    def test_direct_mode_builds_expected_ncbi_all_path(self) -> None:
+        loader = FtpLoaderNCBI(
+            self.tmp_path,
+            refseq_assembly_accession="GCF_000001405.38",
+            assembly_name="GRCh38.p12",
+        )
+        assert (
+            loader._resolve_directory_from_direct_assembly()
+            == "genomes/all/GCF/000/001/405/GCF_000001405.38_GRCh38.p12/"
+        )
+
+    def test_direct_mode_rejects_invalid_accession_format(self) -> None:
+        loader = FtpLoaderNCBI(
+            self.tmp_path,
+            refseq_assembly_accession="GCF_123",
+            assembly_name="GRCh38.p12",
+        )
+        with self.assertRaises(ConfigurationError):
+            loader._resolve_directory_from_direct_assembly()
+
+    def test_taxon_mode_requires_required_fields(self) -> None:
+        with self.assertRaises(ConfigurationError):
+            FtpLoaderNCBI(self.tmp_path, taxon="vertebrate_mammalian")
+
+    def test_unsupported_taxon_is_rejected(self) -> None:
+        with self.assertRaises(ConfigurationError):
+            FtpLoaderNCBI(
+                self.tmp_path,
+                taxon="mitochondrion",
+                species="Homo_sapiens",
+                annotation_release="current",
+            )
+
+    def test_unknown_taxon_is_rejected(self) -> None:
+        with self.assertRaises(ConfigurationError):
+            FtpLoaderNCBI(
+                self.tmp_path,
+                taxon="foo_taxon",
+                species="Homo_sapiens",
+                annotation_release="current",
+            )
+
+    def test_assembly_source_incompatible_with_taxon_is_rejected(self) -> None:
+        with self.assertRaises(ConfigurationError):
+            FtpLoaderNCBI(
+                self.tmp_path,
+                taxon="viral",
+                species="SARS-CoV-2",
+                annotation_release="current",
+                assembly_source="annotation_releases",
+            )
+
+    def test_numeric_release_is_rejected_for_latest_assembly_versions(self) -> None:
+        with self.assertRaises(ConfigurationError):
+            FtpLoaderNCBI(
+                self.tmp_path,
+                taxon="bacteria",
+                species="Actinomadura_yumaensis",
+                annotation_release="110",
+                assembly_source="latest_assembly_versions",
+            )
+
+    def test_current_annotation_release_uses_first_entry(self) -> None:
+        loader = FtpLoaderNCBI(
+            self.tmp_path,
+            taxon="vertebrate_mammalian",
+            species="Homo_sapiens",
+            annotation_release="current",
+            assembly_source="annotation_releases",
+        )
+        with patch.object(
+            loader,
+            "_list_ftp_entries",
+            return_value=["GCF_000001405.40-RS_2025_08", "GCF_009914755.1-RS_2025_08"],
+        ):
+            ftp_directory = loader._resolve_base_directory("annotation_releases")
+        assert loader.annotation_release == "GCF_000001405.40-RS_2025_08"
+        assert (
+            ftp_directory == "genomes/refseq/vertebrate_mammalian/Homo_sapiens/annotation_releases/"
+            "GCF_000001405.40-RS_2025_08/"
+        )
+
+    def test_non_annotation_source_uses_first_gcf_entry(self) -> None:
+        loader = FtpLoaderNCBI(
+            self.tmp_path,
+            taxon="bacteria",
+            species="Actinomadura_yumaensis",
+            annotation_release="current",
+            assembly_source="latest_assembly_versions",
+        )
+        with patch.object(
+            loader,
+            "_list_ftp_entries",
+            return_value=["README.txt", "GCF_003054545.1_ASM305454v1", "GCA_111111111.1_OTHER"],
+        ):
+            ftp_directory = loader._resolve_base_directory("latest_assembly_versions")
+        assert (
+            ftp_directory == "genomes/refseq/bacteria/Actinomadura_yumaensis/latest_assembly_versions/"
+            "GCF_003054545.1_ASM305454v1/"
+        )
+
+    def test_non_annotation_source_without_gcf_entry_raises(self) -> None:
+        loader = FtpLoaderNCBI(
+            self.tmp_path,
+            taxon="bacteria",
+            species="Actinomadura_yumaensis",
+            annotation_release="current",
+            assembly_source="latest_assembly_versions",
+        )
+        with patch.object(loader, "_list_ftp_entries", return_value=["README.txt", "GCA_123456789.1_OTHER"]):
+            with self.assertRaises(ConfigurationError):
+                loader._resolve_base_directory("latest_assembly_versions")
+
+    def test_resolve_assembly_metadata_falls_back_to_assembly_report(self) -> None:
+        loader = FtpLoaderNCBI(
+            self.tmp_path,
+            taxon="bacteria",
+            species="Xanthobacter_sp._SG618",
+            annotation_release="current",
+            assembly_source="reference",
+        )
+        assembly_report = os.path.join(self.tmp_path, "GCF_012932745.1_ASM1293274v1_assembly_report.txt")
+        with open(assembly_report, "w") as handle:
+            handle.write("# Assembly name: ASM1293274v1\n")
+            handle.write("# RefSeq assembly accession: GCF_012932745.1\n")
+
+        def _download_side_effect(ftp_link: str, ftp_directory: str, file_name: str) -> str:
+            if "README_" in file_name:
+                raise FileNotFoundError("README missing")
+            if "_assembly_report" in file_name:
+                return assembly_report
+            raise FileNotFoundError("No file")
+
+        with patch.object(loader, "_download", side_effect=_download_side_effect):
+            loader._resolve_assembly_metadata("dummy_dir/")
+
+        assert loader.assembly_name == "ASM1293274v1"
+        assert loader.assembly_accession == "GCF_012932745.1"
 
 
 class FTPLoaderFilesBase:
