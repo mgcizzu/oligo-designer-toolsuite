@@ -7,8 +7,10 @@ import shutil
 import unittest
 from abc import abstractmethod
 from pathlib import Path
-from typing import cast
+from typing import Any, Callable, TypedDict, cast
 from unittest.mock import patch
+
+from Bio import SeqIO
 
 from oligo_designer_toolsuite._exceptions import ConfigurationError
 from oligo_designer_toolsuite.database import OligoDatabase
@@ -34,7 +36,7 @@ FILE_SEQUENCE_ENSEMBL = "tests/data/annotations/custom_Homo_sapiens.GRCh38.dna_s
 FILE_ANNOTATION_NCBI = "tests/data/annotations/custom_GCF_000001405.40_GRCh38.p14_genomic_chr16.gtf"
 FILE_SEQUENCE_NCBI = "tests/data/annotations/custom_GCF_000001405.40_GRCh38.p14_genomic_chr16.fna"
 
-METDATA_NCBI = {
+METADATA_NCBI = {
     "files_source": "NCBI",
     "species": "Homo_sapiens",
     "annotation_release": "110",
@@ -46,6 +48,118 @@ METADATA_ENSEMBL = {
     "species": "Homo_sapiens",
     "annotation_release": "108",
     "genome_assembly": "GRCh38",
+}
+
+
+class RegionHeaderSpec(TypedDict):
+    region: str
+    additional_info: dict[str, Any]
+    coordinates: dict[str, Any]
+
+
+EXPECTED_HEADER_VALUES_HUMAN_NCBI: dict[str, RegionHeaderSpec] = {
+    "gene": {
+        "region": "AARS1",
+        "additional_info": {
+            "source": ["NCBI"],
+            "species": ["Homo_sapiens"],
+            "annotation_release": [110],
+            "genome_assembly": ["GRCh38"],
+            "regiontype": ["gene"],
+            "gene_id": ["AARS1"],
+        },
+        "coordinates": {"chromosome": ["16"], "start": [70252298], "end": [70289506], "strand": ["-"]},
+    },
+    "exon": {
+        "region": "AARS1",
+        "additional_info": {
+            "source": ["NCBI"],
+            "species": ["Homo_sapiens"],
+            "annotation_release": [110],
+            "genome_assembly": ["GRCh38"],
+            "regiontype": ["exon"],
+            "gene_id": ["AARS1"],
+            "transcript_id": ["NM_001605.3", "XM_047433666.1"],
+            "exon_number": [10, 10],
+            "number_total_transcripts": [2],
+        },
+        "coordinates": {"chromosome": ["16"], "start": [70265538], "end": [70265662], "strand": ["-"]},
+    },
+    "exon_exon_junction": {
+        "region": "AARS1",
+        "additional_info": {
+            "source": ["NCBI"],
+            "species": ["Homo_sapiens"],
+            "annotation_release": [110],
+            "genome_assembly": ["GRCh38"],
+            "regiontype": ["exonexonjunction"],
+            "gene_id": ["AARS1"],
+            "transcript_id": ["NM_001605.3", "XM_047433666.1"],
+            "exon_number": ["10__JUNC__9", "10__JUNC__9"],
+            "number_total_transcripts": [2],
+        },
+        "coordinates": {
+            "chromosome": ["16", "16"],
+            "start": [70265613, 70267659],
+            "end": [70265662, 70267708],
+            "strand": ["-", "-"],
+        },
+    },
+    "CDS": {
+        "region": "AARS1",
+        "additional_info": {
+            "source": ["NCBI"],
+            "species": ["Homo_sapiens"],
+            "annotation_release": [110],
+            "genome_assembly": ["GRCh38"],
+            "regiontype": ["CDS"],
+            "gene_id": ["AARS1"],
+            "transcript_id": ["NM_001605.3", "XM_047433666.1"],
+            "exon_number": [10, 10],
+            "number_total_transcripts": [2],
+        },
+        "coordinates": {"chromosome": ["16"], "start": [70265538], "end": [70265662], "strand": ["-"]},
+    },
+    "UTR": {
+        "region": "AARS1",
+        "additional_info": {
+            "source": ["NCBI"],
+            "species": ["Homo_sapiens"],
+            "annotation_release": [110],
+            "genome_assembly": ["GRCh38"],
+            "regiontype": ["five_prime_UTR"],
+            "gene_id": ["AARS1", "AARS1"],
+            "transcript_id": ["NM_001605.3", "XM_047433666.1"],
+            "exon_number": [1, 1],
+            "number_total_transcripts": [2],
+        },
+        "coordinates": {"chromosome": ["16"], "start": [70289421], "end": [70289506], "strand": ["-"]},
+    },
+    "intergenic": {
+        "region": "InterRegMinus16_0",
+        "additional_info": {
+            "source": ["NCBI"],
+            "species": ["Homo_sapiens"],
+            "annotation_release": [110],
+            "genome_assembly": ["GRCh38"],
+            "regiontype": ["intergenic"],
+        },
+        "coordinates": {"chromosome": ["16"], "start": [90210347], "end": [90338345], "strand": ["-"]},
+    },
+    "intron": {
+        "region": "AARS1",
+        "additional_info": {
+            "source": ["NCBI"],
+            "species": ["Homo_sapiens"],
+            "annotation_release": [110],
+            "genome_assembly": ["GRCh38"],
+            "regiontype": ["intron"],
+            "gene_id": ["AARS1"],
+            "transcript_id": ["NM_001605.3", "XM_047433666.1"],
+            "intron_number": ["intron_10", "intron_10"],
+        },
+        "coordinates": {"chromosome": ["16"], "start": [70265103], "end": [70265537], "strand": ["-"]},
+    },
 }
 
 FILE_NCBI_EXONS = "tests/data/genomic_regions/sequences_ncbi_exons.fna"
@@ -450,7 +564,10 @@ class TestFTPLoaderEnsemblOldAnnotations(FTPLoaderFilesBase, unittest.TestCase):
         assert Path(file_fasta).name == "Homo_sapiens.GRCh38.ncrna.fa", "error: wrong file downloaded"
 
 
-class GenomicRegionGeneratorBase:
+class GenomicRegionGeneratorBase(unittest.TestCase):
+    expected_generation_behavior: dict[str, str] = {}
+    expected_header_values: dict[str, RegionHeaderSpec] = {}
+
     def setUp(self) -> None:
         self.tmp_path = os.path.join(os.getcwd(), "tmp_genomic_region_generator")
         self.fasta_parser = FastaParser()
@@ -466,60 +583,94 @@ class GenomicRegionGeneratorBase:
     def setup_region_generator(self) -> CustomGenomicRegionGenerator:
         pass
 
+    def _run_generation_test(self, region_type: str, generator_func: Callable) -> None:
+        expected_generation_behavior = self.expected_generation_behavior[region_type]
+        expected_header_values = self.expected_header_values[region_type]
+
+        if expected_generation_behavior == "error":
+            with self.assertRaises(ConfigurationError):
+                generator_func()
+            return
+
+        if expected_generation_behavior == "warning":
+            with self.assertWarns(Warning):
+                result = generator_func()
+        else:
+            result = generator_func()
+
+        self.assertTrue(
+            self.fasta_parser.check_fasta_format(result), f"error: wrong file format for file: {result}"
+        )
+
+        if expected_header_values:
+            fasta_sequences = SeqIO.index(result, "fasta")
+            additional_info: dict[str, Any] = {}
+            for idx in fasta_sequences:
+                region, ai, coordinates = self.fasta_parser.parse_fasta_header(idx)
+                # in case parse_additional_info in parse_fasta_header is False, additional_info
+                # is returned as str and mypy complains about that, therefore cast here
+                additional_info = cast(dict[str, Any], ai)
+                if region == expected_header_values["region"]:
+                    break
+            for key, expected in expected_header_values["additional_info"].items():
+                with self.subTest(header_key=key):
+                    self.assertEqual(additional_info.get(key), expected)
+            for key, expected in expected_header_values["coordinates"].items():
+                with self.subTest(header_key=key):
+                    self.assertEqual(coordinates.get(key), expected)
+
     def test_gene(self) -> None:
-        genes = self.region_generator.get_sequence_gene()
-        assert (
-            self.fasta_parser.check_fasta_format(genes) == True
-        ), f"error: wrong file format for file: {genes}"
+        self._run_generation_test("gene", self.region_generator.get_sequence_gene)
 
     def test_exon(self) -> None:
-        exon = self.region_generator.get_sequence_exon()
-        assert (
-            self.fasta_parser.check_fasta_format(exon) == True
-        ), f"error: wrong file format for file: {exon}"
+        self._run_generation_test("exon", self.region_generator.get_sequence_exon)
 
     def test_exon_exon_junction(self) -> None:
-        exon_exon_junction = self.region_generator.get_sequence_exon_exon_junction(block_size=50)
-        assert (
-            self.fasta_parser.check_fasta_format(exon_exon_junction) == True
-        ), f"error: wrong file format for file: {exon_exon_junction}"
+        self._run_generation_test(
+            "exon_exon_junction", lambda: self.region_generator.get_sequence_exon_exon_junction(block_size=50)
+        )
 
     def test_CDS(self) -> None:
-        cds = self.region_generator.get_sequence_CDS()
-        assert self.fasta_parser.check_fasta_format(cds) == True, f"error: wrong file format for file: {cds}"
+        self._run_generation_test("CDS", self.region_generator.get_sequence_CDS)
 
     def test_UTR(self) -> None:
-        utr = self.region_generator.get_sequence_UTR(five_prime=True, three_prime=True)
-        assert self.fasta_parser.check_fasta_format(utr) == True, f"error: wrong file format for file: {utr}"
+        self._run_generation_test(
+            "UTR", lambda: self.region_generator.get_sequence_UTR(five_prime=True, three_prime=True)
+        )
 
     def test_intergenic(self) -> None:
-        intergenic = self.region_generator.get_sequence_intergenic()
-        assert (
-            self.fasta_parser.check_fasta_format(intergenic) == True
-        ), f"error: wrong file format for file: {intergenic}"
+        self._run_generation_test("intergenic", self.region_generator.get_sequence_intergenic)
 
-    def test_introns(self) -> None:
-        introns = self.region_generator.get_sequence_intron()
-        assert (
-            self.fasta_parser.check_fasta_format(introns) == True
-        ), f"error: wrong file format for file: {introns}"
+    def test_intron(self) -> None:
+        self._run_generation_test("intron", self.region_generator.get_sequence_intron)
 
 
-class TestGenomicRegionGeneratorNCBI(GenomicRegionGeneratorBase, unittest.TestCase):
+class TestGenomicRegionGeneratorNCBI(GenomicRegionGeneratorBase):
+    expected_generation_behavior = {
+        "gene": "pass",
+        "exon": "pass",
+        "exon_exon_junction": "pass",
+        "CDS": "pass",
+        "UTR": "pass",
+        "intergenic": "pass",
+        "intron": "pass",
+    }
+    expected_header_values = EXPECTED_HEADER_VALUES_HUMAN_NCBI
+
     def setup_region_generator(self) -> CustomGenomicRegionGenerator:
 
         return CustomGenomicRegionGenerator(
             FILE_ANNOTATION_NCBI,
             FILE_SEQUENCE_NCBI,
-            files_source=METDATA_NCBI["files_source"],
-            species=METDATA_NCBI["species"],
-            annotation_release=METDATA_NCBI["annotation_release"],
-            genome_assembly=METDATA_NCBI["genome_assembly"],
+            files_source=METADATA_NCBI["files_source"],
+            species=METADATA_NCBI["species"],
+            annotation_release=METADATA_NCBI["annotation_release"],
+            genome_assembly=METADATA_NCBI["genome_assembly"],
             dir_output=self.tmp_path,
         )
 
 
-class TestGenomicRegionGeneratorEnsembl(GenomicRegionGeneratorBase, unittest.TestCase):
+class TestGenomicRegionGeneratorEnsembl(GenomicRegionGeneratorBase):
     def setup_region_generator(self) -> CustomGenomicRegionGenerator:
 
         return CustomGenomicRegionGenerator(
