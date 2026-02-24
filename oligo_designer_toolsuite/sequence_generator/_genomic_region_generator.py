@@ -422,7 +422,7 @@ class CustomGenomicRegionGenerator:
             annotation = self._collapse_duplicated_regions(annotation)
 
         # add transcript counts for each gene
-        number_total_transcripts = self._get_number_total_transcripts()
+        number_total_transcripts = self._get_number_total_transcripts(set(annotation["gene_id"]))
         if number_total_transcripts is not None:
             annotation = pd.merge(annotation, number_total_transcripts, on="gene_id", how="left")
             annotation_transcript_inf = (
@@ -535,6 +535,9 @@ class CustomGenomicRegionGenerator:
                         )
                         exon_upstream = attributes
 
+            if len(intron_list) == 0:
+                raise ConfigurationError("Could not calculate introns.")
+
             intron_annotation = pd.DataFrame(
                 np.asarray(intron_list),
                 columns=[
@@ -636,7 +639,7 @@ class CustomGenomicRegionGenerator:
             annotation = self._collapse_duplicated_regions(annotation)
 
         # add transcript counts for each gene
-        number_total_transcripts = self._get_number_total_transcripts()
+        number_total_transcripts = self._get_number_total_transcripts(set(annotation["gene_id"]))
         if number_total_transcripts is not None:
             annotation = pd.merge(annotation, number_total_transcripts, on="gene_id", how="left")
             annotation_transcript_inf = (
@@ -767,6 +770,9 @@ class CustomGenomicRegionGenerator:
         if three_prime == False:
             annotation = annotation[annotation.type == "five_prime_UTR"]
 
+        if annotation.shape[0] == 0:
+            raise ConfigurationError("Could not calculate the UTR.")
+
         # generate region_id
         annotation["region_id"] = annotation["gene_id"].astype("str")
         annotation["add_inf"] = (
@@ -784,7 +790,7 @@ class CustomGenomicRegionGenerator:
             annotation = self._collapse_duplicated_regions(annotation)
 
         # add transcript counts for each gene
-        number_total_transcripts = self._get_number_total_transcripts()
+        number_total_transcripts = self._get_number_total_transcripts(set(annotation["gene_id"]))
         if number_total_transcripts is not None:
             annotation = pd.merge(annotation, number_total_transcripts, on="gene_id", how="left")
             annotation_transcript_inf = (
@@ -849,7 +855,7 @@ class CustomGenomicRegionGenerator:
         :type block_size: int
         :param collapse_duplicated_regions: Whether to collapse duplicated regions into a single entry, defauls to True.
         :type collapse_duplicated_regions: bool
-        :return: The path to the generated FASTA file containing the UTR sequences.
+        :return: The path to the generated FASTA file containing the exon-exon junction sequences.
         :rtype: str
         """
 
@@ -992,6 +998,9 @@ class CustomGenomicRegionGenerator:
         # compute exon junctions
         annotation = _compute_exon_exon_junction_annotation(annotation, block_size)
 
+        if annotation.shape[0] == 0:
+            raise ConfigurationError("Could not calculate exon-exon junctions.")
+
         # generate region_id
         annotation["region_id"] = annotation["gene_id"].astype("str")
         annotation["add_inf"] = (
@@ -1008,7 +1017,7 @@ class CustomGenomicRegionGenerator:
             annotation = self._collapse_duplicated_regions(annotation)
 
         # add transcript counts for each gene
-        number_total_transcripts = self._get_number_total_transcripts()
+        number_total_transcripts = self._get_number_total_transcripts(set(annotation["gene_id"]))
         if number_total_transcripts is not None:
             annotation = pd.merge(annotation, number_total_transcripts, on="gene_id", how="left")
             annotation_transcript_inf = (
@@ -1212,13 +1221,16 @@ class CustomGenomicRegionGenerator:
         )
         os.remove(file_bed)
 
-    def _get_number_total_transcripts(self) -> pd.DataFrame | None:
+    def _get_number_total_transcripts(self, gene_ids: set[str]) -> pd.DataFrame | None:
         """
         Calculates the total number of transcripts per gene from the annotation data.
         If no transcript information is available, returns None.
 
+        :param gene_ids: The list of gene_ids for which the transcript number is calculated. This is needed
+            because for some assemblies, the transcript information is not available for all gene_ids of one type.
+        :type gene_ids: set[str]
         :return: A DataFrame where each row represents a gene with the total count of its transcripts.
-        :rtype: pd.DataFrame
+        :rtype: pd.DataFrame | None
         """
         annotation = self._load_annotation()
         try:
@@ -1226,6 +1238,8 @@ class CustomGenomicRegionGenerator:
             number_total_transcripts = annotation_interest["gene_id"].value_counts()
             number_total_transcripts_df = number_total_transcripts.reset_index()
             number_total_transcripts_df.columns = ["gene_id", "transcript_count"]
+            if not set(gene_ids).issubset(set(number_total_transcripts_df["gene_id"])):
+                raise ConfigurationError
         except ConfigurationError:
             warnings.warn("Could not calculate the number of total transcripts.")
             number_total_transcripts_df = None
