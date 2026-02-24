@@ -7,7 +7,7 @@ import shutil
 import unittest
 from abc import abstractmethod
 from pathlib import Path
-from typing import Any, Callable, TypedDict, cast
+from typing import Any, Callable, cast
 from unittest.mock import patch
 
 from Bio import SeqIO
@@ -25,6 +25,14 @@ from oligo_designer_toolsuite.sequence_generator import (
     OligoSequenceGenerator,
 )
 from oligo_designer_toolsuite.utils import FastaParser, check_if_dna_sequence
+
+from .expected_values_region_generator import (
+    EXPECTED_HEADER_VALUES_BACTERIA_NCBI,
+    EXPECTED_HEADER_VALUES_HUMAN_ENSEMBL,
+    EXPECTED_HEADER_VALUES_HUMAN_NCBI,
+    EXPECTED_HEADER_VALUES_MOUSE_NCBI,
+    RegionHeaderSpec,
+)
 
 ############################################
 # Setup
@@ -50,116 +58,26 @@ METADATA_ENSEMBL = {
     "genome_assembly": "GRCh38",
 }
 
+FILE_ANNOTATION_MOUSE_NCBI = (
+    "tests/data/annotations/custom_GCF_000001635.26_GRCm38.p6_genomic_NC_000085.6.gtf"
+)
+FILE_SEQUENCE_MOUSE_NCBI = "tests/data/annotations/custom_GCF_000001635.26_GRCm38.p6_genomic_NC_000085.6.fna"
 
-class RegionHeaderSpec(TypedDict):
-    region: str
-    additional_info: dict[str, Any]
-    coordinates: dict[str, Any]
+METADATA_MOUSE_NCBI = {
+    "files_source": "NCBI",
+    "species": "Mus_musculus",
+    "annotation_release": "108.20200622",
+    "genome_assembly": "GRCm38.p6",
+}
 
+FILE_ANNOTATION_BACTERIA_NCBI = "tests/data/annotations/GCF_000068585.1_ASM6858v1_genomic.gtf"
+FILE_SEQUENCE_BACTERIA_NCBI = "tests/data/annotations/GCF_000068585.1_ASM6858v1_genomic.fna"
 
-EXPECTED_HEADER_VALUES_HUMAN_NCBI: dict[str, RegionHeaderSpec] = {
-    "gene": {
-        "region": "AARS1",
-        "additional_info": {
-            "source": ["NCBI"],
-            "species": ["Homo_sapiens"],
-            "annotation_release": [110],
-            "genome_assembly": ["GRCh38"],
-            "regiontype": ["gene"],
-            "gene_id": ["AARS1"],
-        },
-        "coordinates": {"chromosome": ["16"], "start": [70252298], "end": [70289506], "strand": ["-"]},
-    },
-    "exon": {
-        "region": "AARS1",
-        "additional_info": {
-            "source": ["NCBI"],
-            "species": ["Homo_sapiens"],
-            "annotation_release": [110],
-            "genome_assembly": ["GRCh38"],
-            "regiontype": ["exon"],
-            "gene_id": ["AARS1"],
-            "transcript_id": ["NM_001605.3", "XM_047433666.1"],
-            "exon_number": [10, 10],
-            "number_total_transcripts": [2],
-        },
-        "coordinates": {"chromosome": ["16"], "start": [70265538], "end": [70265662], "strand": ["-"]},
-    },
-    "exon_exon_junction": {
-        "region": "AARS1",
-        "additional_info": {
-            "source": ["NCBI"],
-            "species": ["Homo_sapiens"],
-            "annotation_release": [110],
-            "genome_assembly": ["GRCh38"],
-            "regiontype": ["exonexonjunction"],
-            "gene_id": ["AARS1"],
-            "transcript_id": ["NM_001605.3", "XM_047433666.1"],
-            "exon_number": ["10__JUNC__9", "10__JUNC__9"],
-            "number_total_transcripts": [2],
-        },
-        "coordinates": {
-            "chromosome": ["16", "16"],
-            "start": [70265613, 70267659],
-            "end": [70265662, 70267708],
-            "strand": ["-", "-"],
-        },
-    },
-    "CDS": {
-        "region": "AARS1",
-        "additional_info": {
-            "source": ["NCBI"],
-            "species": ["Homo_sapiens"],
-            "annotation_release": [110],
-            "genome_assembly": ["GRCh38"],
-            "regiontype": ["CDS"],
-            "gene_id": ["AARS1"],
-            "transcript_id": ["NM_001605.3", "XM_047433666.1"],
-            "exon_number": [10, 10],
-            "number_total_transcripts": [2],
-        },
-        "coordinates": {"chromosome": ["16"], "start": [70265538], "end": [70265662], "strand": ["-"]},
-    },
-    "UTR": {
-        "region": "AARS1",
-        "additional_info": {
-            "source": ["NCBI"],
-            "species": ["Homo_sapiens"],
-            "annotation_release": [110],
-            "genome_assembly": ["GRCh38"],
-            "regiontype": ["five_prime_UTR"],
-            "gene_id": ["AARS1", "AARS1"],
-            "transcript_id": ["NM_001605.3", "XM_047433666.1"],
-            "exon_number": [1, 1],
-            "number_total_transcripts": [2],
-        },
-        "coordinates": {"chromosome": ["16"], "start": [70289421], "end": [70289506], "strand": ["-"]},
-    },
-    "intergenic": {
-        "region": "InterRegMinus16_0",
-        "additional_info": {
-            "source": ["NCBI"],
-            "species": ["Homo_sapiens"],
-            "annotation_release": [110],
-            "genome_assembly": ["GRCh38"],
-            "regiontype": ["intergenic"],
-        },
-        "coordinates": {"chromosome": ["16"], "start": [90210347], "end": [90338345], "strand": ["-"]},
-    },
-    "intron": {
-        "region": "AARS1",
-        "additional_info": {
-            "source": ["NCBI"],
-            "species": ["Homo_sapiens"],
-            "annotation_release": [110],
-            "genome_assembly": ["GRCh38"],
-            "regiontype": ["intron"],
-            "gene_id": ["AARS1"],
-            "transcript_id": ["NM_001605.3", "XM_047433666.1"],
-            "intron_number": ["intron_10", "intron_10"],
-        },
-        "coordinates": {"chromosome": ["16"], "start": [70265103], "end": [70265537], "strand": ["-"]},
-    },
+METADATA_BACTERIA_NCBI = {
+    "files_source": "NCBI",
+    "species": "Chlamydia_trachomatis",
+    "annotation_release": "no_annotation_info",
+    "genome_assembly": "ASM6858v1",
 }
 
 FILE_NCBI_EXONS = "tests/data/genomic_regions/sequences_ncbi_exons.fna"
@@ -585,7 +503,6 @@ class GenomicRegionGeneratorBase(unittest.TestCase):
 
     def _run_generation_test(self, region_type: str, generator_func: Callable) -> None:
         expected_generation_behavior = self.expected_generation_behavior[region_type]
-        expected_header_values = self.expected_header_values[region_type]
 
         if expected_generation_behavior == "error":
             with self.assertRaises(ConfigurationError):
@@ -597,6 +514,8 @@ class GenomicRegionGeneratorBase(unittest.TestCase):
                 result = generator_func()
         else:
             result = generator_func()
+
+        expected_header_values = self.expected_header_values[region_type]
 
         self.assertTrue(
             self.fasta_parser.check_fasta_format(result), f"error: wrong file format for file: {result}"
@@ -671,6 +590,17 @@ class TestGenomicRegionGeneratorNCBI(GenomicRegionGeneratorBase):
 
 
 class TestGenomicRegionGeneratorEnsembl(GenomicRegionGeneratorBase):
+    expected_generation_behavior = {
+        "gene": "pass",
+        "exon": "pass",
+        "exon_exon_junction": "pass",
+        "CDS": "pass",
+        "UTR": "pass",
+        "intergenic": "pass",
+        "intron": "pass",
+    }
+    expected_header_values = EXPECTED_HEADER_VALUES_HUMAN_ENSEMBL
+
     def setup_region_generator(self) -> CustomGenomicRegionGenerator:
 
         return CustomGenomicRegionGenerator(
@@ -680,6 +610,56 @@ class TestGenomicRegionGeneratorEnsembl(GenomicRegionGeneratorBase):
             species=METADATA_ENSEMBL["species"],
             annotation_release=METADATA_ENSEMBL["annotation_release"],
             genome_assembly=METADATA_ENSEMBL["genome_assembly"],
+            dir_output=self.tmp_path,
+        )
+
+
+class TestGenomicRegionGeneratorMouseNCBI(GenomicRegionGeneratorBase):
+    expected_generation_behavior = {
+        "gene": "pass",
+        "exon": "warning",
+        "exon_exon_junction": "warning",
+        "CDS": "warning",
+        "UTR": "warning",
+        "intergenic": "pass",
+        "intron": "pass",
+    }
+    expected_header_values = EXPECTED_HEADER_VALUES_MOUSE_NCBI
+
+    def setup_region_generator(self) -> CustomGenomicRegionGenerator:
+
+        return CustomGenomicRegionGenerator(
+            FILE_ANNOTATION_MOUSE_NCBI,
+            FILE_SEQUENCE_MOUSE_NCBI,
+            files_source=METADATA_MOUSE_NCBI["files_source"],
+            species=METADATA_MOUSE_NCBI["species"],
+            annotation_release=METADATA_MOUSE_NCBI["annotation_release"],
+            genome_assembly=METADATA_MOUSE_NCBI["genome_assembly"],
+            dir_output=self.tmp_path,
+        )
+
+
+class TestGenomicRegionGeneratorBacteriaNCBI(GenomicRegionGeneratorBase):
+    expected_generation_behavior = {
+        "gene": "pass",
+        "exon": "warning",
+        "exon_exon_junction": "error",
+        "CDS": "warning",
+        "UTR": "error",
+        "intergenic": "pass",
+        "intron": "error",
+    }
+    expected_header_values = EXPECTED_HEADER_VALUES_BACTERIA_NCBI
+
+    def setup_region_generator(self) -> CustomGenomicRegionGenerator:
+
+        return CustomGenomicRegionGenerator(
+            FILE_ANNOTATION_BACTERIA_NCBI,
+            FILE_SEQUENCE_BACTERIA_NCBI,
+            files_source=METADATA_BACTERIA_NCBI["files_source"],
+            species=METADATA_BACTERIA_NCBI["species"],
+            annotation_release=METADATA_BACTERIA_NCBI["annotation_release"],
+            genome_assembly=METADATA_BACTERIA_NCBI["genome_assembly"],
             dir_output=self.tmp_path,
         )
 
