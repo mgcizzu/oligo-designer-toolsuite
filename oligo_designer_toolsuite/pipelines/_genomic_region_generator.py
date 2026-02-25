@@ -80,12 +80,12 @@ class GenomicRegionGenerator:
         if source == "ncbi":
             # dowload the fasta files formthe NCBI server
             region_generator = NcbiGenomicRegionGenerator(
-                taxon=source_params.get("taxon"),
-                species=source_params.get("species"),
-                annotation_release=source_params.get("annotation_release"),
-                assembly_source=source_params.get("assembly_source", "auto"),
-                refseq_assembly_accession=source_params.get("refseq_assembly_accession"),
-                assembly_name=source_params.get("assembly_name"),
+                taxon=source_params["taxon"],
+                species=source_params["species"],
+                annotation_release=source_params["annotation_release"],
+                assembly_source=source_params["assembly_source"],
+                refseq_assembly_accession=source_params["refseq_assembly_accession"],
+                assembly_name=source_params["assembly_name"],
                 dir_output=self.dir_output,
             )
         elif source == "ensembl":
