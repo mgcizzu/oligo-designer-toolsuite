@@ -7,11 +7,12 @@ from Bio.SeqUtils import MeltingTemp, gc_fraction
 from seqfold import dg
 
 from oligo_designer_toolsuite._exceptions import ConfigurationError
-from oligo_designer_toolsuite.pipelines._config_models import (
+from oligo_designer_toolsuite.utils import check_if_list, flatten_property_list
+from oligo_designer_toolsuite.validation.models._general import (
     TmChemCorrectionParameters,
+    TmParameters,
     TmSaltCorrectionParameters,
 )
-from oligo_designer_toolsuite.utils import check_if_list, flatten_property_list
 
 ############################################
 # Property Calculation Functions
@@ -43,7 +44,7 @@ def calc_gc_content(sequence: str) -> float:
 
 def calc_tm_nn(
     sequence: str,
-    Tm_parameters: dict,
+    Tm_parameters: TmParameters | None,
     Tm_salt_correction_parameters: TmSaltCorrectionParameters | None = None,
     Tm_chem_correction_parameters: TmChemCorrectionParameters | None = None,
 ) -> float:
@@ -52,25 +53,44 @@ def calc_tm_nn(
     :param sequence: The nucleotide sequence.
     :type sequence: str
     :param Tm_parameters: Parameters for the nearest-neighbor Tm calculation.
-        For using Bio.SeqUtils.MeltingTemp default parameters set to ``{}``. For more information on parameters,
+        For using Bio.SeqUtils.MeltingTemp default parameters set TmParameters.mode to ``"biopython_defaults"``. For more information on parameters,
         see: https://biopython.org/docs/1.75/api/Bio.SeqUtils.MeltingTemp.html#Bio.SeqUtils.MeltingTemp.Tm_NN
     :type Tm_parameters: dict
     :param Tm_salt_correction_parameters: Optional parameters for salt correction.
-        For using Bio.SeqUtils.MeltingTemp default parameters set to ``{}``. For more information on parameters,
+        For using Bio.SeqUtils.MeltingTemp default parameters set TmSaltCorrectionParameters.mode to ``"biopython_defaults"``. For more information on parameters,
         see: https://biopython.org/docs/1.75/api/Bio.SeqUtils.MeltingTemp.html#Bio.SeqUtils.MeltingTemp.salt_correction
     :type Tm_salt_correction_parameters: TmSaltCorrectionParameters | None, optional
     :param Tm_chem_correction_parameters: Optional parameters for chemical correction.
-        For using Bio.SeqUtils.MeltingTemp default parameters set to ``{}``. For more information on parameters,
+        For using Bio.SeqUtils.MeltingTemp default parameters set TmChemCorrectionParameters.mode to ``"biopython_defaults"``. For more information on parameters,
         see: https://biopython.org/docs/1.75/api/Bio.SeqUtils.MeltingTemp.html#Bio.SeqUtils.MeltingTemp.chem_correction
     :type Tm_chem_correction_parameters: TmChemCorrectionParameters | None, optional
     :return: The calculated melting temperature (Tm) in degrees Celsius, rounded to two decimal places.
     :rtype: float
     """
-    TmNN: float = MeltingTemp.Tm_NN(sequence, **Tm_parameters)
-    if Tm_salt_correction_parameters is not None:
-        TmNN += MeltingTemp.salt_correction(**Tm_salt_correction_parameters.model_dump(), seq=sequence)
-    if Tm_chem_correction_parameters is not None:
-        TmNN = MeltingTemp.chem_correction(TmNN, **Tm_chem_correction_parameters.model_dump())
+    if Tm_parameters is None:
+        Tm_parameters = TmParameters(mode="biopython_defaults")
+    if Tm_salt_correction_parameters is None:
+        Tm_salt_correction_parameters = TmSaltCorrectionParameters(mode="disabled")
+    if Tm_chem_correction_parameters is None:
+        Tm_chem_correction_parameters = TmChemCorrectionParameters(mode="disabled")
+
+    if Tm_parameters.mode == "biopython_defaults":
+        tm_params: dict = {}
+    else:
+        tm_params = Tm_parameters.parameters.model_dump(exclude_none=True)
+        table_keys = ["nn_table", "tmm_table", "imm_table", "de_table"]
+        for key in table_keys:
+            if key in tm_params.keys():
+                tm_params[key] = getattr(MeltingTemp, tm_params[key])
+    TmNN: float = MeltingTemp.Tm_NN(sequence, **tm_params)
+    if Tm_salt_correction_parameters.mode != "disabled":
+        TmNN += MeltingTemp.salt_correction(
+            **Tm_salt_correction_parameters.model_dump(exclude_none=True), seq=sequence
+        )
+    if Tm_chem_correction_parameters.mode != "disabled":
+        TmNN = MeltingTemp.chem_correction(
+            TmNN, **Tm_chem_correction_parameters.model_dump(exclude_none=True)
+        )
     TmNN = round(TmNN, 2)
     return TmNN
 
@@ -283,7 +303,7 @@ def calc_padlock_arms(
     arm_Tm_dif_max: float,
     arm_Tm_min: float,
     arm_Tm_max: float,
-    Tm_parameters: dict,
+    Tm_parameters: TmParameters,
     Tm_salt_correction_parameters: TmSaltCorrectionParameters | None = None,
     Tm_chem_correction_parameters: TmChemCorrectionParameters | None = None,
 ) -> tuple[float | None, float | None, int | None]:
@@ -305,7 +325,7 @@ def calc_padlock_arms(
     :param arm_Tm_max: The maximum allowable Tm for each arm.
     :type arm_Tm_max: float
     :param Tm_parameters: Parameters for the nearest-neighbor Tm calculation.
-    :type Tm_parameters: dict
+    :type Tm_parameters: TmParameters
     :param Tm_salt_correction_parameters: Optional parameters for salt correction.
     :type Tm_salt_correction_parameters: TmSaltCorrectionParameters | None, optional
     :param Tm_chem_correction_parameters: Optional parameters for chemical correction.

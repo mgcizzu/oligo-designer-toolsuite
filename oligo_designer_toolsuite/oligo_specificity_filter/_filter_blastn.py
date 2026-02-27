@@ -20,7 +20,7 @@ from oligo_designer_toolsuite.oligo_property_calculator import (
     SeedregionSiteProperty,
 )
 from oligo_designer_toolsuite.oligo_specificity_filter import AlignmentSpecificityFilter
-from oligo_designer_toolsuite.pipelines._config_models import BlastnHitParameters, BlastnSearchParameters
+from oligo_designer_toolsuite.validation.models._general import BlastnHitParameters, BlastnSearchParameters
 
 from ..utils._sequence_processor import get_sequence_from_annotation
 
@@ -71,7 +71,8 @@ class BlastNFilter(AlignmentSpecificityFilter):
         self,
         remove_hits: bool = True,
         search_parameters: BlastnSearchParameters | None = None,
-        hit_parameters: BlastnHitParameters | None = None,
+        *,
+        hit_parameters: BlastnHitParameters,
         names_search_output: list[str] | None = None,
         filter_name: str = "blast_filter",
         dir_output: str = "output",
@@ -81,11 +82,11 @@ class BlastNFilter(AlignmentSpecificityFilter):
 
         # Safe defaults: create a fresh object per instance
         # mypy has problems with pydantic models where the default values are assigned
-        # in Annotated[..., Field(...)]
+        # in Annotated[..., Field(...)]  # type: ignore[call-arg]
         self.search_parameters = (
-            search_parameters if search_parameters is not None else BlastnSearchParameters()  # type: ignore[call-arg]
+            search_parameters if search_parameters is not None else BlastnSearchParameters()
         )
-        self.hit_parameters = hit_parameters if hit_parameters is not None else BlastnHitParameters()  # type: ignore[call-arg]
+        self.hit_parameters = hit_parameters
         self.names_search_output = (
             list(names_search_output)
             if names_search_output is not None
@@ -520,19 +521,20 @@ class BlastNSeedregionFilterBase(BlastNFilter):
         self,
         remove_hits: bool = True,
         search_parameters: BlastnSearchParameters | None = None,
-        hit_parameters: BlastnHitParameters | None = None,
+        *,
+        hit_parameters: BlastnHitParameters,
         names_search_output: list[str] | None = None,
         filter_name: str = "blast_filter",
         dir_output: str = "output",
     ) -> None:
         """Constructor for the BlastNSeedregionFilterBase class."""
         super().__init__(
-            remove_hits,
-            search_parameters,
-            hit_parameters,
-            names_search_output,
-            filter_name,
-            dir_output,
+            remove_hits=remove_hits,
+            search_parameters=search_parameters,
+            hit_parameters=hit_parameters,
+            names_search_output=names_search_output,
+            filter_name=filter_name,
+            dir_output=dir_output,
         )
 
     @abstractmethod
@@ -658,19 +660,20 @@ class BlastNSeedregionFilter(BlastNSeedregionFilterBase):
         seedregion_end: int | float,
         remove_hits: bool = True,
         search_parameters: BlastnSearchParameters | None = None,
-        hit_parameters: BlastnHitParameters | None = None,
+        *,
+        hit_parameters: BlastnHitParameters,
         names_search_output: list | None = None,
         filter_name: str = "blast_filter",
         dir_output: str = "output",
     ) -> None:
         """Constructor for the BlastNSeedregionFilter class."""
         super().__init__(
-            remove_hits,
-            search_parameters,
-            hit_parameters,
-            names_search_output,
-            filter_name,
-            dir_output,
+            remove_hits=remove_hits,
+            search_parameters=search_parameters,
+            hit_parameters=hit_parameters,
+            names_search_output=names_search_output,
+            filter_name=filter_name,
+            dir_output=dir_output,
         )
 
         self.seedregion_start = seedregion_start
@@ -765,19 +768,20 @@ class BlastNSeedregionSiteFilter(BlastNSeedregionFilterBase):
         seedregion_site_name: str,
         remove_hits: bool = True,
         search_parameters: BlastnSearchParameters | None = None,
-        hit_parameters: BlastnHitParameters | None = None,
+        *,
+        hit_parameters: BlastnHitParameters,
         names_search_output: list[str] | None = None,
         filter_name: str = "blast_filter",
         dir_output: str = "output",
     ) -> None:
         """Constructor for the BlastNSeedregionSiteFilter class."""
         super().__init__(
-            remove_hits,
-            search_parameters,
-            hit_parameters,
-            names_search_output,
-            filter_name,
-            dir_output,
+            remove_hits=remove_hits,
+            search_parameters=search_parameters,
+            hit_parameters=hit_parameters,
+            names_search_output=names_search_output,
+            filter_name=filter_name,
+            dir_output=dir_output,
         )
         self.seedregion_size = seedregion_size
         self.seedregion_site_name = seedregion_site_name

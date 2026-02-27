@@ -10,9 +10,17 @@ from oligo_designer_toolsuite.oligo_property_calculator import (
     calc_tm_nn,
 )
 from oligo_designer_toolsuite.oligo_property_filter import BasePropertyFilter
-from oligo_designer_toolsuite.pipelines._config_models import (
+from oligo_designer_toolsuite.validation._types import (
+    GCContentMaxT,
+    GCContentMinT,
+    TmMaxT,
+    TmMinT,
+    TSecondaryStructureT,
+)
+from oligo_designer_toolsuite.validation.models._general import (
     HomopolymerThresholds,
     TmChemCorrectionParameters,
+    TmParameters,
     TmSaltCorrectionParameters,
 )
 
@@ -256,12 +264,12 @@ class GCContentFilter(BasePropertyFilter):
     as GC content can influence these factors.
 
     :param GC_content_min: The minimum acceptable GC content percentage for a sequence.
-    :type GC_content_min: float
+    :type GC_content_min: GCContentMinT
     :param GC_content_max: The maximum acceptable GC content percentage for a sequence.
-    :type GC_content_max: float
+    :type GC_content_max: GCContentMaxT
     """
 
-    def __init__(self, GC_content_min: float, GC_content_max: float) -> None:
+    def __init__(self, GC_content_min: GCContentMinT, GC_content_max: GCContentMaxT) -> None:
         """Constructor for the GCContentFilter class."""
         super().__init__()
         if GC_content_max <= GC_content_min:
@@ -334,13 +342,13 @@ class MeltingTemperatureNNFilter(BasePropertyFilter):
     This filter is particularly useful in oligonucleotide design where precise control over Tm is critical for effective hybridization.
 
     :param Tm_min: The minimum acceptable melting temperature.
-    :type Tm_min: float
+    :type Tm_min: TmMinT
     :param Tm_max: The maximum acceptable melting temperature.
-    :type Tm_max: float
+    :type Tm_max: TmMaxT
     :param Tm_parameters: Parameters for calculating the melting temperature.
         For using Bio.SeqUtils.MeltingTemp default parameters set to ``{}``. For more information on parameters,
         see: https://biopython.org/docs/1.75/api/Bio.SeqUtils.MeltingTemp.html#Bio.SeqUtils.MeltingTemp.Tm_NN
-    :type Tm_parameters: dict
+    :type Tm_parameters: TmParameters
     :param Tm_salt_correction_parameters: Parameters for salt correction in Tm calculation (optional).
         For using Bio.SeqUtils.MeltingTemp default parameters set to ``{}``. For more information on parameters,
         see: https://biopython.org/docs/1.75/api/Bio.SeqUtils.MeltingTemp.html#Bio.SeqUtils.MeltingTemp.salt_correction
@@ -353,9 +361,9 @@ class MeltingTemperatureNNFilter(BasePropertyFilter):
 
     def __init__(
         self,
-        Tm_min: float,
-        Tm_max: float,
-        Tm_parameters: dict,
+        Tm_min: TmMinT,
+        Tm_max: TmMaxT,
+        Tm_parameters: TmParameters,
         Tm_salt_correction_parameters: TmSaltCorrectionParameters | None = None,
         Tm_chem_correction_parameters: TmChemCorrectionParameters | None = None,
     ) -> None:
@@ -469,12 +477,12 @@ class SecondaryStructureFilter(BasePropertyFilter):
     considered stable and are accepted by this filter.
 
     :param T: The temperature at which the secondary structure is evaluated, in degrees Celsius.
-    :type T: float
+    :type T: TSecondaryStructureT
     :param thr_DG: The threshold for the free energy (ΔG) of the secondary structure. Sequences with a ΔG value above this threshold are accepted.
     :type thr_DG: float
     """
 
-    def __init__(self, T: float, thr_DG: float) -> None:
+    def __init__(self, T: TSecondaryStructureT, thr_DG: float) -> None:
         """Constructor for the SecondaryStructureFilter class."""
         super().__init__()
         self.T = T

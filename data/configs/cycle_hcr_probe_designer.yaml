@@ -17,7 +17,7 @@ target_probe:
     - data/genomic_regions/exon_exon_junction_annotation_source-NCBI_species-Homo_sapiens_annotation_release-110_genome_assemly-GRCh38.fna
   files_fasta_reference_database: # fasta file with sequences used as reference for the specificity filters. Hint: use the genomic_region_generator pipeline to create fasta files of genomic regions of interest
     - data/genomic_regions/gene_annotation_source-NCBI_species-Homo_sapiens_annotation_release-110_genome_assemly-GRCh38.fna
-  isoform_consensus: 0 # min isoform consesnsus for probes, i.e. how many transcripts of the total number of transcripts of a gene are covered by the probe, given in %
+  isoform_consensus: 0 # min isoform consensus for probes, i.e. how many transcripts of the total number of transcripts of a gene are covered by the probe, given in %
   L_probe_sequence_length: 45 # L + spacer + R sequence should equal the total probe length, e.g. 45 + 2 + 45 = 92
   gap_sequence_length: 2 # gap between L and R probe sequences
   R_probe_sequence_length: 45 # L + spacer + R sequence should equal the total probe length, e.g. 45 + 2 + 45 = 92
@@ -57,20 +57,24 @@ developer_param:
   # parameters for melting temperature -> for more information on parameters, see: https://biopython.org/docs/1.75/api/Bio.SeqUtils.MeltingTemp.html#Bio.SeqUtils.MeltingTemp.Tm_NN
   target_probe:
     Tm_parameters:
-      nn_table: DNA_NN3 # default
-      tmm_table: DNA_TMM1 # default
-      imm_table: DNA_IMM1 # default
-      de_table: DNA_DE1 # default
-      dnac1: 25 #[nM]
-      dnac2: 25 #[nM]
-      saltcorr: 0 #
-      Na: 50 #[mM]
-      K: 0 #[mM] default
-      Tris: 0 #[mM] default
-      Mg: 0 #[mM] default
-      dNTPs: 0 #[mM] default
-    Tm_chem_correction_parameters: null # if chem correction desired, please add parameters below
-    Tm_salt_correction_parameters: null # if salt correction desired, please add parameters below
+      mode: custom
+      parameters:
+        nn_table: DNA_NN3 # default
+        tmm_table: DNA_TMM1 # default
+        imm_table: DNA_IMM1 # default
+        de_table: DNA_DE1 # default
+        dnac1: 25 #[nM]
+        dnac2: 25 #[nM]
+        saltcorr: 0 #
+        Na: 50 #[mM]
+        K: 0 #[mM] default
+        Tris: 0 #[mM] default
+        Mg: 0 #[mM] default
+        dNTPs: 0 #[mM] default
+    Tm_chem_correction_parameters:
+      mode: disabled
+    Tm_salt_correction_parameters:
+      mode: disabled
     secondary_structures_threshold_deltaG: 0 # threshold for the secondary structure free energy -> oligo rejected if it presents a structure with a negative free energy at the defined temperature
     # Specificity filter with BlastN
     specificity_blastn_search_parameters:

@@ -5,11 +5,12 @@
 from oligo_designer_toolsuite._exceptions import ConfigurationError
 from oligo_designer_toolsuite.database import OligoDatabase
 from oligo_designer_toolsuite.oligo_property_calculator import BaseProperty
-from oligo_designer_toolsuite.pipelines._config_models import (
+from oligo_designer_toolsuite.utils import check_if_int, check_if_string
+from oligo_designer_toolsuite.validation.models._general import (
     TmChemCorrectionParameters,
+    TmParameters,
     TmSaltCorrectionParameters,
 )
-from oligo_designer_toolsuite.utils import check_if_int, check_if_string
 
 from ._property_functions import (
     calc_detect_oligo,
@@ -113,22 +114,22 @@ class TmNNProperty(BaseProperty):
     A property class for calculating the melting temperature (Tm) of oligonucleotide sequences using nearest-neighbor thermodynamics.
 
     :param Tm_parameters: Parameters for the nearest-neighbor Tm calculation.
-        For using Bio.SeqUtils.MeltingTemp default parameters set to ``{}``. For more information on parameters,
+        For using Bio.SeqUtils.MeltingTemp default parameters set TmParameters.mode to ``"biopython_defaults"``. For more information on parameters,
         see: https://biopython.org/docs/1.75/api/Bio.SeqUtils.MeltingTemp.html#Bio.SeqUtils.MeltingTemp.Tm_NN
     :type Tm_parameters: dict
     :param Tm_salt_correction_parameters: Optional parameters for salt correction.
-        For using Bio.SeqUtils.MeltingTemp default parameters set to ``{}``. For more information on parameters,
+        For using Bio.SeqUtils.MeltingTemp default parameters set TmSaltCorrectionParameters.mode to ``"biopython_defaults"``. For more information on parameters,
         see: https://biopython.org/docs/1.75/api/Bio.SeqUtils.MeltingTemp.html#Bio.SeqUtils.MeltingTemp.salt_correction
     :type Tm_salt_correction_parameters: TmSaltCorrectionParameters, optional
     :param Tm_chem_correction_parameters: Optional parameters for chemical correction.
-        For using Bio.SeqUtils.MeltingTemp default parameters set to ``{}``. For more information on parameters,
+        For using Bio.SeqUtils.MeltingTemp default parameters set TmChemCorrectionParameters.mode to ``"biopython_defaults"``. For more information on parameters,
         see: https://biopython.org/docs/1.75/api/Bio.SeqUtils.MeltingTemp.html#Bio.SeqUtils.MeltingTemp.chem_correction
     :type Tm_chem_correction_parameters: TmChemCorrectionParameters, optional
     """
 
     def __init__(
         self,
-        Tm_parameters: dict,
+        Tm_parameters: TmParameters,
         Tm_salt_correction_parameters: TmSaltCorrectionParameters | None = None,
         Tm_chem_correction_parameters: TmChemCorrectionParameters | None = None,
     ) -> None:
@@ -561,7 +562,7 @@ class PadlockArmsProperty(BaseProperty):
     :param arm_Tm_max: The maximum allowable Tm for each arm.
     :type arm_Tm_max: float
     :param Tm_parameters: Parameters for the nearest-neighbor Tm calculation.
-    :type Tm_parameters: dict
+    :type Tm_parameters: TmParameters
     :param Tm_salt_correction_parameters: Optional parameters for salt correction.
     :type Tm_salt_correction_parameters: TmSaltCorrectionParameters | None, optional
     :param Tm_chem_correction_parameters: Optional parameters for chemical correction.
@@ -574,7 +575,7 @@ class PadlockArmsProperty(BaseProperty):
         arm_Tm_dif_max: float,
         arm_Tm_min: float,
         arm_Tm_max: float,
-        Tm_parameters: dict,
+        Tm_parameters: TmParameters,
         Tm_salt_correction_parameters: TmSaltCorrectionParameters | None = None,
         Tm_chem_correction_parameters: TmChemCorrectionParameters | None = None,
     ) -> None:

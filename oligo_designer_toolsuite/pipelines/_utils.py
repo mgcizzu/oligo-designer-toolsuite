@@ -11,9 +11,11 @@ from datetime import datetime
 from typing import Any, Callable, TypeVar, cast
 
 import yaml
+from Bio.SeqUtils import MeltingTemp as mt
 from pydantic import BaseModel
 
 from oligo_designer_toolsuite.database import OligoDatabase
+from oligo_designer_toolsuite.pipelines._config_models import TmParameters
 
 F = TypeVar("F", bound=Callable[..., Any])
 
@@ -286,3 +288,21 @@ def write_config_to_yaml(config: BaseModel, dir_output: str) -> None:
     )
     with open(file_location, "w") as f:
         yaml.dump(config.model_dump(), f, sort_keys=False)
+
+
+def get_tm_parameters(tm_parameters: TmParameters) -> dict:
+    """
+    Retrieve the Tm parameter tables from the MeltingTemp module of Bio.SeqUtils
+    based on the specified table names.
+
+    :param tm_parameters: Validated pydantic model of the Tm parameters.
+    :type tm_parameters: TmParameters
+    :rtype: dict
+    """
+    parameters = tm_parameters.model_dump()
+    parameters["nn_table"] = getattr(mt, parameters["nn_table"])
+    parameters["tmm_table"] = getattr(mt, parameters["tmm_table"])
+    parameters["imm_table"] = getattr(mt, parameters["imm_table"])
+    parameters["de_table"] = getattr(mt, parameters["de_table"])
+
+    return parameters

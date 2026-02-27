@@ -10,6 +10,7 @@ from typing import Any, get_args
 from oligo_designer_toolsuite._constants import _TYPES_REF
 from oligo_designer_toolsuite._exceptions import DatabaseError
 from oligo_designer_toolsuite.utils import FastaParser, VCFParser, check_if_list
+from oligo_designer_toolsuite.validation._types import FastaFileListT
 
 ############################################
 # Reference Database Class
@@ -45,7 +46,7 @@ class ReferenceDatabase:
 
     def load_database_from_file(
         self,
-        files: str | list[str],
+        files: str | FastaFileListT,
         file_type: _TYPES_REF,
         database_overwrite: bool,
     ) -> None:
@@ -68,7 +69,7 @@ class ReferenceDatabase:
         AGTTGACAGACCCCAGATTAAAGTGTGTCGCGCAACAC
 
         :param files: Path(s) to the file(s) containing the database sequences.
-        :type files: str | list[str]
+        :type files: str | FastaFileListT
         :param file_type: Type of the reference sequences (must be a valid type).
         :type file_type: _TYPES_REF["fasta", "vcf"]
         :param database_overwrite: If True, the existing database content will be cleared before loading the new sequences.

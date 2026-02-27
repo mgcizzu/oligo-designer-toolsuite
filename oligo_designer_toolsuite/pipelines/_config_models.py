@@ -175,10 +175,19 @@ class HomopolymerThresholds(BaseModel):
     G: Annotated[PositiveInt | None, Field(default=None)]
 
 
-FilesFastaReferenceDatabaseT = Annotated[
-    list[str],
+FastaFileListT = Annotated[list[str], Field(min_length=1)]
+
+FilesFastaDatabaseT = Annotated[
+    FastaFileListT,
     Field(
-        description="(list of) fasta file(s) with sequences used as reference for the specificity filters. Hint: use the genomic_region_generator pipeline to create fasta files of genomic regions of interest"
+        description="List of paths to FASTA file(s) containing sequences from which probes will be generated. These files should contain genomic regions of interest (e.g., exons, exon-exon junctions). Hint: use the genomic_region_generator pipeline to create FASTA files of genomic regions of interest."
+    ),
+]
+
+FilesFastaReferenceDatabaseT = Annotated[
+    FastaFileListT,
+    Field(
+        description="List of paths to FASTA file(s) containing sequences used as reference for the specificity filters. Hint: use the genomic_region_generator pipeline to create FASTA files of genomic regions of interest."
     ),
 ]
 
@@ -247,7 +256,7 @@ WeightT = Annotated[float, Field(description="weight in the efficiency score  of
 
 
 class TargetProbeCycleHCR(TargetProbeBase):
-    files_fasta_database: list[str] = [
+    files_fasta_database: FilesFastaDatabaseT = [
         "data/genomic_regions/exon_annotation_source-NCBI_species-Homo_sapiens_annotation_release-110_genome_assemly-GRCh38.fna",
         "data/genomic_regions/exon_exon_junction_annotation_source-NCBI_species-Homo_sapiens_annotation_release-110_genome_assemly-GRCh38.fna",
     ]
@@ -382,7 +391,7 @@ class TmParameters(BaseModel):
 
     # defaults are from Bio.SeqUtils.MeltingTemp.Tm_NN
     nn_table: Annotated[
-        Literal["DNA_NN1", "DNA_NN4", "DNA_NN3", "DNA_NN4"], Field(default="DNA_NN3", description="default")
+        Literal["DNA_NN1", "DNA_NN2", "DNA_NN3", "DNA_NN4"], Field(default="DNA_NN3", description="default")
     ]
     tmm_table: Annotated[Literal["DNA_TMM1"], Field(default="DNA_TMM1", description="default")]
     imm_table: Annotated[Literal["DNA_IMM1"], Field(default="DNA_IMM1", description="default")]
@@ -938,7 +947,7 @@ SecondaryStructuresThresholdDeltaGT = Annotated[
 class TargetProbeDev(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
-    Tm_parameters: TmParameters
+    Tm_parameters: TmParameters | None
     Tm_chem_correction_parameters: Annotated[
         TmChemCorrectionParameters | None,
         Field(default=None, description="if chem correction desired, please add parameters below"),
@@ -955,7 +964,9 @@ class TargetProbeDev(BaseModel):
 
 
 class TargetProbeDevCycleHCR(TargetProbeDev):
-    Tm_parameters: Annotated[TmParameters, Field(default_factory=lambda: TmParameters(saltcorr=0))]
+    Tm_parameters: Annotated[
+        TmParameters | None, Field(default_factory=lambda: TmParameters(saltcorr=0), description="")
+    ]
 
     specificity_blastn_search_parameters: Annotated[
         BlastnSearchParameters,

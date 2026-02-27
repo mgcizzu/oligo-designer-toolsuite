@@ -11,6 +11,7 @@ from Bio.SeqRecord import SeqRecord
 from joblib import Parallel, delayed
 
 from oligo_designer_toolsuite.utils import FastaParser
+from oligo_designer_toolsuite.validation._types import FastaFileListT
 
 from .._constants import SEPARATOR_FASTA_HEADER_FIELDS, SEPARATOR_FASTA_HEADER_FIELDS_LIST
 from ..utils._checkers_and_helpers import check_if_list, generate_unique_filename
@@ -115,7 +116,7 @@ class OligoSequenceGenerator:
 
     def create_sequences_sliding_window(
         self,
-        files_fasta_in: str | list[str],
+        files_fasta_in: str | FastaFileListT,
         length_interval_sequences: tuple,
         split_region: int = 1,
         stride: int = 1,
@@ -129,7 +130,7 @@ class OligoSequenceGenerator:
         It allows for filtering based on region IDs and handles cases where sequences span split regions (e.g. exon junctions).
 
         :param files_fasta_in: List of input FASTA files to generate sequences from.
-        :type files_fasta_in: str | list[str]
+        :type files_fasta_in: str | FastaFileListT
         :param length_interval_sequences: A tuple specifying the range (min, max) of sequence lengths to generate.
         :type length_interval_sequences: tuple
         :param split_region: The number of bases required on each side of a split sequence (e.g. exon junctions) to include it. Default is 1.

@@ -5,8 +5,9 @@
 from oligo_designer_toolsuite.database import OligoDatabase
 from oligo_designer_toolsuite.oligo_efficiency_filter import BaseScorer
 from oligo_designer_toolsuite.oligo_property_calculator import calc_gc_content, calc_tm_nn
-from oligo_designer_toolsuite.pipelines._config_models import (
+from oligo_designer_toolsuite.validation.models._general import (
     TmChemCorrectionParameters,
+    TmParameters,
     TmSaltCorrectionParameters,
 )
 
@@ -105,7 +106,7 @@ class DeviationFromOptimalTmScorer(SequencePropertyScorer):
     :param Tm_opt: Optimal melting temperature for scoring.
     :type Tm_opt: float
     :param Tm_parameters: Parameters for Tm calculation using the nearest-neighbor model.
-    :type Tm_parameters: dict
+    :type Tm_parameters: TmParameters
     :param score_weight: Weight applied to the Tm deviation score.
     :type score_weight: float
     :param Tm_salt_correction_parameters: Parameters for salt correction.
@@ -117,7 +118,7 @@ class DeviationFromOptimalTmScorer(SequencePropertyScorer):
     def __init__(
         self,
         Tm_opt: float,
-        Tm_parameters: dict,
+        Tm_parameters: TmParameters,
         score_weight: float,
         Tm_salt_correction_parameters: TmSaltCorrectionParameters | None = None,
         Tm_chem_correction_parameters: TmChemCorrectionParameters | None = None,
@@ -251,7 +252,7 @@ class NormalizedDeviationFromOptimalTmScorer(SequencePropertyScorer):
     :param Tm_max: Maximum acceptable Tm.
     :type Tm_max: float
     :param Tm_parameters: Parameters for Tm calculation using the nearest-neighbor model.
-    :type Tm_parameters: dict
+    :type Tm_parameters: TmParameters
     :param score_weight: Weight applied to the normalized deviation score.
     :type score_weight: float
     :param Tm_salt_correction_parameters: Salt correction parameters.
@@ -266,7 +267,7 @@ class NormalizedDeviationFromOptimalTmScorer(SequencePropertyScorer):
         Tm_min: float,
         Tm_opt: float,
         Tm_max: float,
-        Tm_parameters: dict,
+        Tm_parameters: TmParameters,
         score_weight: float,
         Tm_salt_correction_parameters: TmSaltCorrectionParameters | None = None,
         Tm_chem_correction_parameters: TmChemCorrectionParameters | None = None,
