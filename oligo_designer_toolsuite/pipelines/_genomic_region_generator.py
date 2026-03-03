@@ -18,7 +18,6 @@ from oligo_designer_toolsuite.pipelines._config_models import (
     SourceParamsNcbi,
 )
 from oligo_designer_toolsuite.pipelines._config_pipelines import (
-    GenomicRegionBaseConfig,
     GenomicRegionGeneratorCustomConfig,
     GenomicRegionGeneratorEnsemblConfig,
     GenomicRegionGeneratorNcbiConfig,
@@ -51,14 +50,11 @@ class GenomicRegionGenerator:
     :type config: GenomicRegionBaseConfig
     """
 
-    def __init__(self, dir_output: str, config: GenomicRegionBaseConfig) -> None:
+    def __init__(self, dir_output: str) -> None:
         """Constructor for the GenomicRegionGenerator class."""
         # create the output folder
         self.dir_output = os.path.abspath(dir_output)
         Path(dir_output).mkdir(parents=True, exist_ok=True)
-
-        # write used config
-        write_config_to_yaml(config=config, dir_output=dir_output)
 
         # setup logger
         setup_logging(
@@ -215,7 +211,10 @@ def main() -> None:
         logging.error("Invalid configuration file:\n%s", e)
         raise
 
-    pipeline = GenomicRegionGenerator(dir_output=config.dir_output, config=config)
+    # write used config
+    write_config_to_yaml(config=config, dir_output=config.dir_output)
+
+    pipeline = GenomicRegionGenerator(dir_output=config.dir_output)
 
     # generate the genomic regions
     # as the pydantic model is chosen depending on the `source` field,
