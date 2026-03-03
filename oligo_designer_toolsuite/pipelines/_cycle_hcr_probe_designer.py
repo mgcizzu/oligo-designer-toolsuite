@@ -43,12 +43,7 @@ from oligo_designer_toolsuite.oligo_property_filter import (
     PropertyFilter,
     SecondaryStructureFilter,
 )
-from oligo_designer_toolsuite.oligo_selection import (
-    GraphBasedSelectionPolicy,
-    GreedySelectionPolicy,
-    OligoSelectionPolicy,
-    OligosetGeneratorIndependentSet,
-)
+from oligo_designer_toolsuite.oligo_selection import IndependentSetsOligoSelection
 from oligo_designer_toolsuite.oligo_specificity_filter import (
     AlignmentSpecificityFilter,
     BlastNFilter,
@@ -311,10 +306,11 @@ class CycleHCRProbeDesigner:
             set_size_min=config.set_size_min,
             distance_between_oligos=config.distance_between_target_probes,
             n_sets=config.n_sets,
-            max_graph_size=oligo_set_selection.max_graph_size,
-            n_attempts=oligo_set_selection.n_attempts,
-            heuristic=oligo_set_selection.heuristic,
-            heuristic_n_attempts=oligo_set_selection.heuristic_n_attempts,
+            n_attempts_graph=oligo_set_selection.n_attempts_graph,
+            n_attempts_clique_enum=oligo_set_selection.n_attempts_clique_enum,
+            diversification_fraction=oligo_set_selection.diversification_fraction,
+            jaccard_opt=oligo_set_selection.jaccard_opt,
+            jaccard_step=oligo_set_selection.jaccard_step,
         )
 
         # Caculate all required properties for output
@@ -707,7 +703,6 @@ class CycleHCRProbeDesigner:
         probe_database: OligoDatabase,
         codebook: pd.DataFrame,
         readout_probe_table: pd.DataFrame,
-        top_n_sets: int = 3,
         output_properties: list[str] | None = None,
     ) -> None:
         """
@@ -734,10 +729,6 @@ class CycleHCRProbeDesigner:
             associated bit identifiers, channels, and L/R designations. This table maps barcode
             bits to specific readout probe sequences.
         :type readout_probe_table: pd.DataFrame
-        :param top_n_sets: Number of top probe sets (ranked by score) to include in the output files.
-            Only the best-performing sets up to this number will be written to the YAML and table
-            output files. Defaults to 3.
-        :type top_n_sets: int
         :param output_properties: List of property names to include in the output files. If None, a default set of
             properties will be included. Available properties include: 'source', 'species', 'gene_id', 'chromosome',
             'start', 'end', 'strand', 'sequence_target', 'sequence_hybridization_probe_L', 'sequence_hybridization_probe_R',
@@ -802,7 +793,6 @@ class CycleHCRProbeDesigner:
 
         probe_database.write_oligosets_to_yaml(
             properties=output_properties,
-            top_n_sets=top_n_sets,
             ascending=True,
             filename="cyclehcr_probes",
         )
@@ -814,14 +804,12 @@ class CycleHCRProbeDesigner:
                 "sequence_readout_probe_L",
                 "sequence_readout_probe_R",
             ],
-            top_n_sets=top_n_sets,
             ascending=True,
             filename="cyclehcr_probes_order",
         )
 
         probe_database.write_oligosets_to_table(
             properties=output_properties,
-            top_n_sets=top_n_sets,
             ascending=True,
             filename="cyclehcr_probes",
         )
@@ -1329,25 +1317,20 @@ class TargetProbeDesigner:
         set_size_min: int,
         distance_between_oligos: int,
         n_sets: int,
-        max_graph_size: int,
-        n_attempts: int,
-        heuristic: bool,
-        heuristic_n_attempts: int,
+        n_attempts_graph: int,
+        n_attempts_clique_enum: int,
+        diversification_fraction: float,
+        jaccard_opt: float,
+        jaccard_step: float,
     ) -> OligoDatabase:
         """
-        Create optimal oligo sets based on weighted scoring criteria, distance constraints, and selection policies.
+        Create optimal oligo sets based on weighted scoring criteria, distance constraints, and set selection.
 
         This method selects optimal sets of target probes for each region by:
         1. Scoring each oligo based on weighted criteria (isoform consensus and melting temperature)
         2. Building a graph where edges represent non-overlapping oligos (based on distance constraints)
         3. Selecting sets of oligos that maximize the average score while respecting distance constraints
-        4. Generating multiple sets per region to provide alternatives
-
-        The selection algorithm is automatically chosen based on the optimal set size:
-        - **Small sets (< 10)**: Graph-based selection without pre-filtering or clique approximation
-        - **Medium sets (10-30)**: Graph-based selection with clique approximation for faster initialization
-        - **Large sets (> 30)**: Greedy selection with pre-filtering to remove oligos that cannot form
-          sets of the minimum size
+        4. Generating multiple diverse sets per region (Jaccard-controlled) to provide alternatives
 
         Regions that do not meet the minimum oligo requirement after set generation are removed from
         the database.
@@ -1391,32 +1374,30 @@ class TargetProbeDesigner:
         :param n_sets: Number of oligo sets to generate per region. Multiple sets provide alternatives
             in case some sets perform poorly in experiments.
         :type n_sets: int
-        :param max_graph_size: Maximum number of oligos to include in the graph-based optimization
-            process. If a region has more oligos than this limit, only the top-scoring oligos (up to
-            this limit) are considered for set generation. This helps manage computational complexity
-            for regions with many candidate probes.
-        :type max_graph_size: int
-        :param n_attempts: Maximum number of attempts to find optimal oligo sets. The algorithm will
-            iterate up to this many times to find the best sets. Higher values may find better sets
-            but take longer to compute.
-        :type n_attempts: int
-        :param heuristic: Whether to use a heuristic approach for faster set selection. When True,
-            the algorithm uses a faster heuristic method that may find good (but not necessarily
-            optimal) sets. When False, it uses a more exhaustive search that may find better sets
-            but takes longer. Only applies to graph-based selection (small and medium sets).
-        :type heuristic: bool
-        :param heuristic_n_attempts: Maximum number of attempts to find the optimal oligo set using
-            the heuristic approach. The heuristic tries different starting positions (up to this limit)
-            and selects the best result. Only applies when `heuristic=True` and graph-based selection
-            is used.
-        :type heuristic_n_attempts: int
+        :param n_attempts_graph: Number of randomized graph attempts. In each attempt, a fraction of nodes is randomly
+            removed from the compatibility graph to create diversity.
+        :type n_attempts_graph: int
+        :param n_attempts_clique_enum: Maximum number of cliques enumerated per graph attempt.
+        :type n_attempts_clique_enum: int
+        :param diversification_fraction: Fraction of oligos to remove at random per attempt to create
+            diversity between sets.
+        :type diversification_fraction: float
+        :param jaccard_opt: Optimal maximum Jaccard overlap between selected sets. Sets with overlap
+            above this value are discouraged when selecting multiple sets per region.
+        :type jaccard_opt: float
+        :param jaccard_step: Step size for relaxing Jaccard overlap when not enough sets are found.
+        :type jaccard_step: float
         :return: An updated `OligoDatabase` object containing the generated oligo sets. Each region
             will have up to `n_sets` sets stored, with each set containing between `set_size_min` and
             `set_size_opt` probes. Regions with insufficient oligos are removed.
         :rtype: OligoDatabase
         """
         # Define all scorers
-        isoform_consensus_scorer = IsoformConsensusScorer(normalize=True, score_weight=isoform_weight)
+        isoform_consensus_scorer = IsoformConsensusScorer(
+            score_weight=isoform_weight,
+            property_name_transcript_id="transcript_id",
+            property_name_number_total_transcripts="number_total_transcripts",
+        )
         Tm_scorer = DeviationFromOptimalTmScorer(
             Tm_opt=Tm_max,
             Tm_parameters=Tm_parameters,
@@ -1424,82 +1405,26 @@ class TargetProbeDesigner:
             Tm_chem_correction_parameters=Tm_chem_correction_parameters,
             score_weight=Tm_weight,
         )
-
         oligos_scoring = OligoScoring(scorers=[isoform_consensus_scorer, Tm_scorer])
-
         # the higher the score the better, because we want to have on average oligos with high melting temperatures
         set_scoring = AverageSetScoring(ascending=False)
 
-        # We change the processing dependent on the required number of probes in the probe sets
-        # For small sets, we don't pre-filter and find the initial set by iterating
-        # through all possible generated sets, which is faster than the max clique approximation.
-        selection_policy: OligoSelectionPolicy
-        if set_size_opt < 10:
-            pre_filter = False
-            clique_init_approximation = False
-            selection_policy = GraphBasedSelectionPolicy(
-                set_scoring=set_scoring,
-                pre_filter=pre_filter,
-                n_attempts=n_attempts,
-                heuristic=heuristic,
-                heuristic_n_attempts=heuristic_n_attempts,
-                clique_init_approximation=clique_init_approximation,
-            )
-            base_log_parameters(
-                {
-                    "pre_filter": pre_filter,
-                    "clique_init_approximation": clique_init_approximation,
-                    "selection_policy": "Graph-Based",
-                }
-            )
-
-        # For medium sized sets, we don't pre-filter but we apply the max clique approximation
-        # to find an initial probe set faster.
-        elif 10 < set_size_opt < 30:
-            pre_filter = False
-            clique_init_approximation = True
-            selection_policy = GraphBasedSelectionPolicy(
-                set_scoring=set_scoring,
-                pre_filter=pre_filter,
-                n_attempts=n_attempts,
-                heuristic=heuristic,
-                heuristic_n_attempts=heuristic_n_attempts,
-                clique_init_approximation=clique_init_approximation,
-            )
-            base_log_parameters(
-                {
-                    "pre_filter": pre_filter,
-                    "clique_init_approximation": clique_init_approximation,
-                    "selection_policy": "Graph-Based",
-                }
-            )
-
-        # For large sets, we apply the pre-filter which removes all probes from the
-        # graph that are only part of cliques which are smaller than the minimum set size
-        # and we apply the Greedy Selection Policy istead of the graph-based selection policy.
-        else:
-            pre_filter = True
-            selection_policy = GreedySelectionPolicy(
-                set_scoring=set_scoring,
-                score_criteria=set_scoring.score_1,
-                pre_filter=pre_filter,
-                penalty=0.01,
-                n_attempts=n_attempts,
-            )
-            base_log_parameters({"pre_filter": pre_filter, "selection_policy": "Greedy"})
-
-        probeset_generator = OligosetGeneratorIndependentSet(
-            selection_policy=selection_policy,
+        base_log_parameters({"Set Selection": "Independent Sets"})
+        oligoset_generator = IndependentSetsOligoSelection(
             oligos_scoring=oligos_scoring,
             set_scoring=set_scoring,
-            max_oligos=max_graph_size,
-            distance_between_oligos=distance_between_oligos,
-        )
-        oligo_database = probeset_generator.apply(
-            oligo_database=oligo_database,
-            sequence_type="oligo",
             set_size_opt=set_size_opt,
             set_size_min=set_size_min,
+            distance_between_oligos=distance_between_oligos,
+            n_attempts_graph=n_attempts_graph,
+            n_attempts_clique_enum=n_attempts_clique_enum,
+            diversification_fraction=diversification_fraction,
+            jaccard_opt=jaccard_opt,
+            jaccard_step=jaccard_step,
+        )
+        oligo_database = oligoset_generator.apply(
+            oligo_database=oligo_database,
+            sequence_type="oligo",
             n_sets=n_sets,
             n_jobs=self.n_jobs,
         )
@@ -1854,12 +1779,12 @@ def main() -> None:
         warnings.warn(
             "No gene list file was provided! All genes from fasta file are used to generate the probes. This chioce can use a lot of resources."
         )
-        gene_ids = None
+        region_ids = None
     else:
         with open(config.target_probe.file_regions) as handle:
             lines = handle.readlines()
             # ensure that the list contains unique gene ids
-            gene_ids = list(set([line.rstrip() for line in lines]))
+            region_ids = list(set([line.rstrip() for line in lines]))
 
     ##### initialize probe designer pipeline #####
     pipeline = CycleHCRProbeDesigner(
@@ -1870,7 +1795,7 @@ def main() -> None:
 
     ##### design probes #####
     target_probe_database = pipeline.design_target_probes(
-        region_ids=gene_ids,
+        region_ids=region_ids,
         config=config.target_probe,
         developer_param=config.developer_param.target_probe,
         oligo_set_selection=config.developer_param.oligo_set_selection,
@@ -1905,7 +1830,6 @@ def main() -> None:
         probe_database=final_probe_database,
         codebook=codebook,
         readout_probe_table=readout_probe_table,
-        top_n_sets=config.general.top_n_sets,
     )
 
     logging.info("--------------END PIPELINE--------------")

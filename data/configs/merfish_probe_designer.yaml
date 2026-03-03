@@ -8,7 +8,6 @@ general:
   n_jobs: 4 # number of cores used to run the pipeline and 2*n_jobs +1 of regions that should be stored in cache. If memory consumption of pipeline is too high reduce this number, if a lot of RAM is available increase this number to decrease runtime
   dir_output: output_merfish_probe_designer # name of the directory where the output files will be written
   write_intermediate_steps: true # if true, writes the oligo sequences after each step of the pipeline into a csv file
-  top_n_sets: 3 #maximum number of sets to report in padlock_probes.yaml and "padlock_probes_order.yaml"
 
 target_probe:
   file_regions: data/genes/custom_3.txt # file with a list the genes used to generate the probe sequences, leave empty if all the genes are used
@@ -39,7 +38,7 @@ target_probe:
   set_size_min: 50 # minimum size of probe sets (in case there exist no set of the optimal size) -> genes with less oligos will be filtered out and stored in regions_with_insufficient_oligos_for_db_probes
   set_size_opt: 50 # optimal size of probe sets
   distance_between_target_probes: 0 # how much overlap should be allowed between oligos, e.g. if oligos can overlpap x bases choose -x, if oligos can be next to one another choose 0, if oligos should be x bases apart choose x
-  n_sets: 100 # maximum number of sets to generate
+  n_sets: 3 # number of sets to generate
 
 readout_probe:
   files_fasta_reference_database: # fasta file with sequences used as reference for the specificity filters. Hint: use the genomic_region_generator pipeline to create fasta files of genomic regions of interest
@@ -147,10 +146,11 @@ developer_param:
       min_alignment_length: 17 # can be turned into coverage
   oligo_set_selection:
     # Parameters for the oligo set selection
-    max_graph_size: 5000 # maximum number of oligos that are taken into consisderation in the last step (5000 -> ~5GB, 2500 -> ~1GB)
-    n_attempts: 100000 # number of attempts to find the optimal set of oligos
-    heuristic: true # apply heuristic pre-search to reduce search space and runtime of oligo set selection
-    heuristic_n_attempts: 100 # number of attempts to find the optimal set of oligos for heuristic pre-search
+    n_attempts_graph: 50 # number of randomized graph attempts (diversification)
+    n_attempts_clique_enum: 50 # max cliques enumerated per graph attempt
+    diversification_fraction: 0.1 # fraction of oligos to remove from the graph to create diversity in the set selection
+    jaccard_opt: 0.5 # optimal maximum Jaccard overlap between selected sets
+    jaccard_step: 0.1 # step size for the Jaccard overlap if not enough sets are found
   readout_probe:
     initial_num_sequences: 100000 # if not enough readout probes can be generated, increase this number
     # Parameters for property filters

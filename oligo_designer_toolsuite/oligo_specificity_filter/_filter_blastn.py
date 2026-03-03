@@ -100,7 +100,7 @@ class BlastNFilter(AlignmentSpecificityFilter):
             ]
         )
 
-    def create_reference(
+    def _create_reference(
         self,
         n_jobs: int,  # not utilized in this filter
     ) -> str:
@@ -116,7 +116,7 @@ class BlastNFilter(AlignmentSpecificityFilter):
         :rtype: str
         """
         if self.reference_database is None:
-            raise DatabaseError("reference_database must be set before calling create_reference")
+            raise DatabaseError("reference_database must be set before calling _create_reference")
 
         # write refrence database to fasta
         file_reference = self.reference_database.write_database_to_file(

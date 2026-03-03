@@ -2,6 +2,8 @@
 # imports
 ############################################
 
+from typing import Any
+
 from oligo_designer_toolsuite.database import OligoDatabase
 from oligo_designer_toolsuite.oligo_efficiency_filter import BaseScorer
 from oligo_designer_toolsuite.oligo_property_calculator import calc_gc_content, calc_tm_nn
@@ -68,7 +70,12 @@ class DeviationFromOptimalGCContentScorer(SequencePropertyScorer):
         self.score_weight = score_weight
 
     def apply(
-        self, oligo_database: OligoDatabase, region_id: str, oligo_id: str, sequence_type: str
+        self,
+        oligo_database: OligoDatabase,
+        region_id: str,
+        oligo_id: str,
+        sequence_type: str,
+        **_: Any,
     ) -> float:
         """
         Calculate a score based on the absolute deviation of GC content from the optimal value.
@@ -81,6 +88,8 @@ class DeviationFromOptimalGCContentScorer(SequencePropertyScorer):
         :type oligo_id: str
         :param sequence_type: Type of sequence being processed.
         :type sequence_type: str
+        :param kwargs: Additional keyword arguments.
+        :type kwargs: dict[str, Any]
         :return: Weighted score based on GC content deviation.
         :rtype: float
         """
@@ -132,7 +141,12 @@ class DeviationFromOptimalTmScorer(SequencePropertyScorer):
         self.score_weight = score_weight
 
     def apply(
-        self, oligo_database: OligoDatabase, region_id: str, oligo_id: str, sequence_type: str
+        self,
+        oligo_database: OligoDatabase,
+        region_id: str,
+        oligo_id: str,
+        sequence_type: str,
+        **_: Any,
     ) -> float:
         """
         Calculate a score based on the absolute deviation of Tm from the optimal value.
@@ -145,6 +159,8 @@ class DeviationFromOptimalTmScorer(SequencePropertyScorer):
         :type oligo_id: str
         :param sequence_type: Type of sequence being processed.
         :type sequence_type: str
+        :param kwargs: Additional keyword arguments.
+        :type kwargs: dict[str, Any]
         :return: Weighted score based on Tm deviation.
         :rtype: float
         """
@@ -202,7 +218,12 @@ class NormalizedDeviationFromOptimalGCContentScorer(SequencePropertyScorer):
         self.score_weight = score_weight
 
     def apply(
-        self, oligo_database: OligoDatabase, region_id: str, oligo_id: str, sequence_type: str
+        self,
+        oligo_database: OligoDatabase,
+        region_id: str,
+        oligo_id: str,
+        sequence_type: str,
+        **_: Any,
     ) -> float:
         """
         Calculate a score based on normalized deviation of GC content from optimal value.
@@ -215,6 +236,8 @@ class NormalizedDeviationFromOptimalGCContentScorer(SequencePropertyScorer):
         :type oligo_id: str
         :param sequence_type: Type of sequence being processed.
         :type sequence_type: str
+        :param kwargs: Additional keyword arguments.
+        :type kwargs: dict[str, Any]
         :return: Weighted score based on normalized GC content deviation.
         :rtype: float
         """
@@ -283,7 +306,12 @@ class NormalizedDeviationFromOptimalTmScorer(SequencePropertyScorer):
         self.score_weight = score_weight
 
     def apply(
-        self, oligo_database: OligoDatabase, region_id: str, oligo_id: str, sequence_type: str
+        self,
+        oligo_database: OligoDatabase,
+        region_id: str,
+        oligo_id: str,
+        sequence_type: str,
+        **_: Any,
     ) -> float:
         """
         Calculate a score based on normalized deviation of Tm from the optimal value.
@@ -296,6 +324,8 @@ class NormalizedDeviationFromOptimalTmScorer(SequencePropertyScorer):
         :type oligo_id: str
         :param sequence_type: Type of sequence being processed.
         :type sequence_type: str
+        :param kwargs: Additional keyword arguments.
+        :type kwargs: dict[str, Any]
         :return: Weighted score based on normalized Tm deviation.
         :rtype: float
         """

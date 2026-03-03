@@ -15,7 +15,7 @@ from oligo_designer_toolsuite.validation._types import FastaFileListT
 from oligo_designer_toolsuite.validation.models._general import BaseProbabilities
 
 from .._constants import SEPARATOR_FASTA_HEADER_FIELDS, SEPARATOR_FASTA_HEADER_FIELDS_LIST
-from ..utils._checkers_and_helpers import check_if_list, generate_unique_filename
+from ..utils._checkers_and_helpers import cast_to_list, generate_unique_filename
 
 ############################################
 # Oligo Database Class
@@ -266,12 +266,12 @@ class OligoSequenceGenerator:
 
             return file_fasta_region
 
-        files_fasta_in = check_if_list(files_fasta_in)
+        files_fasta_in = cast_to_list(files_fasta_in)
         for file_fasta in files_fasta_in:
             self.fasta_parser.check_fasta_format(file_fasta)
 
         if region_ids:
-            region_ids = check_if_list(region_ids)
+            region_ids = cast_to_list(region_ids)
         else:
             region_ids = [
                 region_id

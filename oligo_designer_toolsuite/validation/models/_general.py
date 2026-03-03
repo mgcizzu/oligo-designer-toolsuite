@@ -48,28 +48,40 @@ class General(BaseModel):
 class OligoSetSelection(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
-    max_graph_size: Annotated[
+    n_attempts_graph: Annotated[
         PositiveInt,
         Field(
-            description="Maximum number of oligos to include in the set graph-based optimization process. If the number of available oligos exceeds this value, only the top-scoring oligos (up to max_graph_size) will be considered for set selection. This parameter controls the computational complexity and memory usage of the selection process. Larger values allow more probes to be considered but increase computation time and memory consumption (approximately 5GB for 5000 oligos, 1GB for 2500 oligos).",
+            description="Number of randomized graph attempts. In each attempt, a fraction of nodes is randomly removed from the compatibility graph to create diversity; more attempts increase diversity at the cost of runtime.",
         ),
     ]
-    n_attempts: Annotated[
+    n_attempts_clique_enum: Annotated[
         PositiveInt,
         Field(
-            description="Maximum number of cliques to iterate through when searching for oligo sets using the graph-based selection algorithm. This parameter limits the search space by capping the number of cliques (non-overlapping sets of oligos) that are evaluated. Once this limit is reached, the algorithm stops searching for additional sets, even if more cliques exist. Higher values may find better sets but take longer to compute."
+            description="Maximum number of cliques enumerated per graph attempt. Limits how many cliques are explored before stopping enumeration for the current graph."
         ),
     ]
-    heuristic: Annotated[
-        bool,
+    diversification_fraction: Annotated[
+        float,
         Field(
-            description="Whether to use a heuristic approach for faster set selection. When True, the algorithm uses a faster heuristic method that may find good (but not necessarily optimal) sets. When False, it uses a more exhaustive search that may find better sets but takes longer. Only applies to graph-based selection (small and medium sets).",
+            le=0,
+            ge=1,
+            description="Fraction of oligos to remove from the graph per attempt to create diversity in the set selection.",
         ),
     ]
-    heuristic_n_attempts: Annotated[
-        PositiveInt,
+    jaccard_opt: Annotated[
+        float,
         Field(
-            description="Maximum number of attempts to find the optimal oligo set using the heuristic approach. The heuristic tries different starting positions (up to this limit) and selects the best result. Only applies when `heuristic=True` and graph-based selection   is used.",
+            le=0,
+            ge=1,
+            description="Optimal maximum Jaccard overlap allowed between selected sets. Lower values enforce more diversity between sets.",
+        ),
+    ]
+    jaccard_step: Annotated[
+        float,
+        Field(
+            le=0,
+            ge=1,
+            description="Step size used to relax the Jaccard constraint when not enough sets are found.",
         ),
     ]
 
