@@ -1,6 +1,6 @@
 from typing import Annotated
 
-from pydantic import Field, NonNegativeFloat, PositiveInt
+from pydantic import Field, NonNegativeFloat, NonNegativeInt, PositiveInt
 
 FastaFileListT = Annotated[list[str], Field(min_length=1)]
 
@@ -37,13 +37,27 @@ GCContentMaxT = Annotated[
     ),
 ]
 
+GCContentOptT = Annotated[
+    float,
+    Field(
+        description="Optimal GC content for target probes, expressed as a fraction between 0.0 and 1.0. Used in scoring to prioritize probes closer to this value.",
+        ge=0,
+        le=100,
+    ),
+]
+
 TmMinT = Annotated[
     NonNegativeFloat,
     Field(
         description="Minimum melting temperature (Tm) in degrees Celsius for probes. Probes with calculated Tm below this value will be filtered out."
     ),
 ]
-TmOptT = Annotated[NonNegativeFloat, Field(description="optimal melting temperature of oligos")]
+TmOptT = Annotated[
+    NonNegativeFloat,
+    Field(
+        description="Optimal melting temperature (Tm) for oligos in degrees Celsius. Used in scoring to prioritize probes closer to this value."
+    ),
+]
 TmMaxT = Annotated[
     NonNegativeFloat,
     Field(
@@ -58,11 +72,18 @@ TSecondaryStructureT = Annotated[
     ),
 ]
 
-WeightT = Annotated[float, Field(description="weight in the efficiency score  of the respective measure")]
+WeightT = Annotated[float, Field(description="Weight in the efficiency score of the respective measure")]
 
 SecondaryStructuresThresholdDeltaGT = Annotated[
     float,
     Field(
         description="DeltaG threshold (in kcal/mol) for secondary structure stability. Probes with secondary structures having deltaG values more negative (more stable) than this threshold will be filtered out.",
     ),
+]
+
+LengthMinT = Annotated[
+    NonNegativeInt, Field(description="Minimum length (in nucleotides) for probe sequences.")
+]
+LengthMaxT = Annotated[
+    NonNegativeInt, Field(description="Maximum length (in nucleotides) for probe sequences.")
 ]

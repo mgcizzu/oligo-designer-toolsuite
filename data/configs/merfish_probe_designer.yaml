@@ -105,20 +105,24 @@ developer_param:
   # The melting temperature is used in 2 different stages (property filters and padlock detection probe design), where a few parameters are shared and the others differ.
   # parameters for melting temperature -> for more information on parameters, see: https://biopython.org/docs/1.75/api/Bio.SeqUtils.MeltingTemp.html#Bio.SeqUtils.MeltingTemp.Tm_NN
     Tm_parameters:
-      nn_table: DNA_NN4 # SantaLucia (2004) taken from Moffitt (2016)
-      tmm_table: DNA_TMM1 #default
-      imm_table: DNA_IMM1 #default
-      de_table: DNA_DE1 #default
-      dnac1: 5 #[nM] taken from Moffitt (2016)
-      dnac2: 0 #[nM] taken from Moffitt (2016)
-      saltcorr: 5 # correction for deltaS, taken from https://github.com/ZhuangLab/MERFISH_analysis
-      Na: 300 #[mM] 0.3M, taken from https://github.com/ZhuangLab/MERFISH_analysis
-      K: 0 #[mM] default
-      Tris: 0 #[mM] default
-      Mg: 0 #[mM] default
-      dNTPs: 0 #[mM] default
-    Tm_chem_correction_parameters: null # if chem correction desired, please add parameters below
-    Tm_salt_correction_parameters: null # if salt correction desired, please add parameters below
+      mode: custom
+      parameters:
+        nn_table: DNA_NN4 # SantaLucia (2004) taken from Moffitt (2016)
+        tmm_table: DNA_TMM1 #default
+        imm_table: DNA_IMM1 #default
+        de_table: DNA_DE1 #default
+        dnac1: 5 #[nM] taken from Moffitt (2016)
+        dnac2: 0 #[nM] taken from Moffitt (2016)
+        saltcorr: 5 # correction for deltaS, taken from https://github.com/ZhuangLab/MERFISH_analysis
+        Na: 300 #[mM] 0.3M, taken from https://github.com/ZhuangLab/MERFISH_analysis
+        K: 0 #[mM] default
+        Tris: 0 #[mM] default
+        Mg: 0 #[mM] default
+        dNTPs: 0 #[mM] default
+    Tm_chem_correction_parameters:
+      mode: disabled
+    Tm_salt_correction_parameters:
+      mode: disabled
     secondary_structures_threshold_deltaG: 0 # threshold for the secondary structure free energy -> oligo rejected if it presents a structure with a negative free energy at the defined temperature
     # Specificity filter with BlastN
     specificity_blastn_search_parameters:
@@ -151,20 +155,24 @@ developer_param:
     initial_num_sequences: 100000 # if not enough readout probes can be generated, increase this number
     # Parameters for property filters
     Tm_parameters:
-      nn_table: DNA_NN4 #S antaLucia (2004) taken from Moffitt (2016)
-      tmm_table: DNA_TMM1 #default
-      imm_table: DNA_IMM1 #default
-      de_table: DNA_DE1 #default
-      dnac1: 25 #default
-      dnac2: 25 #default
-      saltcorr: 5 # correction for deltaS, taken from https://github.com/ZhuangLab/MERFISH_analysis
-      Na: 300 #[mM] 0.3M, taken from https://github.com/ZhuangLab/MERFISH_analysis
-      K: 0 #[mM] default
-      Tris: 0 #[mM] default
-      Mg: 0 #[mM] default
-      dNTPs: 0 #[mM] default
-    Tm_chem_correction_parameters: null # if chem correction desired, please add parameters below
-    Tm_salt_correction_parameters: null # if salt correction desired, please add parameters below
+      mode: custom
+      parameters:
+        nn_table: DNA_NN4 #S antaLucia (2004) taken from Moffitt (2016)
+        tmm_table: DNA_TMM1 #default
+        imm_table: DNA_IMM1 #default
+        de_table: DNA_DE1 #default
+        dnac1: 25 #default
+        dnac2: 25 #default
+        saltcorr: 5 # correction for deltaS, taken from https://github.com/ZhuangLab/MERFISH_analysis
+        Na: 300 #[mM] 0.3M, taken from https://github.com/ZhuangLab/MERFISH_analysis
+        K: 0 #[mM] default
+        Tris: 0 #[mM] default
+        Mg: 0 #[mM] default
+        dNTPs: 0 #[mM] default
+    Tm_chem_correction_parameters:
+      mode: disabled
+    Tm_salt_correction_parameters:
+      mode: disabled
     # Specificity filter with BlastN
     specificity_blastn_search_parameters:
       -perc_identity: 100
@@ -194,22 +202,26 @@ developer_param:
     # The melting temperature is used in 2 different stages (property filters and padlock detection probe design), where a few parameters are shared and the others differ.
     # parameters for melting temperature -> for more information on parameters, see: https://biopython.org/docs/1.75/api/Bio.SeqUtils.MeltingTemp.html#Bio.SeqUtils.MeltingTemp.Tm_NN
     Tm_parameters:
-      nn_table: DNA_NN4 #S antaLucia (2004) taken from Moffitt (2016)
-      tmm_table: DNA_TMM1 #default
-      imm_table: DNA_IMM1 #default
-      de_table: DNA_DE1 #default
-      dnac1: 250 #[nM] taken from https://github.com/ZhuangLab/MERFISH_analysis
-      dnac2: 250 #[nM] taken from https://github.com/ZhuangLab/MERFISH_analysis
-      saltcorr: 5 # correction for deltaS, taken from https://github.com/ZhuangLab/MERFISH_analysis
-      Na: 300 #[mM] 0.3M, taken from https://github.com/ZhuangLab/MERFISH_analysis
-      K: 0 #[mM] default
-      Tris: 0 #[mM] default
-      Mg: 0 #[mM] default
-      dNTPs: 0 #[mM] default
-    Tm_chem_correction_parameters: null # if chem correction desired, please add parameters below
-    Tm_salt_correction_parameters: null # if salt correction desired, please add parameters below
+      mode: custom
+      parameters:
+        nn_table: DNA_NN4 #S antaLucia (2004) taken from Moffitt (2016)
+        tmm_table: DNA_TMM1 #default
+        imm_table: DNA_IMM1 #default
+        de_table: DNA_DE1 #default
+        dnac1: 250 #[nM] taken from https://github.com/ZhuangLab/MERFISH_analysis
+        dnac2: 250 #[nM] taken from https://github.com/ZhuangLab/MERFISH_analysis
+        saltcorr: 5 # correction for deltaS, taken from https://github.com/ZhuangLab/MERFISH_analysis
+        Na: 300 #[mM] 0.3M, taken from https://github.com/ZhuangLab/MERFISH_analysis
+        K: 0 #[mM] default
+        Tris: 0 #[mM] default
+        Mg: 0 #[mM] default
+        dNTPs: 0 #[mM] default
+    Tm_chem_correction_parameters:
+      mode: disabled
+    Tm_salt_correction_parameters:
+      mode: disabled
     # Specificity filter with BlastN against reference
-    specificity_refrence_blastn_search_parameters:
+    specificity_reference_blastn_search_parameters:
       -perc_identity: 100
       -strand: "minus" # this parameter is fixed, if reference is whole genome, consider using "both"
       -word_size: 7
@@ -217,7 +229,7 @@ developer_param:
       -soft_masking: "false"
       -max_target_seqs: 10
       -max_hsps: 1000
-    specificity_refrence_blastn_hit_parameters:
+    specificity_reference_blastn_hit_parameters:
       min_alignment_length: 14 # can be turned into coverage
     # Specificity filter with BlastN against hybridization rpobes
     specificity_hybridization_probes_blastn_search_parameters:

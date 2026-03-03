@@ -12,6 +12,7 @@ from joblib import Parallel, delayed
 
 from oligo_designer_toolsuite.utils import FastaParser
 from oligo_designer_toolsuite.validation._types import FastaFileListT
+from oligo_designer_toolsuite.validation.models._general import BaseProbabilities
 
 from .._constants import SEPARATOR_FASTA_HEADER_FIELDS, SEPARATOR_FASTA_HEADER_FIELDS_LIST
 from ..utils._checkers_and_helpers import check_if_list, generate_unique_filename
@@ -45,12 +46,8 @@ class OligoSequenceGenerator:
         length_sequences: int,
         num_sequences: int,
         name_sequences: str = "randomsequence",
-        base_alphabet_with_probability: dict = {
-            "A": 0.25,
-            "C": 0.25,
-            "G": 0.25,
-            "T": 0.25,
-        },
+        *,
+        base_alphabet_with_probability: BaseProbabilities | None,
     ) -> str:
         """
         Generates a specified number of random DNA sequences and writes them to a FASTA file.
@@ -66,13 +63,15 @@ class OligoSequenceGenerator:
         :type num_sequences: int
         :param name_sequences: The base name for each sequence identifier, defaults to "randomsequence".
         :type name_sequences: str
-        :param base_alphabet_with_probability: A dictionary specifying the probability distribution of each nucleotide base, defaults to an equal distribution.
-        :type base_alphabet_with_probability: dict
+        :param base_alphabet_with_probability: A pydantic model specifying the probability distribution of each nucleotide base, defaults to an equal distribution.
+        :type base_alphabet_with_probability: BaseProbabilities
         :return: The path to the generated FASTA file.
         :rtype: str
         """
 
-        def get_sequence_random(sequence_length: int, base_alphabet_with_probability: dict) -> str:
+        def get_sequence_random(
+            sequence_length: int, base_alphabet_with_probability: BaseProbabilities
+        ) -> str:
             """
             Generates a random DNA sequence of a specified length based on given base probabilities.
 
@@ -81,20 +80,24 @@ class OligoSequenceGenerator:
 
             :param sequence_length: The length of the random DNA sequence to generate.
             :type sequence_length: int
-            :param base_alphabet_with_probability: A dictionary specifying the bases and their probabilities.
-            :type base_alphabet_with_probability: dict
+            :param base_alphabet_with_probability: A pydantic model specifying the bases and their probabilities.
+            :type base_alphabet_with_probability: BaseProbabilities
             :return: A randomly generated DNA sequence.
             :rtype: str
             """
-            bases = list(base_alphabet_with_probability.keys())
+            base_alphabet_with_probability_dict = base_alphabet_with_probability.model_dump()
+            bases = list(base_alphabet_with_probability_dict.keys())
             sequence = "".join(
                 random.choices(
                     bases,
-                    weights=[base_alphabet_with_probability[n] for n in bases],
+                    weights=[base_alphabet_with_probability_dict[n] for n in bases],
                     k=sequence_length,
                 )
             )
             return sequence
+
+        if base_alphabet_with_probability is None:
+            base_alphabet_with_probability = BaseProbabilities(A=0.25, C=0.25, G=0.25, T=0.25)
 
         sequences_set: set[str] = set()
         while len(sequences_set) < num_sequences:

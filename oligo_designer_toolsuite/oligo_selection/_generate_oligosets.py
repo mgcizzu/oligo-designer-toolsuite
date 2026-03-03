@@ -16,6 +16,7 @@ from scipy.sparse import csr_matrix, lil_matrix
 from oligo_designer_toolsuite._exceptions import DatabaseError
 from oligo_designer_toolsuite.database import OligoDatabase
 from oligo_designer_toolsuite.oligo_efficiency_filter import OligoScoring, SetScoringBase
+from oligo_designer_toolsuite.validation.models._general import OligoPropertyWeights
 
 from ._selection_methods import OligoSelectionPolicy
 
@@ -257,14 +258,17 @@ class HomogeneousPropertyOligoSetGenerator:
 
     :param set_size: The desired size of the oligo set to be generated.
     :type set_size: int
-    :param properties: A dictionary of oligo properties (e.g., 'GC_content', 'length') and their respective weights.
-    :type properties: dict[str, float]
+    :param properties: A pydantic model of oligo properties (e.g., 'GC_content', 'length') and their respective weights.
+    :type properties: OligoPropertyWeights
     """
 
-    def __init__(self, set_size: int, properties: dict[str, float]) -> None:
+    def __init__(self, set_size: int, properties: OligoPropertyWeights) -> None:
         """Constructor for the HomogeneousPropertyOligoSetGenerator class."""
         self.set_size = set_size
-        self.properties = properties
+        # get all properties that have a weight assigned
+        properties_dict = properties.model_dump()
+        properties_dict = {k: v for k, v in properties_dict.items() if v is not None}
+        self.properties = properties_dict
 
     def apply(
         self, oligo_database: OligoDatabase, n_sets: int = 1, n_combinations: int = 1000, n_jobs: int = 1

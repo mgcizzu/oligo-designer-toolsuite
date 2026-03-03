@@ -72,6 +72,7 @@ from oligo_designer_toolsuite.sequence_generator import OligoSequenceGenerator
 from oligo_designer_toolsuite.validation._types import (
     DNAT,
     FilesFastaDatabaseT,
+    FilesFastaReferenceDatabaseT,
     GCContentMaxT,
     GCContentMinT,
     SecondaryStructuresThresholdDeltaGT,
@@ -233,7 +234,7 @@ class CycleHCRProbeDesigner:
         :type region_ids: list[str] | None
         :param config: Pydantic model of configuration parameters for target probes.
         :type config: TargetProbeCycleHCR
-        :param developer_param: Pydantic model of advanced configuration parameters for target proes.
+        :param developer_param: Pydantic model of advanced configuration parameters for target probes.
         :type developer_param: TargetProbeDevCycleHCR
         :param oligo_set_selection: Pydantic model of configuration parameters for oligo set selection.
         :type oligo_set_selection: OligoSetSelection
@@ -1078,11 +1079,11 @@ class TargetProbeDesigner:
         :type Tm_parameters: TmParameters
         :param Tm_chem_correction_parameters: Pydantic model of chemical correction parameters for Tm
             calculation. These parameters account for the effects of chemical additives (e.g., DMSO,
-            formamide) on melting temperature. Set to None to disable chemical correction.
+            formamide) on melting temperature. Set `mode='disabled'` to disable chemical correction.
         :type Tm_chem_correction_parameters: TmChemCorrectionParameters | None
         :param Tm_salt_correction_parameters: Pydantic model of salt correction parameters for Tm calculation.
             These parameters account for the effects of salt concentration on melting temperature.
-            Set to None to disable salt correction.
+            Set `mode='disabled'` to disable salt correction.
         :type Tm_salt_correction_parameters: TmSaltCorrectionParameters | None
         :return: A filtered `OligoDatabase` object containing only probes that pass all property filters.
             Regions with insufficient oligos after filtering are removed.
@@ -1140,7 +1141,7 @@ class TargetProbeDesigner:
     def filter_by_specificity(
         self,
         oligo_database: OligoDatabase,
-        files_fasta_reference_database: FilesFastaDatabaseT,
+        files_fasta_reference_database: FilesFastaReferenceDatabaseT,
         junction_region_size: int,
         junction_site: int,
         specificity_blastn_search_parameters: BlastnSearchParameters,
@@ -1177,7 +1178,7 @@ class TargetProbeDesigner:
         :param files_fasta_reference_database: List of paths to FASTA files containing reference
             sequences against which specificity will be evaluated. These typically include the
             entire genome or transcriptome to identify off-target binding sites.
-        :type files_fasta_reference_database: FilesFastaDatabaseT
+        :type files_fasta_reference_database: FilesFastaReferenceDatabaseT
         :param junction_region_size: Size of the junction region (in nucleotides) for seed-based
             specificity filtering. If > 0, all probes where BLASTN hits cover the junction region
             are removed, independent of the coverage threshold.
@@ -1191,8 +1192,7 @@ class TargetProbeDesigner:
             'max_target_seqs', 'num_threads', etc.
         :type specificity_blastn_search_parameters: BlastnSearchParameters
         :param specificity_blastn_hit_parameters: Pydantic model of parameters for filtering BLASTN hits
-            in specificity searches. Common parameters include: 'identity_min', 'alignment_length_min',
-            'mismatches_max', 'gaps_max', etc. Probes with hits meeting these criteria are removed.
+            in specificity searches. Either min_alignment_length or coverage needs to have a value. Probes with hits meeting these criteria are removed.
         :type specificity_blastn_hit_parameters: BlastnHitParameters
         :param cross_hybridization_blastn_search_parameters: Pydantic model of parameters for BLASTN
             searches used in cross-hybridization filtering. These searches check if oligo_L sequences
@@ -1320,7 +1320,7 @@ class TargetProbeDesigner:
         self,
         oligo_database: OligoDatabase,
         isoform_weight: float,
-        Tm_max: float,
+        Tm_max: TmMaxT,
         Tm_weight: float,
         Tm_parameters: TmParameters,
         Tm_chem_correction_parameters: TmChemCorrectionParameters | None,
@@ -1361,7 +1361,7 @@ class TargetProbeDesigner:
         :type isoform_weight: float
         :param Tm_max: Target melting temperature (Tm) in degrees Celsius. The scoring function
             penalizes deviations from this optimal value.
-        :type Tm_max: float
+        :type Tm_max: TmMaxT
         :param Tm_weight: Weight assigned to melting temperature in the scoring function.
             Higher values prioritize probes with Tm closer to the target value.
         :type Tm_weight: float
@@ -1371,11 +1371,11 @@ class TargetProbeDesigner:
         :type Tm_parameters: TmParameters
         :param Tm_chem_correction_parameters: Pydantic model of chemical correction parameters for Tm
             calculation. These parameters account for the effects of chemical additives (e.g., DMSO,
-            formamide) on melting temperature. Set to None to disable chemical correction.
+            formamide) on melting temperature. Set `mode='disabled'` to disable chemical correction.
         :type Tm_chem_correction_parameters: TmChemCorrectionParameters | None
         :param Tm_salt_correction_parameters: Pydantic model of salt correction parameters for Tm calculation.
             These parameters account for the effects of salt concentration on melting temperature.
-            Set to None to disable salt correction.
+            Set `mode='disabled'` to disable salt correction.
         :type Tm_salt_correction_parameters: TmSaltCorrectionParameters | None
         :param set_size_opt: Optimal size (number of probes) for each oligo set. The algorithm
             will attempt to generate sets of this size, but may produce sets as small as `set_size_min`

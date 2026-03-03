@@ -1,3 +1,4 @@
+from math import isclose
 from typing import Annotated, Literal
 
 from pydantic import (
@@ -541,7 +542,7 @@ class BlastnHitParameters(BaseModel):
     coverage: Annotated[
         float | None,
         Field(
-            default=50,
+            default=None,
             ge=0,
             le=100,
             description="Coverage in %, alternatively, min_alignment_length can be used",
@@ -560,3 +561,29 @@ class BlastnHitParameters(BaseModel):
         if (self.coverage is None) == (self.min_alignment_length is None):
             raise ValueError("Exactly one of 'coverage' or 'min_alignment_length' must be set.")
         return self
+
+
+class BaseProbabilities(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    A: float = Field(default=0.25, ge=0, le=1)
+    C: float = Field(default=0.25, ge=0, le=1)
+    G: float = Field(default=0.25, ge=0, le=1)
+    T: float = Field(default=0.25, ge=0, le=1)
+
+    @model_validator(mode="after")
+    def _check_sums_up_to_1(self) -> Self:
+        sum_probabilities = self.A + self.C + self.G + self.T
+        if not isclose(sum_probabilities, 1):
+            raise ValueError("The probabilities for all 4 bases needs to sum up to 1.")
+        return self
+
+
+class OligoPropertyWeights(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    length_oligo: float | None = Field(default=None)
+    GC_content_oligo: float | None = Field(default=None)
+    TmNN_oligo: float | None = Field(default=None)
+    DG_secondary_structure_oligo: float | None = Field(default=None)
+    length_selfcomplement_oligo: float | None = Field(default=None)

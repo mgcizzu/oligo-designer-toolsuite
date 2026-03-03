@@ -8,9 +8,14 @@ from oligo_designer_toolsuite.validation._types import (
     FilesFastaReferenceDatabaseT,
     GCContentMaxT,
     GCContentMinT,
+    GCContentOptT,
+    LengthMaxT,
+    LengthMinT,
     TmMaxT,
     TmMinT,
+    TmOptT,
     TSecondaryStructureT,
+    WeightT,
 )
 from oligo_designer_toolsuite.validation.models._general import HomopolymerThresholds
 
@@ -21,7 +26,6 @@ class TargetProbeBase(BaseModel):
     file_regions: Annotated[
         str | None,
         Field(
-            default="data/genes/custom_3.txt",
             description="file with a list the genes used to generate the probe sequences, leave empty if all the genes are used",
         ),
     ]
@@ -72,75 +76,67 @@ class TargetProbeBase(BaseModel):
 
 
 class TargetProbeCycleHCR(TargetProbeBase):
-    files_fasta_database: FilesFastaDatabaseT = [
-        "data/genomic_regions/exon_annotation_source-NCBI_species-Homo_sapiens_annotation_release-110_genome_assemly-GRCh38.fna",
-        "data/genomic_regions/exon_exon_junction_annotation_source-NCBI_species-Homo_sapiens_annotation_release-110_genome_assemly-GRCh38.fna",
-    ]
-    files_fasta_reference_database: FilesFastaReferenceDatabaseT = [
-        "data/genomic_regions/gene_annotation_source-NCBI_species-Homo_sapiens_annotation_release-110_genome_assemly-GRCh38.fna"
-    ]
-
-    isoform_consensus: float = 0
-    GC_content_min: GCContentMinT = 30
-    GC_content_max: GCContentMaxT = 90
-    homopolymeric_base_n: Annotated[
-        HomopolymerThresholds, Field(default_factory=lambda: HomopolymerThresholds(A=6, T=6, C=6, G=6))
-    ]
-
-    set_size_min: PositiveInt = 10
-    set_size_opt: PositiveInt = 25
-    distance_between_target_probes: NonNegativeInt = 2
-    n_sets: PositiveInt = 30
 
     L_probe_sequence_length: Annotated[
         PositiveInt,
         Field(
-            default=45,
             description="Length of the left probe sequence in nucleotides. This is the 5' portion of the target probe that binds to the RNA. L + spacer + R sequence should equal the total probe length, e.g. 45 + 2 + 45 = 92",
         ),
     ]
     gap_sequence_length: Annotated[
         NonNegativeInt,
         Field(
-            default=2,
             description="Length of the gap sequence between left and right probes in nucleotides. This gap is not included in the probe sequences but represents the spacing between the two probe halves on the target transcript.",
         ),
     ]
     R_probe_sequence_length: Annotated[
         PositiveInt,
         Field(
-            default=45,
             description="Length of the right probe sequence in nucleotides. This is the 5' portion of the target probe that will bind to the RNA. L + spacer + R sequence should equal the total probe length, e.g. 45 + 2 + 45 = 92",
         ),
     ]
-    Tm_min: TmMinT = 90
-    Tm_max: TmMaxT = 200
-    T_secondary_structure: TSecondaryStructureT = 90
+    Tm_min: TmMinT
+    Tm_max: TmMaxT
+    T_secondary_structure: TSecondaryStructureT
     junction_region_size: Annotated[
         NonNegativeInt,
         Field(
-            default=13,
             description="Size of the junction region (in nucleotides) used for seed-based specificity filtering. If set to 0, full-length specificity filtering is used instead of seed-based filtering. When seed-based filtering is enabled, any probe with a BLASTN hit covering the junction region between the left and right probe halves will be removed, regardless of the alignment coverage percentage.",
         ),
     ]
     Tm_weight: Annotated[
         float,
         Field(
-            default=1,
             description="Weight assigned to melting temperature (Tm) in the probe scoring function. Higher values prioritize probes with Tm closer to the optimal value (Tm_max). This weight is used in combination with isoform_weight to calculate a composite score for each probe.",
         ),
     ]
     isoform_weight: Annotated[
         float,
         Field(
-            default=10,
             description="Weight assigned to isoform consensus in the probe scoring function. Higher values prioritize probes with higher isoform consensus values (probes that are conserved across multiple transcript isoforms). This weight is used in combination with Tm_weight to calculate a composite score for each probe.",
         ),
     ]
     linker_sequence: Annotated[
         DNAT,
         Field(
-            default="TT",
             description="DNA sequence used to link target probes and readout probes in the hybridization probe. This sequence is inserted between the target probe sequence and the readout probe sequence during assembly. Typically a short spacer sequence (e.g., 'TT').",
         ),
     ]
+
+
+class TargetProbeMerfish(TargetProbeBase):
+
+    GC_content_opt: GCContentOptT
+
+    length_min: LengthMinT
+    length_max: LengthMaxT
+
+    Tm_min: TmMinT
+    Tm_opt: TmOptT
+    Tm_max: TmMaxT
+
+    T_secondary_structure: TSecondaryStructureT = 76
+
+    GC_weight: WeightT = 1
+    Tm_weight: WeightT = 1
+    isoform_weight: WeightT = 2
