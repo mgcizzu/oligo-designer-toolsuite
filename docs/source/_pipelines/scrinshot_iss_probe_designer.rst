@@ -15,6 +15,21 @@ Command-Line Call
 
     scrinshot_iss_probe_designer -c data/configs/scrinshot_iss_probe_designer.yaml
 
+Cross-Hybridization Toggle
+--------------------------
+
+The ISS flow inherits SCRINSHOT target-probe specificity behavior, including the
+cross-hybridization toggle:
+
+::
+
+    target_probe_apply_cross_hybridization: false
+
+Behavior:
+
+- ``true`` (default): run cross-hybridization filter.
+- ``false``: skip cross-hybridization filter, while keeping exact-match and specificity/off-target filtering.
+
 
 Backbone Configuration
 ----------------------
@@ -74,4 +89,3 @@ Output fields added to final YAML:
 - ``lbar_id``
 - ``sequence_gene_specific``
 - ``sequence_padlock_anchor``
-

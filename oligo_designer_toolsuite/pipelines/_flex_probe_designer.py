@@ -275,6 +275,9 @@ def main():
         target_probe_hybridization_probability_threshold=config[
             "target_probe_hybridization_probability_threshold"
         ],
+        target_probe_apply_cross_hybridization=config.get(
+            "target_probe_apply_cross_hybridization", True
+        ),
         target_probe_GC_weight=config["target_probe_GC_weight"],
         target_probe_Tm_weight=config["target_probe_Tm_weight"],
         set_size_min=config["set_size_min"],

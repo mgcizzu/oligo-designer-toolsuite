@@ -19,6 +19,20 @@ Input
 - ``files_fasta_reference_database_target_probe``: reference FASTA files for specificity filtering.
 - Optional ``file_regions``: restrict design to selected gene IDs.
 
+Cross-Hybridization Toggle
+--------------------------
+
+FLEX reuses Oligo-Seq target-probe specificity filtering and supports:
+
+::
+
+    target_probe_apply_cross_hybridization: false
+
+Behavior:
+
+- ``true`` (default): run cross-hybridization filter.
+- ``false``: skip cross-hybridization filter, while keeping exact-match and specificity/off-target filtering.
+
 FLEX Construct
 --------------
 

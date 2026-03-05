@@ -585,6 +585,9 @@ def main():
         target_probe_padlock_arm_Tm_min=config["target_probe_padlock_arm_Tm_min"],
         target_probe_padlock_arm_Tm_max=config["target_probe_padlock_arm_Tm_max"],
         target_probe_ligation_region_size=config["target_probe_ligation_region_size"],
+        target_probe_apply_cross_hybridization=config.get(
+            "target_probe_apply_cross_hybridization", True
+        ),
         set_size_min=config["set_size_min"],
         set_size_opt=config["set_size_opt"],
         distance_between_target_probes=config["distance_between_target_probes"],

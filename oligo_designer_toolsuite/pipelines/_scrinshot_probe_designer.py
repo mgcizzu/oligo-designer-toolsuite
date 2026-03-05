@@ -306,6 +306,7 @@ class ScrinshotProbeDesigner:
         target_probe_padlock_arm_Tm_min: float = 50,
         target_probe_padlock_arm_Tm_max: float = 60,
         target_probe_ligation_region_size: int = 5,
+        target_probe_apply_cross_hybridization: bool = True,
         set_size_min: int = 3,
         set_size_opt: int = 5,
         distance_between_target_probes: int = 0,
@@ -422,6 +423,7 @@ class ScrinshotProbeDesigner:
             cross_hybridization_blastn_search_parameters=self.target_probe_cross_hybridization_blastn_search_parameters,
             cross_hybridization_blastn_hit_parameters=self.target_probe_cross_hybridization_blastn_hit_parameters,
             ligation_region_size=target_probe_ligation_region_size,
+            apply_cross_hybridization=target_probe_apply_cross_hybridization,
             arm_length_min=target_probe_padlock_arm_length_min,
             arm_Tm_dif_max=target_probe_padlock_arm_Tm_dif_max,
             arm_Tm_min=target_probe_padlock_arm_Tm_min,
@@ -936,6 +938,7 @@ class TargetProbeDesigner:
         cross_hybridization_blastn_search_parameters: dict,
         cross_hybridization_blastn_hit_parameters: dict,
         ligation_region_size: int,
+        apply_cross_hybridization: bool,
         arm_Tm_dif_max: int,
         arm_length_min: int,
         arm_Tm_min: float,
@@ -1013,18 +1016,21 @@ class TargetProbeDesigner:
         )
 
         ##### specificity filters #####
-        cross_hybridization_aligner = BlastNFilter(
-            search_parameters=cross_hybridization_blastn_search_parameters,
-            hit_parameters=cross_hybridization_blastn_hit_parameters,
-            filter_name="blastn_crosshybridization",
-            dir_output=self.dir_output,
-        )
-        cross_hybridization = CrossHybridizationFilter(
-            policy=RemoveByLargerRegionPolicy(),
-            alignment_method=cross_hybridization_aligner,
-            database_name_reference=self.subdir_db_reference,
-            dir_output=self.dir_output,
-        )
+        cross_hybridization_aligner = None
+        cross_hybridization = None
+        if apply_cross_hybridization:
+            cross_hybridization_aligner = BlastNFilter(
+                search_parameters=cross_hybridization_blastn_search_parameters,
+                hit_parameters=cross_hybridization_blastn_hit_parameters,
+                filter_name="blastn_crosshybridization",
+                dir_output=self.dir_output,
+            )
+            cross_hybridization = CrossHybridizationFilter(
+                policy=RemoveByLargerRegionPolicy(),
+                alignment_method=cross_hybridization_aligner,
+                database_name_reference=self.subdir_db_reference,
+                dir_output=self.dir_output,
+            )
 
         if ligation_region_size > 0:
             specificity = BlastNSeedregionLigationsiteFilter(
@@ -1042,7 +1048,9 @@ class TargetProbeDesigner:
                 dir_output=self.dir_output,
             )
 
-        filters = [specificity, cross_hybridization]
+        filters = [specificity]
+        if apply_cross_hybridization:
+            filters.append(cross_hybridization)
         specificity_filter = SpecificityFilter(filters=filters)
         oligo_database = specificity_filter.apply(
             sequence_type="oligo",
@@ -1052,12 +1060,13 @@ class TargetProbeDesigner:
         )
 
         # remove all directories of intermediate steps
-        for directory in [
-            reference_database.dir_output,
-            cross_hybridization_aligner.dir_output,
-            cross_hybridization.dir_output,
-            specificity.dir_output,
-        ]:
+        directories_to_cleanup = [reference_database.dir_output, specificity.dir_output]
+        if apply_cross_hybridization:
+            directories_to_cleanup.extend(
+                [cross_hybridization_aligner.dir_output, cross_hybridization.dir_output]
+            )
+
+        for directory in directories_to_cleanup:
             if os.path.exists(directory):
                 shutil.rmtree(directory)
 
@@ -1669,6 +1678,9 @@ def main():
         target_probe_padlock_arm_Tm_min=config["target_probe_padlock_arm_Tm_min"],
         target_probe_padlock_arm_Tm_max=config["target_probe_padlock_arm_Tm_max"],
         target_probe_ligation_region_size=config["target_probe_ligation_region_size"],
+        target_probe_apply_cross_hybridization=config.get(
+            "target_probe_apply_cross_hybridization", True
+        ),
         set_size_min=config["set_size_min"],
         set_size_opt=config["set_size_opt"],
         distance_between_target_probes=config["distance_between_target_probes"],

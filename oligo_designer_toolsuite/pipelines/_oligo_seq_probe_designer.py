@@ -292,6 +292,7 @@ class OligoSeqProbeDesigner:
         target_probe_homopolymeric_base_n: dict = {"A": 6, "T": 6, "C": 6, "G": 6},
         target_probe_max_len_selfcomplement: int = 10,
         target_probe_hybridization_probability_threshold: float = 0.001,
+        target_probe_apply_cross_hybridization: bool = True,
         target_probe_GC_weight: float = 1,
         target_probe_Tm_weight: float = 1,
         set_size_min: int = 3,
@@ -400,6 +401,7 @@ class OligoSeqProbeDesigner:
             cross_hybridization_alignment_method=self.target_probe_cross_hybridization_alignment_method,
             cross_hybridization_search_parameters=self.target_probe_cross_hybridization_search_parameters,
             cross_hybridization_hit_parameters=self.target_probe_cross_hybridization_hit_parameters,
+            apply_cross_hybridization=target_probe_apply_cross_hybridization,
             hybridization_probability_alignment_method=self.target_probe_hybridization_probability_alignment_method,
             hybridization_probability_search_parameters=self.target_probe_hybridization_probability_search_parameters,
             hybridization_probability_hit_parameters=self.target_probe_hybridization_probability_hit_parameters,
@@ -728,6 +730,7 @@ class TargetProbeDesigner:
         cross_hybridization_alignment_method: str,
         cross_hybridization_search_parameters: dict,
         cross_hybridization_hit_parameters: dict,
+        apply_cross_hybridization: bool,
         hybridization_probability_alignment_method: str,
         hybridization_probability_search_parameters: dict,
         hybridization_probability_hit_parameters: dict,
@@ -794,18 +797,21 @@ class TargetProbeDesigner:
         # removing duplicated oligos from the region with the most oligos
         exact_matches = ExactMatchFilter(policy=RemoveAllPolicy(), filter_name="exact_match")
 
-        cross_hybridization_aligner = _get_alignment_method(
-            alignment_method=cross_hybridization_alignment_method,
-            search_parameters=cross_hybridization_search_parameters,
-            hit_parameters=cross_hybridization_hit_parameters,
-            filter_name_specification="cross_hybridization",
-        )
-        cross_hybridization = CrossHybridizationFilter(
-            policy=RemoveByLargerRegionPolicy(),
-            alignment_method=cross_hybridization_aligner,
-            database_name_reference=self.subdir_db_reference,
-            dir_output=self.dir_output,
-        )
+        cross_hybridization_aligner = None
+        cross_hybridization = None
+        if apply_cross_hybridization:
+            cross_hybridization_aligner = _get_alignment_method(
+                alignment_method=cross_hybridization_alignment_method,
+                search_parameters=cross_hybridization_search_parameters,
+                hit_parameters=cross_hybridization_hit_parameters,
+                filter_name_specification="cross_hybridization",
+            )
+            cross_hybridization = CrossHybridizationFilter(
+                policy=RemoveByLargerRegionPolicy(),
+                alignment_method=cross_hybridization_aligner,
+                database_name_reference=self.subdir_db_reference,
+                dir_output=self.dir_output,
+            )
 
         hybridization_probability_aligner = _get_alignment_method(
             alignment_method=hybridization_probability_alignment_method,
@@ -819,7 +825,9 @@ class TargetProbeDesigner:
             dir_output=self.dir_output,
         )
 
-        filters = [exact_matches, cross_hybridization, hybridization_probability]
+        filters = [exact_matches, hybridization_probability]
+        if apply_cross_hybridization:
+            filters.insert(1, cross_hybridization)
         specificity_filter = SpecificityFilter(filters=filters)
         oligo_database = specificity_filter.apply(
             sequence_type="oligo",
@@ -829,13 +837,17 @@ class TargetProbeDesigner:
         )
 
         # remove all directories of intermediate steps
-        for directory in [
+        directories_to_cleanup = [
             reference_database.dir_output,
-            cross_hybridization_aligner.dir_output,
-            cross_hybridization.dir_output,
             hybridization_probability_aligner.dir_output,
             hybridization_probability.dir_output,
-        ]:
+        ]
+        if apply_cross_hybridization:
+            directories_to_cleanup.extend(
+                [cross_hybridization_aligner.dir_output, cross_hybridization.dir_output]
+            )
+
+        for directory in directories_to_cleanup:
             if os.path.exists(directory):
                 shutil.rmtree(directory)
 
@@ -1110,6 +1122,9 @@ def main():
         target_probe_hybridization_probability_threshold=config[
             "target_probe_hybridization_probability_threshold"
         ],
+        target_probe_apply_cross_hybridization=config.get(
+            "target_probe_apply_cross_hybridization", True
+        ),
         target_probe_GC_weight=config["target_probe_GC_weight"],
         target_probe_Tm_weight=config["target_probe_Tm_weight"],
         set_size_min=config["set_size_min"],

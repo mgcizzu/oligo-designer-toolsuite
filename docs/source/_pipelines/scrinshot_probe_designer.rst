@@ -31,6 +31,21 @@ where:
 All steps and config parameters will be documented in a log file, that is saved in the defined output directory.
 The logging file will have the format: ``log_scrinshot_probe_designer_{year}-{month}-{day}-{hour}-{minute}.txt``.
 
+Cross-Hybridization Toggle
+--------------------------
+
+For larger gene panels, cross-hybridization can dominate runtime/memory.
+You can disable it in the SCRINSHOT config with:
+
+::
+
+    target_probe_apply_cross_hybridization: false
+
+Behavior:
+
+- ``true`` (default): run cross-hybridization filter.
+- ``false``: skip cross-hybridization filter, while keeping exact-match and specificity/off-target filtering.
+
 
 Python API
 ------------------
@@ -78,6 +93,7 @@ For a complete explanation of all function parameters, refer to the API document
         target_probe_padlock_arm_Tm_min=50,
         target_probe_padlock_arm_Tm_max=60
         target_probe_ligation_region_size=5
+        target_probe_apply_cross_hybridization=True,
         target_probe_isoform_weight=2,
         target_probe_GC_weight=1,
         target_probe_Tm_weight=1,
