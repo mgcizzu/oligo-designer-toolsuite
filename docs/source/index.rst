@@ -26,6 +26,7 @@
 
    _pipelines/genomic_region_generator
    _pipelines/scrinshot_probe_designer
+   _pipelines/scrinshot_iss_probe_designer
    _pipelines/merfish_probe_designer
    _pipelines/seqfishplus_probe_designer
    _pipelines/oligoseq_probe_designer
