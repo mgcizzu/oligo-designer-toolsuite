@@ -4,6 +4,7 @@ The module provides a collection of comprehensive oligonucleotide design pipelin
 
 from ._genomic_region_generator import GenomicRegionGenerator
 from ._oligo_seq_probe_designer import OligoSeqProbeDesigner
+from ._flex_probe_designer import FlexProbeDesigner
 from ._scrinshot_probe_designer import ScrinshotProbeDesigner
 from ._scrinshot_iss_probe_designer import ScrinshotISSProbeDesigner
 from ._seqfish_plus_probe_designer import SeqFishPlusProbeDesigner
@@ -13,6 +14,7 @@ from ._merfish_probe_designer import MerfishProbeDesigner
 __all__ = [
     "GenomicRegionGenerator",
     "OligoSeqProbeDesigner",
+    "FlexProbeDesigner",
     "ScrinshotProbeDesigner",
     "ScrinshotISSProbeDesigner",
     "SeqFishPlusProbeDesigner",

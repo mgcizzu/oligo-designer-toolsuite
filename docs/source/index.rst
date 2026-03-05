@@ -30,6 +30,7 @@
    _pipelines/merfish_probe_designer
    _pipelines/seqfishplus_probe_designer
    _pipelines/oligoseq_probe_designer
+   _pipelines/flex_probe_designer
 
 
 .. toctree::
