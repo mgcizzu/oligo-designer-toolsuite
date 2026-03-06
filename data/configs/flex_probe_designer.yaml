@@ -25,7 +25,7 @@ target_probe_targeted_exons:
   - "1"
   - "2"
   - "3"
-target_probe_isoform_consensus: 0 #min isoform consesnsus for oligos, i.e. how many transcripts of the total number of transcripts of a gene are covered by the oligo, given in %
+target_probe_isoform_consensus: 100 #min isoform consesnsus for oligos, i.e. how many transcripts of the total number of transcripts of a gene are covered by the oligo, given in %
 target_probe_GC_content_min: 45 # ignored by FLEX target search (whole-target GC/Tm filters are disabled)
 target_probe_GC_content_opt: 55 # ignored by FLEX target search
 target_probe_GC_content_max: 65 # ignored by FLEX target search
@@ -33,20 +33,20 @@ target_probe_Tm_min: 50 # ignored by FLEX target search
 target_probe_Tm_opt: 60 # ignored by FLEX target search
 target_probe_Tm_max: 70 # ignored by FLEX target search
 target_probe_secondary_structures_T: 37 # temperature to compute the secondary structure free energy
-target_probe_secondary_structures_threshold_deltaG: 0 # threshold for the secondary structure free energy -> oligo rejected if it presents a structure with a negative free energy at the defined temperature
+target_probe_secondary_structures_threshold_deltaG: -100 # very permissive for 50-nt FLEX targets
 target_probe_homopolymeric_base_n: # minimum number of nucleotides to consider it a homopolymeric run per base
-  A: 6
-  T: 6
-  C: 6
-  G: 6
-target_probe_max_len_selfcomplement: 10 # The maximum length of self-complementary sequence allowed to avoid homodimer formation.
+  A: 5
+  T: 5
+  C: 5
+  G: 5
+target_probe_max_len_selfcomplement: 50 # very permissive for 50-nt FLEX targets
 target_probe_hybridization_probability_threshold: 0.001 #the lower the threshold the more stringent the filter
-target_probe_apply_cross_hybridization: true # set false to skip cross-hybridization filtering
+target_probe_apply_cross_hybridization: false # set false to skip cross-hybridization filtering
 target_probe_GC_weight: 1 # ignored by FLEX target search
 target_probe_Tm_weight: 1 # ignored by FLEX target search
-set_size_min: 3 # minimum size of oligo sets (in case there exist no set of the optimal size) -> genes with less oligos will be filtered out and stored in regions_with_insufficient_oligos_for_db_probes
-set_size_opt: 5 # optimal size of oligo sets
-distance_between_target_probes: 0 # how much overlap should be allowed between oligos, e.g. if oligos can overlpap x bases choose -x, if oligos can be next to one another choose 0, if oligos should be x bases apart choose x
+set_size_min: 2 # minimum size of oligo sets (relaxed to reduce full-drop at oligoset stage)
+set_size_opt: 3 # optimal size of oligo sets
+distance_between_target_probes: 0 # relaxed to avoid over-constraining set construction
 n_sets: 100 # Maximum number of sets to report
 
 

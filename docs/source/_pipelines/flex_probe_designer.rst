@@ -98,7 +98,6 @@ Output
 
 In addition to standard target-probe attributes, output includes:
 
-- ``sequence_target_probe``
 - ``sequence_lhs_target_arm``
 - ``sequence_rhs_target_arm``
 - ``sequence_lhs_probe``
