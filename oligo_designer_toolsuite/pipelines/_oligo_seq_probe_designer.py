@@ -299,6 +299,7 @@ class OligoSeqProbeDesigner:
         set_size_opt: int = 5,
         distance_between_target_probes: int = 0,
         n_sets: int = 100,
+        skip_oligo_selection: bool = False,
     ):
         """
         Design target probes based on specified parameters, including property and specificity filters.
@@ -354,6 +355,8 @@ class OligoSeqProbeDesigner:
         :type distance_between_target_probes: int, optional
         :param n_sets: Number of probe sets to generate, defaults to 100.
         :type n_sets: int, optional
+        :param skip_oligo_selection: If True, return after specificity filtering and skip oligo set selection.
+        :type skip_oligo_selection: bool, optional
         :return: The designed oligo database with probe sets.
         :rtype: OligoDatabase
         """
@@ -412,6 +415,9 @@ class OligoSeqProbeDesigner:
         if self.write_intermediate_steps:
             dir_database = oligo_database.save_database(dir_database="3_db_probes_specificity_filter")
             print(f"Saved probe database for step 3 (Specificity Filters) in directory {dir_database}")
+
+        if skip_oligo_selection:
+            return oligo_database
 
         oligo_database = target_probe_designer.create_oligo_sets(
             oligo_database=oligo_database,

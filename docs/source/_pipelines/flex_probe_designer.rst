@@ -36,17 +36,45 @@ Behavior:
 FLEX Construct
 --------------
 
-Final sequence template:
+FLEX target design uses two equal-length target arms. With default settings:
+
+- ``target_arm_length: 25``
+- ``target_probe_length_min/max: 50``
+
+This yields:
+
+- ``sequence_lhs_target_arm``: first 25 nt
+- ``sequence_rhs_target_arm``: next 25 nt
+
+Construct templates:
 
 ::
 
-    sequence_flex_probe = handle_5prime + linker + sequence_target_probe + handle_3prime
+    sequence_lhs_probe = handle_5prime + linker + sequence_lhs_target_arm
+    sequence_rhs_probe = sequence_rhs_target_arm + handle_3prime
+    sequence_flex_probe = handle_5prime + linker + sequence_lhs_target_arm + sequence_rhs_target_arm + handle_3prime
 
 Configure in ``flex_probe``:
 
+- ``target_arm_length``
 - ``handle_5prime``
 - ``linker``
 - ``handle_3prime``
+
+GC/Tm Filtering Behavior
+------------------------
+
+FLEX disables whole-target (50 nt) GC/Tm filtering and neutralizes GC/Tm scoring during
+target search and set selection. This avoids biasing by full-length probe properties.
+
+Instead, FLEX applies GC constraints per target arm:
+
+- ``flex_probe.target_arm_gc_filter.enabled`` (default ``true``)
+- ``flex_probe.target_arm_gc_filter.gc_content_min`` (default ``44``)
+- ``flex_probe.target_arm_gc_filter.gc_content_max`` (default ``72``)
+
+Each probe is retained only if both ``sequence_lhs_target_arm`` and
+``sequence_rhs_target_arm`` satisfy the configured GC range.
 
 Ligation Junction Constraints
 -----------------------------
@@ -71,10 +99,19 @@ Output
 In addition to standard target-probe attributes, output includes:
 
 - ``sequence_target_probe``
+- ``sequence_lhs_target_arm``
+- ``sequence_rhs_target_arm``
+- ``sequence_lhs_probe``
+- ``sequence_rhs_probe``
 - ``sequence_flex_probe``
 - ``sequence_handle_5prime``
 - ``sequence_linker``
 - ``sequence_handle_3prime``
+- ``target_arm_length``
+- ``gc_content_lhs_target_arm``
+- ``gc_content_rhs_target_arm``
+- ``gc_content_target_arm_min``
+- ``gc_content_target_arm_max``
 - ``ligation_lhs_position``
 - ``ligation_lhs_base``
 - ``ligation_rhs_base``

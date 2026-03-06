@@ -18,20 +18,20 @@ files_fasta_target_probe_database: # fasta file with sequences form which the ol
 files_fasta_reference_database_target_probe: # fasta file with sequences used as reference for the specificity filters. Hint: use the genomic_region_generator pipeline to create fasta files of genomic regions of interest
   - data/genomic_regions/exon_annotation_source-NCBI_species-Homo_sapiens_annotation_release-110_genome_assemly-GRCh38.fna
   - data/genomic_regions/exon_exon_junction_annotation_source-NCBI_species-Homo_sapiens_annotation_release-110_genome_assemly-GRCh38.fna
-target_probe_length_min: 26 #min length of oligos
-target_probe_length_max: 30 #max length of oligos
+target_probe_length_min: 50 #min length of oligos (for default FLEX 25+25 target arms)
+target_probe_length_max: 50 #max length of oligos (for default FLEX 25+25 target arms)
 target_probe_split_region: 4 #Minimum number of bases covering the exon junction, i.e. the oligo should contain at least x bases upstream/downstream of the junction.
 target_probe_targeted_exons:
   - "1"
   - "2"
   - "3"
 target_probe_isoform_consensus: 0 #min isoform consesnsus for oligos, i.e. how many transcripts of the total number of transcripts of a gene are covered by the oligo, given in %
-target_probe_GC_content_min: 45 # minimum GC content of oligos
-target_probe_GC_content_opt: 55 # max and min values are defiend above
-target_probe_GC_content_max: 65 # maximum GC content of oligos
-target_probe_Tm_min: 50 # minimum melting temperature of oligos
-target_probe_Tm_opt: 60 # max and min values are defiend above
-target_probe_Tm_max: 70 # maximum melting temperature of oligos
+target_probe_GC_content_min: 45 # ignored by FLEX target search (whole-target GC/Tm filters are disabled)
+target_probe_GC_content_opt: 55 # ignored by FLEX target search
+target_probe_GC_content_max: 65 # ignored by FLEX target search
+target_probe_Tm_min: 50 # ignored by FLEX target search
+target_probe_Tm_opt: 60 # ignored by FLEX target search
+target_probe_Tm_max: 70 # ignored by FLEX target search
 target_probe_secondary_structures_T: 37 # temperature to compute the secondary structure free energy
 target_probe_secondary_structures_threshold_deltaG: 0 # threshold for the secondary structure free energy -> oligo rejected if it presents a structure with a negative free energy at the defined temperature
 target_probe_homopolymeric_base_n: # minimum number of nucleotides to consider it a homopolymeric run per base
@@ -42,8 +42,8 @@ target_probe_homopolymeric_base_n: # minimum number of nucleotides to consider i
 target_probe_max_len_selfcomplement: 10 # The maximum length of self-complementary sequence allowed to avoid homodimer formation.
 target_probe_hybridization_probability_threshold: 0.001 #the lower the threshold the more stringent the filter
 target_probe_apply_cross_hybridization: true # set false to skip cross-hybridization filtering
-target_probe_GC_weight: 1 # weight of the GC content of the probe in the efficiency score
-target_probe_Tm_weight: 1 # weight of the Tm of the probe in the efficiency score
+target_probe_GC_weight: 1 # ignored by FLEX target search
+target_probe_Tm_weight: 1 # ignored by FLEX target search
 set_size_min: 3 # minimum size of oligo sets (in case there exist no set of the optimal size) -> genes with less oligos will be filtered out and stored in regions_with_insufficient_oligos_for_db_probes
 set_size_opt: 5 # optimal size of oligo sets
 distance_between_target_probes: 0 # how much overlap should be allowed between oligos, e.g. if oligos can overlpap x bases choose -x, if oligos can be next to one another choose 0, if oligos should be x bases apart choose x
@@ -117,6 +117,11 @@ target_probe_Tm_salt_correction_parameters: null # if salt correction desired, p
 ### FLEX Probe Parameters
 ### -----------------------------------------------
 flex_probe:
+  target_arm_length: 25 # left/right target arm length (total target_probe length must be 2x this value)
+  target_arm_gc_filter:
+    enabled: true
+    gc_content_min: 44 # 10x-style recommendation per 25-nt arm
+    gc_content_max: 72
   handle_5prime: TCGTCGGCAGCGTCAGATGTGTATAAGAGACAG
   linker: ""
   handle_3prime: GTCTCGTGGGCTCGGAGATGTGTATAAGAGACAG

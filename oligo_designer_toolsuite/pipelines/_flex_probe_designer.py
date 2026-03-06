@@ -7,8 +7,11 @@ import warnings
 import yaml
 
 from oligo_designer_toolsuite.database import OligoDatabase
-from oligo_designer_toolsuite.pipelines._oligo_seq_probe_designer import OligoSeqProbeDesigner
-from oligo_designer_toolsuite.pipelines._utils import base_parser
+from oligo_designer_toolsuite.pipelines._oligo_seq_probe_designer import (
+    OligoSeqProbeDesigner,
+    TargetProbeDesigner,
+)
+from oligo_designer_toolsuite.pipelines._utils import base_parser, check_content_oligo_database
 
 
 class FlexProbeDesigner(OligoSeqProbeDesigner):
@@ -106,32 +109,138 @@ class FlexProbeDesigner(OligoSeqProbeDesigner):
 
         return oligo_database
 
+    def filter_by_target_arm_gc_content(
+        self,
+        oligo_database: OligoDatabase,
+        target_arm_length: int = 25,
+        gc_content_min: float = 44.0,
+        gc_content_max: float = 72.0,
+    ) -> OligoDatabase:
+        """
+        Filter probes by GC content on each split target arm independently.
+        """
+        if target_arm_length < 1:
+            raise ValueError("target_arm_length must be >= 1.")
+        if gc_content_min < 0 or gc_content_max > 100 or gc_content_min > gc_content_max:
+            raise ValueError("Invalid arm GC content thresholds.")
+
+        removed_for_invalid_length = 0
+        removed_for_lhs_gc = 0
+        removed_for_rhs_gc = 0
+        expected_target_length = 2 * target_arm_length
+        new_oligo_attributes = {}
+
+        for region_id in list(oligo_database.database.keys()):
+            for oligo_id in list(oligo_database.database[region_id].keys()):
+                probe_sequence = oligo_database.get_oligo_attribute_value(
+                    attribute="oligo", region_id=region_id, oligo_id=oligo_id, flatten=True
+                )
+                probe_sequence = str(probe_sequence).upper()
+
+                if len(probe_sequence) != expected_target_length:
+                    del oligo_database.database[region_id][oligo_id]
+                    removed_for_invalid_length += 1
+                    continue
+
+                lhs_target_arm = probe_sequence[:target_arm_length]
+                rhs_target_arm = probe_sequence[target_arm_length:]
+                lhs_gc = 100.0 * (lhs_target_arm.count("G") + lhs_target_arm.count("C")) / target_arm_length
+                rhs_gc = 100.0 * (rhs_target_arm.count("G") + rhs_target_arm.count("C")) / target_arm_length
+
+                if not (gc_content_min <= lhs_gc <= gc_content_max):
+                    del oligo_database.database[region_id][oligo_id]
+                    removed_for_lhs_gc += 1
+                    continue
+
+                if not (gc_content_min <= rhs_gc <= gc_content_max):
+                    del oligo_database.database[region_id][oligo_id]
+                    removed_for_rhs_gc += 1
+                    continue
+
+                new_oligo_attributes[oligo_id] = {
+                    "gc_content_lhs_target_arm": round(lhs_gc, 2),
+                    "gc_content_rhs_target_arm": round(rhs_gc, 2),
+                    "gc_content_target_arm_min": gc_content_min,
+                    "gc_content_target_arm_max": gc_content_max,
+                }
+
+        oligo_database.update_oligo_attributes(new_oligo_attributes)
+        oligo_database.remove_regions_with_insufficient_oligos(
+            pipeline_step="FLEX Target Arm GC Filter"
+        )
+
+        removed_total = removed_for_invalid_length + removed_for_lhs_gc + removed_for_rhs_gc
+        if removed_total > 0:
+            warnings.warn(
+                "FLEX target-arm GC filter removed "
+                f"{removed_total} probes "
+                f"(invalid_len={removed_for_invalid_length}, lhs_gc={removed_for_lhs_gc}, rhs_gc={removed_for_rhs_gc})."
+            )
+
+        return oligo_database
+
     def design_flex_probes(
         self,
         oligo_database: OligoDatabase,
         handle_5prime: str,
         handle_3prime: str,
         linker: str = "",
+        target_arm_length: int = 25,
     ) -> OligoDatabase:
         """Attach FLEX assay sequences to each designed target probe."""
+        if target_arm_length < 1:
+            raise ValueError("target_arm_length must be >= 1.")
+
         new_oligo_attributes = {}
+        removed_for_invalid_length = 0
+        expected_target_length = 2 * target_arm_length
 
         for region_id, database_region in oligo_database.database.items():
             for oligo_id, _ in database_region.items():
                 sequence_target_probe = oligo_database.get_oligo_attribute_value(
                     attribute="oligo", region_id=region_id, oligo_id=oligo_id, flatten=True
                 )
-                sequence_flex_probe = f"{handle_5prime}{linker}{sequence_target_probe}{handle_3prime}"
+                sequence_target_probe = str(sequence_target_probe).upper()
+
+                # FLEX split-arm design requires fixed-length left/right target arms.
+                if len(sequence_target_probe) != expected_target_length:
+                    del oligo_database.database[region_id][oligo_id]
+                    removed_for_invalid_length += 1
+                    continue
+
+                sequence_lhs_target_arm = sequence_target_probe[:target_arm_length]
+                sequence_rhs_target_arm = sequence_target_probe[target_arm_length:]
+                sequence_lhs_probe = f"{handle_5prime}{linker}{sequence_lhs_target_arm}"
+                sequence_rhs_probe = f"{sequence_rhs_target_arm}{handle_3prime}"
+                sequence_flex_probe = (
+                    f"{handle_5prime}{linker}{sequence_lhs_target_arm}"
+                    f"{sequence_rhs_target_arm}{handle_3prime}"
+                )
 
                 new_oligo_attributes[oligo_id] = {
                     "sequence_target_probe": sequence_target_probe,
+                    "sequence_lhs_target_arm": sequence_lhs_target_arm,
+                    "sequence_rhs_target_arm": sequence_rhs_target_arm,
+                    "sequence_lhs_probe": sequence_lhs_probe,
+                    "sequence_rhs_probe": sequence_rhs_probe,
                     "sequence_flex_probe": sequence_flex_probe,
                     "sequence_handle_5prime": handle_5prime,
                     "sequence_linker": linker,
                     "sequence_handle_3prime": handle_3prime,
+                    "target_arm_length": target_arm_length,
                 }
 
         oligo_database.update_oligo_attributes(new_oligo_attributes)
+        oligo_database.remove_regions_with_insufficient_oligos(
+            pipeline_step="FLEX Construct Assembly"
+        )
+
+        if removed_for_invalid_length > 0:
+            warnings.warn(
+                "FLEX construct assembly removed "
+                f"{removed_for_invalid_length} probes with target length != {expected_target_length}."
+            )
+
         return oligo_database
 
     def generate_output(
@@ -158,10 +267,19 @@ class FlexProbeDesigner(OligoSeqProbeDesigner):
                 "oligo",
                 "target",
                 "sequence_target_probe",
+                "sequence_lhs_target_arm",
+                "sequence_rhs_target_arm",
+                "sequence_lhs_probe",
+                "sequence_rhs_probe",
                 "sequence_flex_probe",
                 "sequence_handle_5prime",
                 "sequence_linker",
                 "sequence_handle_3prime",
+                "target_arm_length",
+                "gc_content_lhs_target_arm",
+                "gc_content_rhs_target_arm",
+                "gc_content_target_arm_min",
+                "gc_content_target_arm_max",
                 "ligation_lhs_position",
                 "ligation_lhs_base",
                 "ligation_rhs_base",
@@ -260,12 +378,12 @@ def main():
         target_probe_split_region=config["target_probe_split_region"],
         target_probe_targeted_exons=config["target_probe_targeted_exons"],
         target_probe_isoform_consensus=config["target_probe_isoform_consensus"],
-        target_probe_GC_content_min=config["target_probe_GC_content_min"],
-        target_probe_GC_content_opt=config["target_probe_GC_content_opt"],
-        target_probe_GC_content_max=config["target_probe_GC_content_max"],
-        target_probe_Tm_min=config["target_probe_Tm_min"],
-        target_probe_Tm_opt=config["target_probe_Tm_opt"],
-        target_probe_Tm_max=config["target_probe_Tm_max"],
+        target_probe_GC_content_min=0.0,
+        target_probe_GC_content_opt=50.0,
+        target_probe_GC_content_max=100.0,
+        target_probe_Tm_min=-100.0,
+        target_probe_Tm_opt=0.0,
+        target_probe_Tm_max=1000.0,
         target_probe_secondary_structures_T=config["target_probe_secondary_structures_T"],
         target_probe_secondary_structures_threshold_deltaG=config[
             "target_probe_secondary_structures_threshold_deltaG"
@@ -278,15 +396,18 @@ def main():
         target_probe_apply_cross_hybridization=config.get(
             "target_probe_apply_cross_hybridization", True
         ),
-        target_probe_GC_weight=config["target_probe_GC_weight"],
-        target_probe_Tm_weight=config["target_probe_Tm_weight"],
+        target_probe_GC_weight=0.0,
+        target_probe_Tm_weight=0.0,
         set_size_min=config["set_size_min"],
         set_size_opt=config["set_size_opt"],
         distance_between_target_probes=config["distance_between_target_probes"],
         n_sets=config["n_sets"],
+        skip_oligo_selection=True,
     )
+    check_content_oligo_database(oligo_database)
 
     flex_params = config.get("flex_probe", {})
+    target_arm_length = flex_params.get("target_arm_length", 25)
     ligation_params = flex_params.get("ligation_filter", {})
     if ligation_params.get("enabled", True):
         oligo_database = pipeline.filter_by_ligation_junction(
@@ -296,12 +417,49 @@ def main():
             required_lhs_mode=ligation_params.get("required_lhs_mode", "hard"),
             prohibited_ligation_pairs=ligation_params.get("prohibited_ligation_pairs", []),
         )
+        check_content_oligo_database(oligo_database)
+
+    arm_gc_params = flex_params.get("target_arm_gc_filter", {})
+    if arm_gc_params.get("enabled", True):
+        oligo_database = pipeline.filter_by_target_arm_gc_content(
+            oligo_database=oligo_database,
+            target_arm_length=target_arm_length,
+            gc_content_min=arm_gc_params.get("gc_content_min", 44.0),
+            gc_content_max=arm_gc_params.get("gc_content_max", 72.0),
+        )
+        check_content_oligo_database(oligo_database)
+
+    target_probe_designer = TargetProbeDesigner(pipeline.dir_output, pipeline.n_jobs)
+    oligo_database = target_probe_designer.create_oligo_sets(
+        oligo_database=oligo_database,
+        GC_content_min=0.0,
+        GC_content_opt=50.0,
+        GC_content_max=100.0,
+        GC_weight=0.0,
+        Tm_min=-100.0,
+        Tm_opt=0.0,
+        Tm_max=1000.0,
+        Tm_weight=0.0,
+        Tm_parameters=pipeline.target_probe_Tm_parameters,
+        Tm_chem_correction_parameters=pipeline.target_probe_Tm_chem_correction_parameters,
+        Tm_salt_correction_parameters=pipeline.target_probe_Tm_salt_correction_parameters,
+        set_size_min=config["set_size_min"],
+        set_size_opt=config["set_size_opt"],
+        distance_between_oligos=config["distance_between_target_probes"],
+        n_sets=config["n_sets"],
+        max_graph_size=pipeline.max_graph_size,
+        n_attempts=pipeline.n_attempts,
+        heuristic=pipeline.heuristic,
+        heuristic_n_attempts=pipeline.heuristic_n_attempts,
+    )
+    check_content_oligo_database(oligo_database)
 
     oligo_database = pipeline.design_flex_probes(
         oligo_database=oligo_database,
         handle_5prime=flex_params.get("handle_5prime", ""),
         handle_3prime=flex_params.get("handle_3prime", ""),
         linker=flex_params.get("linker", ""),
+        target_arm_length=target_arm_length,
     )
 
     pipeline.generate_output(oligo_database=oligo_database, top_n_sets=config["top_n_sets"])
