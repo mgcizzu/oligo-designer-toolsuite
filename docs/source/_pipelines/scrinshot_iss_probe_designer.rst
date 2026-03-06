@@ -4,8 +4,10 @@ SCRINSHOT ISS Probe Designer
 This ISS variant keeps the standard SCRINSHOT workflow and changes two parts:
 
 1. Backbone construction:
-   ``sequence_padlock_backbone = anchor_sequence + gene_specific_sequence``
+   ``sequence_padlock_backbone = gene_specific_sequence + anchor_sequence``
 2. Optional 5'/3' transcript-strand flanks for each designed probe.
+
+Detection oligos are not generated in this ISS workflow.
 
 
 Command-Line Call
@@ -89,3 +91,20 @@ Output fields added to final YAML:
 - ``lbar_id``
 - ``sequence_gene_specific``
 - ``sequence_padlock_anchor``
+
+Additional order CSV:
+
+- ``padlock_probes_order.csv`` with columns:
+  - ``Gene``
+  - ``Lbar_ID``
+  - ``padlock sequence``
+- rows are deduplicated by default on (``Gene``, ``Lbar_ID``, ``padlock sequence``)
+
+Additional flank CSV (same selected/deduplicated padlocks as above):
+
+- ``padlock_probes_order_flanks.csv`` with columns:
+  - ``Gene``
+  - ``Lbar_ID``
+  - ``padlock sequence``
+  - ``flank_5prime``
+  - ``flank_3prime``

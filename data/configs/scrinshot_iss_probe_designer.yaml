@@ -143,7 +143,7 @@ detection_oligo_Tm_salt_correction_parameters: null # if salt correction desired
 ### ISS Variant Parameters
 ### -----------------------------------------------
 padlock_backbone:
-  anchor_sequence: TGCGTCTATTTAGTGGAGCC # constant sequence present in all probes
+  anchor_sequence: TGCGTCTATTTAGTGGAGCC # constant anchor (placed after gene-specific Lbar sequence in backbone)
   file_gene_to_lbar: data/barcodes/gene_to_lbar.csv # CSV with columns: Gene, Lbar_ID
   file_lbar_to_sequence: data/barcodes/lbar_to_sequence.csv # CSV with columns: Lbar_ID, Sequence
   gene_column: Gene

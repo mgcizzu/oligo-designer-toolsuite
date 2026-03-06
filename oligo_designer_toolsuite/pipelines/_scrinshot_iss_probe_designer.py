@@ -4,6 +4,7 @@
 
 import re
 import warnings
+import os
 
 import pandas as pd
 import yaml
@@ -22,8 +23,8 @@ class ScrinshotISSProbeDesigner(ScrinshotProbeDesigner):
     The full target-probe and detection-oligo workflow is inherited from the
     base Scrinshot pipeline. This variant only overrides padlock backbone
     construction so users can use:
-    1) a constant anchor sequence
-    2) a gene-specific sequence loaded through two CSV mapping tables.
+    1) a gene-specific sequence loaded through two CSV mapping tables
+    2) a constant anchor sequence
     """
 
     def __init__(self, write_intermediate_steps: bool, dir_output: str, n_jobs: int) -> None:
@@ -151,7 +152,7 @@ class ScrinshotISSProbeDesigner(ScrinshotProbeDesigner):
 
     def design_padlock_backbone(self, oligo_database: OligoDatabase) -> OligoDatabase:
         """
-        Design backbones as: anchor_sequence + gene_specific_sequence.
+        Design backbones as: gene_specific_sequence + anchor_sequence.
 
         The gene-specific sequence is derived from:
         Gene -> Lbar_ID and Lbar_ID -> Sequence tables.
@@ -186,7 +187,7 @@ class ScrinshotISSProbeDesigner(ScrinshotProbeDesigner):
 
                     sequence_padlock_arm1 = sequence_oligo[ligation_site:]
                     sequence_padlock_arm2 = sequence_oligo[:ligation_site]
-                    sequence_padlock_backbone = self.anchor_sequence + sequence_gene_specific
+                    sequence_padlock_backbone = sequence_gene_specific + self.anchor_sequence
                     sequence_padlock_probe = (
                         sequence_padlock_arm1 + sequence_padlock_backbone + sequence_padlock_arm2
                     )
@@ -218,7 +219,7 @@ class ScrinshotISSProbeDesigner(ScrinshotProbeDesigner):
                         ),
                         "sequence_padlock_arm1": sequence_padlock_arm1,
                         "sequence_padlock_arm2": sequence_padlock_arm2,
-                        "sequence_padlock_accessory1": self.anchor_sequence,
+                        "sequence_padlock_accessory1": sequence_gene_specific,
                         "sequence_padlock_ISS_anchor": self.anchor_sequence,
                         "sequence_padlock_accessory2": "",
                         "sequence_padlock_backbone": sequence_padlock_backbone,
@@ -454,6 +455,7 @@ class ScrinshotISSProbeDesigner(ScrinshotProbeDesigner):
         oligo_database: OligoDatabase,
         top_n_sets: int = 3,
         attributes: list = None,
+        order_csv_deduplicate: bool = True,
     ) -> None:
         """Generate final output and include ISS-specific attributes by default."""
         if attributes is None:
@@ -471,7 +473,6 @@ class ScrinshotISSProbeDesigner(ScrinshotProbeDesigner):
                 "end",
                 "strand",
                 "sequence_padlock_probe",
-                "sequence_detection_oligo",
                 "sequence_padlock_arm1",
                 "sequence_padlock_accessory1",
                 "sequence_padlock_ISS_anchor",
@@ -485,7 +486,6 @@ class ScrinshotISSProbeDesigner(ScrinshotProbeDesigner):
                 "Tm_arm1",
                 "Tm_arm2",
                 "Tm_diff_arms",
-                "Tm_detection_oligo",
                 "isoform_consensus",
                 "lbar_id",
                 "sequence_gene_specific",
@@ -499,6 +499,90 @@ class ScrinshotISSProbeDesigner(ScrinshotProbeDesigner):
             top_n_sets=top_n_sets,
             attributes=attributes,
         )
+        self._write_order_csv(
+            oligo_database=oligo_database,
+            top_n_sets=top_n_sets,
+            deduplicate=order_csv_deduplicate,
+        )
+
+    def _write_order_csv(
+        self, oligo_database: OligoDatabase, top_n_sets: int, deduplicate: bool = True
+    ) -> None:
+        """
+        Write a flat order CSV for ISS probes.
+
+        Output columns:
+        - Gene
+        - Lbar_ID
+        - padlock sequence
+        """
+        rows = []
+        for region_id in oligo_database.database.keys():
+            oligosets_region = oligo_database.oligosets[region_id]
+            oligoset_oligo_columns = [
+                col for col in oligosets_region.columns if col.startswith("oligo_")
+            ]
+            oligoset_score_columns = [
+                col for col in oligosets_region.columns if col.startswith("set_score_")
+            ]
+
+            selected_sets = oligosets_region.sort_values(
+                by=oligoset_score_columns, ascending=True
+            ).head(top_n_sets)
+
+            for _, oligoset in selected_sets.iterrows():
+                for oligo_id in oligoset[oligoset_oligo_columns]:
+                    rows.append(
+                        {
+                            "Gene": region_id,
+                            "Lbar_ID": oligo_database.get_oligo_attribute_value(
+                                attribute="lbar_id",
+                                region_id=region_id,
+                                oligo_id=oligo_id,
+                                flatten=True,
+                            ),
+                            "padlock sequence": oligo_database.get_oligo_attribute_value(
+                                attribute="sequence_padlock_probe",
+                                region_id=region_id,
+                                oligo_id=oligo_id,
+                                flatten=True,
+                            ),
+                            "flank_5prime": oligo_database.get_oligo_attribute_value(
+                                attribute="sequence_flank_5prime",
+                                region_id=region_id,
+                                oligo_id=oligo_id,
+                                flatten=True,
+                            ),
+                            "flank_3prime": oligo_database.get_oligo_attribute_value(
+                                attribute="sequence_flank_3prime",
+                                region_id=region_id,
+                                oligo_id=oligo_id,
+                                flatten=True,
+                            ),
+                        }
+                    )
+
+        if deduplicate:
+            seen = set()
+            deduplicated_rows = []
+            for row in rows:
+                key = (row["Gene"], row["Lbar_ID"], row["padlock sequence"])
+                if key in seen:
+                    continue
+                seen.add(key)
+                deduplicated_rows.append(row)
+            rows = deduplicated_rows
+
+        file_output = os.path.join(self.dir_output, "padlock_probes_order.csv")
+        pd.DataFrame(rows, columns=["Gene", "Lbar_ID", "padlock sequence"]).to_csv(
+            file_output, index=False
+        )
+
+        file_output_flanks = os.path.join(self.dir_output, "padlock_probes_order_flanks.csv")
+        pd.DataFrame(
+            rows,
+            columns=["Gene", "Lbar_ID", "padlock sequence", "flank_5prime", "flank_3prime"],
+        ).to_csv(file_output_flanks, index=False)
 
 
 def main():
@@ -592,15 +676,6 @@ def main():
         set_size_opt=config["set_size_opt"],
         distance_between_target_probes=config["distance_between_target_probes"],
         n_sets=config["n_sets"],
-    )
-
-    oligo_database = pipeline.design_detection_oligos(
-        oligo_database=oligo_database,
-        detection_oligo_length_min=config["detection_oligo_length_min"],
-        detection_oligo_length_max=config["detection_oligo_length_max"],
-        detection_oligo_min_thymines=config["detection_oligo_min_thymines"],
-        detection_oligo_U_distance=config["detection_oligo_U_distance"],
-        detection_oligo_Tm_opt=config["detection_oligo_Tm_opt"],
     )
 
     flank_config = config.get("probe_flanks", {})
