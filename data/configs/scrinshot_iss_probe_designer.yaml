@@ -152,11 +152,11 @@ padlock_backbone:
   lbar_sequence_column: Sequence
 
 probe_flanks:
-  enabled: false
+  enabled: true
   files_fasta_target_context: # optional; if omitted, files_fasta_target_probe_database is used
     - data/genomic_regions/exon_annotation_source-NCBI_species-Homo_sapiens_annotation_release-110_genome_assemly-GRCh38.fna
     - data/genomic_regions/exon_exon_junction_annotation_source-NCBI_species-Homo_sapiens_annotation_release-110_genome_assemly-GRCh38.fna
-  flank_5prime_length: 12 # x
-  flank_3prime_length: 12 # y
+  flank_5prime_length: 20 # x
+  flank_3prime_length: 20 # y
   flank_5prime_distance: 0 # n
   flank_3prime_distance: 0 # m
