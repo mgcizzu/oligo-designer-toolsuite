@@ -179,7 +179,9 @@ class OligoSequenceGenerator:
 
             # if the fasta header DOES NOT contain coordinates information
             if chromosome is None:
-                list_of_coordinates = [None for i in range(len(entry_sequence))]
+                list_of_coordinates = list(range(1, len(entry_sequence) + 1))
+                chromosome = region
+                strand = "+"
             # if the fasta header DOES contain coordinates information
             else:
                 # coordinates in fasta file use 1-base indixing, which go from 1 (for base 1) to n (for base n)
@@ -193,6 +195,11 @@ class OligoSequenceGenerator:
 
             file_fasta_region = generate_unique_filename(
                 dir_output=self.dir_output, base_name=region, extension="fna"
+            )
+            additional_info_field = (
+                f"::{additional_info}"
+                if isinstance(additional_info, str) and additional_info
+                else ""
             )
             with open(file_fasta_region, "w") as handle_fasta:
                 for sequence_length in range(length_interval_sequences[0], length_interval_sequences[1] + 1):
@@ -212,7 +219,9 @@ class OligoSequenceGenerator:
                         start_seq = min(seq_start_end)  # 1-base index
                         end_seq = max(seq_start_end)
 
-                        header = f"{region}::{additional_info}::{chromosome}:{start_seq}-{end_seq}({strand})"
+                        header = (
+                            f"{region}{additional_info_field}::{chromosome}:{start_seq}-{end_seq}({strand})"
+                        )
 
                         if not split_sequence:
                             handle_fasta.write(f">{header}\n{seq}\n")

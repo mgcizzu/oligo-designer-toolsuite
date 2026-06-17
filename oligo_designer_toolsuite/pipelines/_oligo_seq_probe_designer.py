@@ -42,7 +42,6 @@ from oligo_designer_toolsuite.oligo_specificity_filter import (
     BowtieFilter,
     CrossHybridizationFilter,
     ExactMatchFilter,
-    HybridizationProbabilityFilter,
     RemoveByLargerRegionPolicy,
     RemoveAllPolicy,
     SpecificityFilter,
@@ -825,6 +824,8 @@ class TargetProbeDesigner:
             hit_parameters=hybridization_probability_hit_parameters,
             filter_name_specification="hybridization_probability",
         )
+        from oligo_designer_toolsuite.oligo_specificity_filter import HybridizationProbabilityFilter
+
         hybridization_probability = HybridizationProbabilityFilter(
             alignment_method=hybridization_probability_aligner,
             threshold=hybridization_probability_threshold,

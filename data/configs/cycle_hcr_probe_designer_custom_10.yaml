@@ -1,0 +1,164 @@
+#######################
+### USER PARAMETERS ###
+#######################
+
+### General parameters
+### -----------------------------------------------
+n_jobs: 1
+dir_output: output_cycle_hcr_probe_designer_custom_10
+write_intermediate_steps: true
+top_n_sets: 3
+
+### Input files
+### -----------------------------------------------
+file_regions: data/genes/custom_10.txt
+files_fasta_target_probe_database:
+  - data/genomic_regions/exon_annotation_source-NCBI_species-Homo_sapiens_annotation_release-110_genome_assemly-GRCh38.fna
+files_fasta_reference_database_target_probe:
+  - data/genomic_regions/exon_annotation_source-NCBI_species-Homo_sapiens_annotation_release-110_genome_assemly-GRCh38.fna
+
+barcode_library:
+  file: /Users/marcogrillo/Desktop/TracMan/TracMan_200k/Constructs_V7.1_work/HCR_barcodes.xlsx
+  sheets:
+    - hcr488_B4
+    - hcr561_B2
+    - hcr640_B3
+
+barcode_assignment:
+  file: data/barcodes/cycle_hcr_gene_barcode_assignment_custom_10.csv
+  gene_column: Gene
+  sheet_column: Sheet
+  left_barcode_name_column: Left_Barcode_Name
+  right_barcode_name_column: Right_Barcode_Name
+  require_unique_barcode_combination: true
+  require_same_sheet_for_left_right: true
+
+### Target selection
+### -----------------------------------------------
+target_probe_length_min: 45
+target_probe_length_max: 45
+target_probe_isoform_consensus: 50
+target_probe_GC_content_min: 30
+target_probe_GC_content_opt: 60
+target_probe_GC_content_max: 90
+target_probe_Tm_min: 0
+target_probe_Tm_opt: 72
+target_probe_Tm_max: 76
+target_probe_homopolymeric_base_n:
+  A: 6
+  T: 6
+  C: 6
+  G: 6
+target_probe_T_secondary_structure: 76
+target_probe_secondary_structures_threshold_deltaG: 0
+target_probe_apply_cross_hybridization: true
+target_probe_GC_weight: 1
+target_probe_Tm_weight: 1
+target_probe_isoform_weight: 2
+set_size_min: 10
+set_size_opt: 25
+distance_between_target_probes: 5
+n_sets: 100
+
+### CycleHCR geometry and filtering
+### -----------------------------------------------
+cycle_hcr:
+  selection_mode: sliding_window
+  window_length: 92
+  left_probe_length: 45
+  inter_probe_gap_length: 2
+  right_probe_length: 45
+  max_secondary_structure_tm: 76
+  max_cross_hybridization_tm: 72
+  enable_cross_hybridization_tm_screen: true
+  cross_hybridization_seed_length: 12
+  min_dna_rna_tm_estimate: 90
+  dna_rna_tm_estimate_offset: 10
+  junction_length: 26
+  junction_reference_scope: transcriptome
+  junction_max_reference_matches: 1
+
+### Output assembly
+### -----------------------------------------------
+output_modes:
+  - direct
+  - twist_pcr_t7_rt
+
+direct_primary:
+  spacer: TT
+  left_probe_order:
+    - target_left_reverse_complement
+    - spacer
+    - left_barcode_full
+  right_probe_order:
+    - right_barcode_full
+    - spacer
+    - target_right_reverse_complement
+
+twist_pcr_t7_rt:
+  forward_primer_with_t7: TAATACGACTCACTATAGCGTCATC
+  reverse_primer_sequence: CGACACCGAACGTGCGACAA
+  spacer: TT
+  left_barcode_subsequence:
+    source: left_barcode
+    side: terminal
+    length: 14
+  right_barcode_subsequence:
+    source: right_barcode
+    side: leading
+    length: 14
+  left_probe_order:
+    - forward_primer_with_t7
+    - target_left_sense
+    - spacer
+    - left_barcode_subsequence
+    - reverse_primer_sequence
+  right_probe_order:
+    - forward_primer_with_t7
+    - right_barcode_subsequence
+    - spacer
+    - target_right_sense
+    - reverse_primer_sequence
+
+############################
+### DEVELOPER PARAMETERS ###
+############################
+
+target_probe_specificity_blastn_search_parameters:
+  perc_identity: 80
+  strand: "minus"
+  word_size: 10
+  dust: "no"
+  soft_masking: "false"
+  max_target_seqs: 10
+  max_hsps: 1000
+target_probe_specificity_blastn_hit_parameters:
+  min_alignment_length: 17
+target_probe_cross_hybridization_blastn_search_parameters:
+  perc_identity: 80
+  strand: "minus"
+  word_size: 7
+  dust: "no"
+  soft_masking: "false"
+  max_target_seqs: 10
+target_probe_cross_hybridization_blastn_hit_parameters:
+  min_alignment_length: 17
+target_probe_Tm_parameters:
+  nn_table: DNA_NN3
+  tmm_table: DNA_TMM1
+  imm_table: DNA_IMM1
+  de_table: DNA_DE1
+  dnac1: 50
+  dnac2: 0
+  saltcorr: 7
+  Na: 1000
+  K: 0
+  Tris: 0
+  Mg: 0
+  dNTPs: 0
+target_probe_Tm_chem_correction_parameters: null
+target_probe_Tm_salt_correction_parameters: null
+max_graph_size: 5000
+n_attempts: 100000
+heuristic: true
+heuristic_n_attempts: 100

@@ -190,6 +190,37 @@ class TestBlastFilter(AlignmentFilterTestBase, unittest.TestCase):
         )
 
 
+class TestBlastFilterParsing(unittest.TestCase):
+    def setUp(self):
+        self.tmp_path = os.path.join(os.getcwd(), "tmp_output_blast_filter_parsing")
+        os.makedirs(self.tmp_path, exist_ok=True)
+        self.filter = BlastNFilter(filter_name="blast_empty", dir_output=self.tmp_path)
+
+    def tearDown(self):
+        shutil.rmtree(self.tmp_path)
+
+    def test_read_empty_search_output(self):
+        file_search_results = os.path.join(self.filter.dir_output, "blast_results_empty.txt")
+        with open(file_search_results, "w"):
+            pass
+
+        search_results = self.filter._read_search_output(
+            file_search_results=file_search_results,
+            names_search_output=[
+                "query",
+                "reference",
+                "alignment_length",
+                "query_start",
+                "query_end",
+                "query_length",
+            ],
+        )
+
+        assert search_results.empty, "error: empty BLAST output should produce an empty table"
+        assert "query_region_id" in search_results.columns, "error: query region column missing"
+        assert "reference_region_id" in search_results.columns, "error: reference region column missing"
+
+
 class TestBowtieFilter(AlignmentFilterTestBase, unittest.TestCase):
     def setup_filter(self):
         bowtie_search_parameters = {"-n": 3, "-l": 5}

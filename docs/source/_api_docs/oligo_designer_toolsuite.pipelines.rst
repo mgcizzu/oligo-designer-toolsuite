@@ -11,6 +11,8 @@ Module contents
    GenomicRegionGenerator
    OligoSeqProbeDesigner
    ScrinshotProbeDesigner
+   ScrinshotISSProbeDesigner
+   CustomSequenceScrinshotISSProbeDesigner
    SeqFishPlusProbeDesigner
    MerfishProbeDesigner
 

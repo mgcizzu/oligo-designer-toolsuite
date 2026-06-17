@@ -342,3 +342,51 @@ class TestOligoSequenceGenerator(unittest.TestCase):
         assert check_if_dna_sequence(
             self.oligo_database.database["AARS1"]["AARS1::50"]["oligo"]
         ), "error: the craeted sequence is not a DNA seuqnece"
+
+    def test_create_sequences_sliding_window_plain_fasta(self):
+        file_plain_fasta = os.path.join(self.tmp_path, "plain_sequence.fna")
+        with open(file_plain_fasta, "w") as handle:
+            handle.write(
+                ">custom_reporter\n"
+                "ATGGCTACCGTGAAGTTCGAGGGCGACACCTACGTGAACCGCATCGAGCTGAAGGGCATCGACTTCA\n"
+            )
+
+        file_fasta_custom = self.oligo_sequence_generator.create_sequences_sliding_window(
+            files_fasta_in=file_plain_fasta,
+            length_interval_sequences=(30, 30),
+        )
+
+        self.oligo_database.load_database_from_fasta(
+            files_fasta=file_fasta_custom,
+            database_overwrite=True,
+            sequence_type="target",
+        )
+
+        assert "custom_reporter" in self.oligo_database.database.keys(), "error: region missing"
+        assert (
+            self.oligo_database.get_oligo_attribute_value(
+                attribute="start",
+                flatten=True,
+                region_id="custom_reporter",
+                oligo_id="custom_reporter::1",
+            )
+            == 1
+        ), "error: wrong synthetic start coordinate"
+        assert (
+            self.oligo_database.get_oligo_attribute_value(
+                attribute="end",
+                flatten=True,
+                region_id="custom_reporter",
+                oligo_id="custom_reporter::1",
+            )
+            == 30
+        ), "error: wrong synthetic end coordinate"
+        assert (
+            self.oligo_database.get_oligo_attribute_value(
+                attribute="strand",
+                flatten=True,
+                region_id="custom_reporter",
+                oligo_id="custom_reporter::1",
+            )
+            == "+"
+        ), "error: wrong synthetic strand"

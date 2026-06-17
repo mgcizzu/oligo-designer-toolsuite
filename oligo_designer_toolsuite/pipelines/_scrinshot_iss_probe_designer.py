@@ -44,6 +44,8 @@ class ScrinshotISSProbeDesigner(ScrinshotProbeDesigner):
         lbar_id_column_gene_table: str = "Lbar_ID",
         lbar_id_column_sequence_table: str = "Lbar_ID",
         lbar_sequence_column: str = "Sequence",
+        gene_specific_sequence: str = None,
+        direct_lbar_id: str = "custom",
     ) -> None:
         """Configure anchor and CSV-based gene-specific backbone mapping."""
 
@@ -59,6 +61,11 @@ class ScrinshotISSProbeDesigner(ScrinshotProbeDesigner):
         self.lbar_id_column_gene_table = lbar_id_column_gene_table
         self.lbar_id_column_sequence_table = lbar_id_column_sequence_table
         self.lbar_sequence_column = lbar_sequence_column
+        self.gene_specific_sequence = gene_specific_sequence.upper() if gene_specific_sequence else None
+        self.direct_lbar_id = direct_lbar_id
+
+        if self.gene_specific_sequence and re.fullmatch(r"[ACGT]+", self.gene_specific_sequence) is None:
+            raise ValueError("gene_specific_sequence must contain only A/C/G/T")
 
     def _load_gene_specific_backbone_sequences(self) -> dict[str, tuple[str, str]]:
         """
@@ -157,8 +164,13 @@ class ScrinshotISSProbeDesigner(ScrinshotProbeDesigner):
         The gene-specific sequence is derived from:
         Gene -> Lbar_ID and Lbar_ID -> Sequence tables.
         """
-        gene_to_lbar_sequence = self._load_gene_specific_backbone_sequences()
         region_ids = list(oligo_database.database.keys())
+        if self.gene_specific_sequence:
+            gene_to_lbar_sequence = {
+                region_id: (self.direct_lbar_id, self.gene_specific_sequence) for region_id in region_ids
+            }
+        else:
+            gene_to_lbar_sequence = self._load_gene_specific_backbone_sequences()
 
         for region_id in region_ids:
             if region_id not in gene_to_lbar_sequence:
@@ -250,6 +262,16 @@ class ScrinshotISSProbeDesigner(ScrinshotProbeDesigner):
                 )
                 chromosome = coordinates["chromosome"][0]
                 strand = coordinates["strand"][0]
+
+                if chromosome is None:
+                    chromosome = region_id
+                    strand = "+"
+                    coordinates = {
+                        "chromosome": [chromosome],
+                        "start": [1],
+                        "end": [len(entry.seq)],
+                        "strand": [strand],
+                    }
 
                 # We can only compute flanks when coordinates are available.
                 if chromosome is None or strand is None:
@@ -642,6 +664,8 @@ def main():
         lbar_id_column_gene_table=backbone.get("lbar_id_column_gene_table", "Lbar_ID"),
         lbar_id_column_sequence_table=backbone.get("lbar_id_column_sequence_table", "Lbar_ID"),
         lbar_sequence_column=backbone.get("lbar_sequence_column", "Sequence"),
+        gene_specific_sequence=backbone.get("gene_specific_sequence"),
+        direct_lbar_id=backbone.get("direct_lbar_id", "custom"),
     )
 
     oligo_database = pipeline.design_target_probes(

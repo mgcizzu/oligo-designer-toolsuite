@@ -349,15 +349,18 @@ class AlignmentSpecificityFilter(SpecificityFilterBase):
         :return: A DataFrame containing the processed search results.
         :rtype: pd.DataFrame
         """
-        search_results = pd.read_csv(
-            filepath_or_buffer=file_search_results,
-            header=None,
-            sep="\t",
-            low_memory=False,
-            engine="c",
-            usecols=usecols,
-            names=names_search_output,
-        )
+        if os.path.getsize(file_search_results) == 0:
+            search_results = pd.DataFrame(columns=names_search_output)
+        else:
+            search_results = pd.read_csv(
+                filepath_or_buffer=file_search_results,
+                header=None,
+                sep="\t",
+                low_memory=False,
+                engine="c",
+                usecols=usecols,
+                names=names_search_output,
+            )
 
         search_results["query_region_id"] = search_results["query"].str.split(SEPARATOR_OLIGO_ID).str[0]
         search_results["reference_region_id"] = (
@@ -397,7 +400,7 @@ class AlignmentSpecificityFilter(SpecificityFilterBase):
         :type file_index: str
         """
         file_index_basename = os.path.basename(file_index)
-        regex = re.compile(file_index_basename + "\..*")
+        regex = re.compile(file_index_basename + r"\..*")
         for root, _, files in os.walk(self.dir_output):
             for file in files:
                 if regex.match(file):

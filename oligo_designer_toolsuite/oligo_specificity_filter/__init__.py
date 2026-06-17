@@ -14,8 +14,6 @@ from ._filter_bowtie import BowtieFilter, Bowtie2Filter
 from ._filter_cross_hybridization import (
     CrossHybridizationFilter,
 )
-from ._filter_ai import HybridizationProbabilityFilter
-
 from ._policies import FilterPolicyBase, RemoveAllPolicy, RemoveByDegreePolicy, RemoveByLargerRegionPolicy
 
 from ._specificity_filter import SpecificityFilter
@@ -31,10 +29,17 @@ __all__ = [
     "BowtieFilter",
     "Bowtie2Filter",
     "CrossHybridizationFilter",
-    "HybridizationProbabilityFilter",
     "FilterPolicyBase",
     "RemoveAllPolicy",
     "RemoveByDegreePolicy",
     "RemoveByLargerRegionPolicy",
     "SpecificityFilter",
 ]
+
+
+def __getattr__(name):
+    if name == "HybridizationProbabilityFilter":
+        from ._filter_ai import HybridizationProbabilityFilter
+
+        return HybridizationProbabilityFilter
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
