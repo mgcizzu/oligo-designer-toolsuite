@@ -14,7 +14,7 @@ top_n_sets: 3
 file_regions: null
 allow_multiple_target_sequences: false
 files_fasta_target_probe_database:
-  - data/genomic_regions/custom_sequence_reporter_example.fna
+  - data/genomic_regions/tdTomato.fna
 files_fasta_reference_database_target_probe:
   - data/genomic_regions/exon_annotation_source-NCBI_species-Homo_sapiens_annotation_release-110_genome_assemly-GRCh38.fna
   - data/genomic_regions/exon_exon_junction_annotation_source-NCBI_species-Homo_sapiens_annotation_release-110_genome_assemly-GRCh38.fna
@@ -37,6 +37,7 @@ target_probe_padlock_arm_Tm_min: 50
 target_probe_padlock_arm_Tm_max: 60
 target_probe_ligation_region_size: 5
 target_probe_isoform_weight: 0
+target_probe_isoform_consensus: false
 target_probe_GC_weight: 1
 target_probe_Tm_weight: 1
 set_size_min: 3
