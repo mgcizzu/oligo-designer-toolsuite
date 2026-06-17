@@ -146,3 +146,5 @@ tests/notebooks/temp_path/*
 tests/notebooks/test_cross_hybridization_filter.ipynb
 
 ./tmp_*
+data/genomic_regions/exon_annotation_source-Ensemble_species-mus_musculus_annotation_release-113_genome_assemly-GRCm39.fna
+data/genomic_regions/mouse_cycle_hcr_3_exons.fna
