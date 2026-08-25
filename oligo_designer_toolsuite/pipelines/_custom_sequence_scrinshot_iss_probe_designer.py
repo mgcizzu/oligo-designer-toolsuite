@@ -192,6 +192,25 @@ class CustomSequenceScrinshotISSProbeDesigner(ScrinshotISSProbeDesigner):
     have any configured BLAST hit in the reference transcriptome.
     """
 
+    def design_probe_flanks(
+        self,
+        oligo_database: OligoDatabase,
+        files_fasta_target_context: list[str],
+        flank_5prime_length: int,
+        flank_3prime_length: int,
+        flank_5prime_distance: int = 0,
+        flank_3prime_distance: int = 0,
+    ) -> OligoDatabase:
+        """Add reverse-complemented RNA flanks in probe-binding orientation."""
+        return super().design_probe_flanks(
+            oligo_database=oligo_database,
+            files_fasta_target_context=files_fasta_target_context,
+            flank_5prime_length=flank_5prime_length,
+            flank_3prime_length=flank_3prime_length,
+            flank_5prime_distance=flank_5prime_distance,
+            flank_3prime_distance=flank_3prime_distance,
+        )
+
     def design_target_probes(
         self,
         files_fasta_target_probe_database: list,

@@ -9,6 +9,7 @@ import os
 import pandas as pd
 import yaml
 from Bio import SeqIO
+from Bio.Seq import Seq
 
 from oligo_designer_toolsuite.database import OligoDatabase
 from oligo_designer_toolsuite.pipelines._scrinshot_probe_designer import ScrinshotProbeDesigner
@@ -369,14 +370,15 @@ class ScrinshotISSProbeDesigner(ScrinshotProbeDesigner):
         flank_3prime_distance: int = 0,
     ) -> OligoDatabase:
         """
-        Add 5' and 3' flanking sequences relative to transcript strand.
+        Add reverse-complemented 5' and 3' flanking sequences relative to the
+        transcript strand, placing them in probe-binding orientation.
 
         5' flank:
             starts ``flank_5prime_distance`` nt upstream of target start and has
-            length ``flank_5prime_length``.
+            length ``flank_5prime_length``, then is reverse-complemented.
         3' flank:
             starts ``flank_3prime_distance`` nt downstream of target end and has
-            length ``flank_3prime_length``.
+            length ``flank_3prime_length``, then is reverse-complemented.
         """
         for value_name, value in {
             "flank_5prime_length": flank_5prime_length,
@@ -443,14 +445,18 @@ class ScrinshotISSProbeDesigner(ScrinshotProbeDesigner):
                     if flank_5prime_length == 0:
                         flank_5prime = ""
                     elif left_start >= 0 and left_end <= len(sequence_context):
-                        flank_5prime = sequence_context[left_start:left_end]
+                        flank_5prime = str(
+                            Seq(sequence_context[left_start:left_end]).reverse_complement()
+                        )
                     else:
                         out_of_bounds += 1
 
                     if flank_3prime_length == 0:
                         flank_3prime = ""
                     elif right_start >= 0 and right_end <= len(sequence_context):
-                        flank_3prime = sequence_context[right_start:right_end]
+                        flank_3prime = str(
+                            Seq(sequence_context[right_start:right_end]).reverse_complement()
+                        )
                     else:
                         out_of_bounds += 1
 
@@ -535,9 +541,21 @@ class ScrinshotISSProbeDesigner(ScrinshotProbeDesigner):
 
         Output columns:
         - Gene
-        - Lbar_ID
-        - padlock sequence
+        - requested padlock, target, Tm, isoform, and Lbar attributes
+        - 5' and 3' flanks
         """
+        attributes_order_csv_flanks = [
+            "sequence_padlock_probe",
+            "sequence_padlock_arm1",
+            "sequence_padlock_arm2",
+            "sequence_target",
+            "length",
+            "Tm_arm1",
+            "Tm_arm2",
+            "Tm_diff_arms",
+            "isoform_consensus",
+            "lbar_id",
+        ]
         rows = []
         for region_id in oligo_database.database.keys():
             oligosets_region = oligo_database.oligosets[region_id]
@@ -557,18 +575,15 @@ class ScrinshotISSProbeDesigner(ScrinshotProbeDesigner):
                     rows.append(
                         {
                             "Gene": region_id,
-                            "Lbar_ID": oligo_database.get_oligo_attribute_value(
-                                attribute="lbar_id",
-                                region_id=region_id,
-                                oligo_id=oligo_id,
-                                flatten=True,
-                            ),
-                            "padlock sequence": oligo_database.get_oligo_attribute_value(
-                                attribute="sequence_padlock_probe",
-                                region_id=region_id,
-                                oligo_id=oligo_id,
-                                flatten=True,
-                            ),
+                            **{
+                                attribute: oligo_database.get_oligo_attribute_value(
+                                    attribute=attribute,
+                                    region_id=region_id,
+                                    oligo_id=oligo_id,
+                                    flatten=True,
+                                )
+                                for attribute in attributes_order_csv_flanks
+                            },
                             "flank_5prime": oligo_database.get_oligo_attribute_value(
                                 attribute="sequence_flank_5prime",
                                 region_id=region_id,
@@ -588,23 +603,31 @@ class ScrinshotISSProbeDesigner(ScrinshotProbeDesigner):
             seen = set()
             deduplicated_rows = []
             for row in rows:
-                key = (row["Gene"], row["Lbar_ID"], row["padlock sequence"])
+                key = (row["Gene"], row["lbar_id"], row["sequence_padlock_probe"])
                 if key in seen:
                     continue
                 seen.add(key)
                 deduplicated_rows.append(row)
             rows = deduplicated_rows
 
+        columns_order_csv_flanks = [
+            "Gene",
+            *attributes_order_csv_flanks,
+            "flank_5prime",
+            "flank_3prime",
+        ]
+        table_order_csv_flanks = pd.DataFrame(rows, columns=columns_order_csv_flanks)
+
         file_output = os.path.join(self.dir_output, "padlock_probes_order.csv")
-        pd.DataFrame(rows, columns=["Gene", "Lbar_ID", "padlock sequence"]).to_csv(
-            file_output, index=False
+        table_order_csv_flanks.rename(
+            columns={"lbar_id": "Lbar_ID", "sequence_padlock_probe": "padlock sequence"}
+        )[["Gene", "Lbar_ID", "padlock sequence"]].to_csv(
+            file_output,
+            index=False,
         )
 
         file_output_flanks = os.path.join(self.dir_output, "padlock_probes_order_flanks.csv")
-        pd.DataFrame(
-            rows,
-            columns=["Gene", "Lbar_ID", "padlock sequence", "flank_5prime", "flank_3prime"],
-        ).to_csv(file_output_flanks, index=False)
+        table_order_csv_flanks.to_csv(file_output_flanks, index=False)
 
 
 def main():
